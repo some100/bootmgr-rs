@@ -1,0 +1,32 @@
+[package]
+name = "bootmgr-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4.27"
+nt-hive = { version = "0.3.0", default-features = false, features = ["alloc"], optional = true }
+pelite = { version = "0.10.0", default-features = false, optional = true }
+ratatui-core = "0.1.0-alpha.6"
+ratatui-widgets = "0.3.0-alpha.5"
+thiserror = { version = "2.0.12", default-features = false }
+uefi = { version = "0.35.0", features = ["alloc"] }
+
+[features]
+default = ["bls", "fallback", "osx", "shell", "uki", "windows", "editor"]
+bls = []
+fallback = []
+osx = []
+shell = []
+uki = ["dep:pelite"]
+windows = ["dep:nt-hive"]
+editor = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(fuzzing)'] }
+
+[profile.release]
+strip = true
+opt-level = "s"
+lto = true
+panic = "abort"

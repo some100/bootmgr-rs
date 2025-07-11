@@ -1,0 +1,35 @@
+[package]
+name = "bootmgr-rs-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.bootmgr-rs]
+path = ".."
+
+[[bin]]
+name = "fuzz_bls_parser"
+path = "fuzz_targets/fuzz_bls_parser.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_uki_parser"
+path = "fuzz_targets/fuzz_uki_parser.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_win_parser"
+path = "fuzz_targets/fuzz_win_parser.rs"
+test = false
+doc = false
+bench = false
