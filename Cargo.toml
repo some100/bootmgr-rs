@@ -1,0 +1,13 @@
+[package]
+name = "bootmgr-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4.27"
+nt-hive = { version = "0.3.0", default-features = false, features = ["alloc"] }
+pelite = { version = "0.10.0", default-features = false }
+ratatui-core = "0.1.0-alpha.6"
+ratatui-widgets = "0.3.0-alpha.5"
+thiserror = { version = "2.0.12", default-features = false }
+uefi = { version = "0.35.0", features = ["alloc", "global_allocator", "panic_handler"] }
