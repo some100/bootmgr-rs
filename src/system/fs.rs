@@ -1,5 +1,8 @@
-#![allow(clippy::cast_possible_truncation)]
-//! Filesystem helper functions for other modules
+//! Filesystem helper functions for other modules.
+//!
+//! These mostly wrap around the UEFI [`SimpleFileSystem`] protocol to make an interface that's slightly more
+//! intuitive and more in line with the Rust standard library. This is clear from functions like [`read_to_string`].
+//! This module also provides filesystem-related testing functions, like [`check_file_exists`].
 
 use alloc::{borrow::ToOwned, boxed::Box, string::String, vec, vec::Vec};
 use log::error;
@@ -17,7 +20,7 @@ use uefi::{
     },
 };
 
-use crate::{error::BootError, system::helper::str_to_cstr};
+use crate::{BootResult, error::BootError, system::helper::str_to_cstr};
 
 const XBOOTLDR_PARTITION: uefi::Guid = guid!("bc13c2ff-59e6-4262-a352-b275fd6f7172");
 
@@ -26,7 +29,7 @@ const XBOOTLDR_PARTITION: uefi::Guid = guid!("bc13c2ff-59e6-4262-a352-b275fd6f71
 /// # Errors
 ///
 /// May return an `Error` if the volume could not be opened, or the volume does not support [`FileSystemVolumeLabel`]
-pub fn get_volume_label(fs: &mut ScopedProtocol<SimpleFileSystem>) -> uefi::Result<CString16> {
+pub fn get_volume_label(fs: &mut ScopedProtocol<SimpleFileSystem>) -> BootResult<CString16> {
     let mut root = fs.open_volume()?;
     let info = root.get_boxed_info::<FileSystemVolumeLabel>()?;
     Ok(info.volume_label().to_owned())
@@ -36,7 +39,7 @@ pub fn get_volume_label(fs: &mut ScopedProtocol<SimpleFileSystem>) -> uefi::Resu
 ///
 /// This will only work if the handle supports [`PartitionInfo`], else it will return
 /// [`true`] for every partition.
-#[must_use]
+#[must_use = "Has no effect if the result is unused"]
 pub fn is_target_partition(handle: &Handle) -> bool {
     // for filesystems that support partitioninfo, filter partitions by guid
     if let Ok(info) = boot::open_protocol_exclusive::<PartitionInfo>(*handle) {
@@ -55,43 +58,43 @@ pub fn is_target_partition(handle: &Handle) -> bool {
 
 /// Checks if a file exists from a [`Handle`] to a partition.
 ///
-/// # Errors
-///
-/// May return an `Error` if the handle does not support `SimpleFileSystem`, or the path
-/// contains invalid UCS-2 characters, or there was a nul character found in the input
-pub fn check_file_exists(
-    fs: &mut ScopedProtocol<SimpleFileSystem>,
-    path: &CStr16,
-) -> Result<bool, BootError> {
-    let mut root = fs.open_volume()?;
+/// It makes no distinction between whether a file could not be verified to exist or a file that really
+/// does not exist. Both will return `false`. This means that if the volume could not be opened, it will return
+/// `false` as the file cannot be verified to exist.
+pub fn check_file_exists(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> bool {
+    let Ok(mut root) = fs.open_volume() else {
+        return false;
+    };
 
-    match root.open(path, FileMode::Read, FileAttribute::empty()) {
-        Ok(_) => Ok(true),
-        Err(e) if e.status() == Status::NOT_FOUND => Ok(false),
-        Err(e) => Err(BootError::Uefi(e)),
-    }
+    root.open(path, FileMode::Read, FileAttribute::empty())
+        .is_ok()
 }
 
 /// Checks if a file exists from a handle to a partition with an [`&str`] path.
 ///
+/// This is simply a helper function that converts an [`&str`] to a [`CString16`] so that it
+/// may be used with the [`check_file_exists`] function.
+///
 /// # Errors
 ///
-/// May return an `Error` if the path contains invalid UCS-2 characters, or there was a nul character found in the input
+/// May return an `Error` if the path could not be converted into a [`CString16`]
 pub fn check_file_exists_str(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     path: &str,
-) -> Result<bool, BootError> {
-    check_file_exists(fs, &str_to_cstr(path))
+) -> BootResult<bool> {
+    Ok(check_file_exists(fs, &str_to_cstr(path)?))
 }
 
 /// Checks if an [`&str`] path is valid.
 ///
 /// If a path contains any one of the characters: `"`, `*`, `/`, `:`, `<`, `>`, `?`, and `|`,
-/// this will return false.
-#[must_use]
+/// this will return false. It will also return false if the path consists only of `..` or `.`.
+#[must_use = "Has no effect if the result is unused"]
 pub fn check_path_valid(path: &str) -> bool {
     path.chars()
         .all(|x| Char16::try_from(x).is_ok_and(|x| !CHARACTER_DENY_LIST.contains(&x) || x == '\\'))
+        && path != ".."
+        && path != "."
 }
 
 /// Deletes a file.
@@ -100,8 +103,8 @@ pub fn check_path_valid(path: &str) -> bool {
 ///
 /// May return an `Error` if the volume couldn't be opened, the path does not point to a valid file,
 /// or the file could not be deleted.
-pub fn delete(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> uefi::Result<()> {
-    let file = get_regular_file(fs, path)?;
+pub fn delete(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> BootResult<()> {
+    let file = get_mut_file(fs, path)?;
     file.delete()?;
 
     Ok(())
@@ -111,15 +114,30 @@ pub fn delete(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> uefi:
 ///
 /// # Errors
 ///
-/// May return an `Error` if the volume couldn't be opened, or the path does not point to a folder.
+/// May return an `Error` if the volume couldn't be opened, or the path does not point to a file.
 pub fn get_regular_file(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     path: &CStr16,
-) -> uefi::Result<RegularFile> {
+) -> BootResult<RegularFile> {
     let mut root = fs.open_volume()?;
     root.open(path, FileMode::Read, FileAttribute::empty())?
         .into_regular_file()
-        .ok_or::<uefi::Error>(Status::INVALID_PARAMETER.into())
+        .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
+}
+
+/// Gets a handle to a [`RegularFile`] that is writable in the filesystem.
+///
+/// # Errors
+///
+/// May return an `Error` if the volume couldn't be opened, or the path does not point to a file.
+pub fn get_mut_file(
+    fs: &mut ScopedProtocol<SimpleFileSystem>,
+    path: &CStr16,
+) -> BootResult<RegularFile> {
+    let mut root = fs.open_volume()?;
+    root.open(path, FileMode::ReadWrite, FileAttribute::empty())?
+        .into_regular_file()
+        .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
 }
 
 /// Gets a handle to a [`Directory`] in the filesystem.
@@ -130,11 +148,11 @@ pub fn get_regular_file(
 pub fn get_directory(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     path: &CStr16,
-) -> uefi::Result<Directory> {
+) -> BootResult<Directory> {
     let mut root = fs.open_volume()?;
     root.open(path, FileMode::Read, FileAttribute::empty())?
         .into_directory()
-        .ok_or::<uefi::Error>(Status::INVALID_PARAMETER.into())
+        .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
 }
 
 /// Returns a [`UefiDirectoryIter`] of files in the path from a handle to a partition.
@@ -145,7 +163,7 @@ pub fn get_directory(
 pub fn read_dir(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     path: &CStr16,
-) -> uefi::Result<UefiDirectoryIter> {
+) -> BootResult<UefiDirectoryIter> {
     Ok(UefiDirectoryIter::new(get_directory(fs, path)?))
 }
 
@@ -180,14 +198,21 @@ pub fn read_filtered_dir(
 ///
 /// May return an `Error` if the volume couldn't be opened, the path does not point to a valid file, or
 /// the file could not be read for any reason.
-pub fn read(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> uefi::Result<Vec<u8>> {
+pub fn read(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> BootResult<Vec<u8>> {
     let mut file = get_regular_file(fs, path)?;
 
     let info = file.get_boxed_info::<FileInfo>()?;
 
-    let mut buf = vec![0; info.file_size() as usize];
+    // the max file size of a FAT32 file system is less than usize::MAX.
+    // so this should generally be safe for reading from local filesystems
+    let size = match usize::try_from(info.file_size()) {
+        Ok(size) => size,
+        _ => usize::MAX,
+    };
+
+    let mut buf = vec![0; size];
     let read = file.read(&mut buf)?;
-    if read != info.file_size() as usize {
+    if read != size {
         error!("{}/{} bytes read", read, info.file_size());
     }
 
@@ -203,8 +228,9 @@ pub fn read(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> uefi::R
 pub fn read_to_string(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     path: &CStr16,
-) -> uefi::Result<String> {
-    Ok(String::from_utf8(read(fs, path)?).map_err(|_| Status::INVALID_PARAMETER)?)
+) -> BootResult<String> {
+    String::from_utf8(read(fs, path)?)
+        .map_err(|_| BootError::Uefi(Status::INVALID_PARAMETER.into()))
 }
 
 /// Renames a file into another file.
@@ -220,18 +246,80 @@ pub fn rename(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     src: &CStr16,
     dst: &CStr16,
-) -> uefi::Result<()> {
+) -> BootResult<()> {
     let _ = delete(fs, dst);
+    let _ = create(fs, dst); // this way if dst exists or not, it will be created anyways
     let src_data = read(fs, src)?;
 
-    let src = get_regular_file(fs, src)?;
-    let mut dst = get_regular_file(fs, dst)?;
+    let src = get_mut_file(fs, src)?;
+    let mut dst = get_mut_file(fs, dst)?;
 
     if let Err(e) = dst.write(&src_data) {
         error!("{}/{} bytes were written", e.data(), src_data.len());
     }
 
     src.delete()?;
+
+    Ok(())
+}
+
+/// Creates an empty file.
+///
+/// # Errors
+///
+/// May return an `Error` if the volume could not be opened.
+pub fn create(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> BootResult<()> {
+    let mut root = fs.open_volume()?;
+    let f = root.open(path, FileMode::CreateReadWrite, FileAttribute::empty())?;
+    if let Some(mut f) = f.into_regular_file() {
+        let buf = [0; 0];
+        let _ = f.write(&buf);
+    }
+    Ok(())
+}
+
+/// Writes a byte slice into a file.
+///
+/// # Errors
+///
+/// May return an `Error` if the volume couldn't be opened, or the file does not exist.
+pub fn write(
+    fs: &mut ScopedProtocol<SimpleFileSystem>,
+    path: &CStr16,
+    buffer: &[u8],
+) -> BootResult<()> {
+    let mut file = get_mut_file(fs, path)?;
+
+    if let Err(e) = file.write(buffer) {
+        error!(
+            "Failed to write: {}. Only {} bytes were written",
+            e.status(),
+            e.data()
+        );
+    }
+
+    Ok(())
+}
+
+/// Appends a byte slice onto a file.
+///
+/// This is similar to using [`write()`] only that instead of replacing the content of a file from the beginning,
+/// it adds new content onto the end of a file.
+///
+/// # Errors
+///
+/// May return an `Error` if the volume couldn't be opened, or the file does not exist.
+pub fn append(
+    fs: &mut ScopedProtocol<SimpleFileSystem>,
+    path: &CStr16,
+    buffer: &[u8],
+) -> BootResult<()> {
+    let mut file = get_mut_file(fs, path)?;
+    file.set_position(RegularFile::END_OF_FILE)?;
+
+    if let Err(e) = file.write(buffer) {
+        error!("Only {} bytes were written", e.data());
+    }
 
     Ok(())
 }

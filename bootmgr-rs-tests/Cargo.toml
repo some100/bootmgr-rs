@@ -1,0 +1,9 @@
+[package]
+name = "bootmgr-rs-tests"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bootmgr-rs = { path = "../" }
+log = "0.4.27"
+uefi = "0.35.0"

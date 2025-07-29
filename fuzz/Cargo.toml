@@ -33,3 +33,10 @@ path = "fuzz_targets/fuzz_win_parser.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "fuzz_boot_parser"
+path = "fuzz_targets/fuzz_boot_parser.rs"
+test = false
+doc = false
+bench = false

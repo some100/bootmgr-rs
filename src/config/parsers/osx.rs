@@ -20,10 +20,14 @@ impl ConfigParser for OsxConfig {
         handle: Handle,
         configs: &mut Vec<Config>,
     ) {
-        if let Ok(true) = check_file_exists(fs, &get_path_cstr(BOOTEFI_PREFIX, cstr16!("boot.efi")))
-        {
+        let Ok(path) = get_path_cstr(BOOTEFI_PREFIX, cstr16!("boot.efi")) else {
+            return; // this should not happen, the path is hardcoded and valid
+        };
+
+        if check_file_exists(fs, &path) {
             let efi = format!("{BOOTEFI_PREFIX}\\boot.efi");
-            let config = ConfigBuilder::new(efi, "boot.efi", BOOTEFI_SUFFIX)
+            let config = ConfigBuilder::new("boot.efi", BOOTEFI_SUFFIX)
+                .efi(efi)
                 .title("macOS")
                 .sort_key("macos")
                 .handle(handle);

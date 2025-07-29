@@ -20,11 +20,13 @@ impl ConfigParser for ShellConfig {
         handle: Handle,
         configs: &mut Vec<Config>,
     ) {
-        if let Ok(true) =
-            check_file_exists(fs, &get_path_cstr(SHELL_PREFIX, cstr16!("shellx64.efi")))
-        {
+        let Ok(path) = get_path_cstr(SHELL_PREFIX, cstr16!("shellx64.efi")) else {
+            return; // this should not happen as the path is hardcoded and valid
+        };
+        if check_file_exists(fs, &path) {
             let efi = format!("{SHELL_PREFIX}\\shellx64.efi");
-            let config = ConfigBuilder::new(efi, "shellx64.efi", SHELL_SUFFIX)
+            let config = ConfigBuilder::new("shellx64.efi", SHELL_SUFFIX)
+                .efi(efi)
                 .title("UEFI Shell")
                 .sort_key("shell")
                 .handle(handle);

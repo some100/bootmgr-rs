@@ -10,10 +10,11 @@ use uefi::{
 };
 
 use crate::{
+    BootResult,
     config::{Config, builder::ConfigBuilder, parsers::ConfigParser},
     system::{
         fs::{read_filtered_dir, read_to_string, rename},
-        helper::get_path_cstr,
+        helper::{get_path_cstr, str_to_cstr},
     },
 };
 
@@ -50,30 +51,24 @@ impl BootCounter {
         })
     }
 
-    fn to_filename(&self) -> CString16 {
+    fn to_filename(&self) -> BootResult<CString16> {
         let str = if self.done > 0 {
             format!("{}+{}-{}.conf", self.base_name, self.left, self.done)
         } else {
             format!("{}+{}.conf", self.base_name, self.left)
         };
 
-        // this should not happen in any case ever
-        CString16::try_from(&*str).unwrap_or_else(|_| {
-            panic!(
-                "File base name {} contains invalid UCS-2 characters",
-                self.base_name
-            )
-        })
+        Ok(str_to_cstr(&str)?)
     }
 
-    fn decrement(&mut self) {
+    const fn decrement(&mut self) {
         if self.left > 0 {
             self.left -= 1;
             self.done += 1;
         }
     }
 
-    fn is_bad(&self) -> bool {
+    const fn is_bad(&self) -> bool {
         self.left == 0
     }
 }
@@ -95,9 +90,10 @@ pub struct BlsConfig {
 }
 
 impl BlsConfig {
-    #[must_use]
+    /// Creates a new [`BlsConfig`], parsing it from a BLS configuration file formatted string.
+    #[must_use = "Has no effect if the result is unused"]
     pub fn new(content: &str) -> Self {
-        let mut config = BlsConfig::default();
+        let mut config = Self::default();
 
         for line in content.lines() {
             let line = line.trim();
@@ -136,7 +132,7 @@ impl BlsConfig {
     }
 
     /// Joins both options and initrd options
-    #[must_use]
+    #[must_use = "Has no effect if the result is unused"]
     pub fn get_options(&self) -> String {
         let mut options = String::new();
         if let Some(opts) = &self.options {
@@ -182,8 +178,8 @@ fn get_bls_config(
     file: &FileInfo,
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     handle: Handle,
-) -> uefi::Result<Option<Config>> {
-    let content = read_to_string(fs, &get_path_cstr(BLS_PREFIX, file.file_name()))?;
+) -> BootResult<Option<Config>> {
+    let content = read_to_string(fs, &get_path_cstr(BLS_PREFIX, file.file_name())?)?;
 
     let bls_config = BlsConfig::new(&content);
     let options = bls_config.get_options();
@@ -192,7 +188,8 @@ fn get_bls_config(
         return Ok(None);
     };
 
-    let mut config = ConfigBuilder::new(efi, file.file_name(), BLS_SUFFIX)
+    let mut config = ConfigBuilder::new(file.file_name(), BLS_SUFFIX)
+        .efi(efi)
         .options(options)
         .bad(check_bad(file, fs))
         .handle(handle);
@@ -228,22 +225,28 @@ fn get_bls_config(
 fn check_bad(file: &FileInfo, fs: &mut ScopedProtocol<SimpleFileSystem>) -> bool {
     let counter = BootCounter::new(file.file_name());
 
-    let Some(mut counter) = counter else {
-        return false; // there is no boot counting, so just say its good
-    };
+    if let Some(mut counter) = counter {
+        if counter.is_bad() {
+            return true; // tries exhausted
+        }
 
-    if counter.is_bad() {
-        return true; // tries exhausted
-    }
+        counter.decrement();
 
-    counter.decrement();
+        let Ok(counter_name) = counter.to_filename() else {
+            return false; // if we cant even convert the boot counter into a filename, just return
+        };
 
-    if let Err(e) = rename(
-        fs,
-        &get_path_cstr(BLS_PREFIX, file.file_name()),
-        &get_path_cstr(BLS_PREFIX, &counter.to_filename()),
-    ) {
-        error!("{e}");
+        let Ok(src) = get_path_cstr(BLS_PREFIX, file.file_name()) else {
+            return false;
+        };
+
+        let Ok(dst) = get_path_cstr(BLS_PREFIX, &counter_name) else {
+            return false;
+        };
+
+        if let Err(e) = rename(fs, &src, &dst) {
+            error!("{e}");
+        }
     }
 
     false
@@ -255,12 +258,12 @@ mod tests {
 
     #[test]
     fn test_basic_config() {
-        let config = r#"
+        let config = r"
             title Linux
             linux /vmlinuz-linux
             initrd /initramfs-linux.img
             options root=PARTUUID=1234abcd-56ef-78gh-90ij-klmnopqrstuv rw
-        "#;
+        ";
         let bls_config = BlsConfig::new(config);
         assert_eq!(bls_config.title, Some("Linux".to_owned()));
         assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()));
@@ -278,13 +281,13 @@ mod tests {
 
     #[test]
     fn test_multiple_initrd() {
-        let config = r#"
+        let config = r"
             title Linux
             linux /vmlinuz-linux
             initrd /intel-ucode.img
             initrd /initramfs-linux.img
             options root=PARTUUID=dcba4321-fe65-hg87-ji09-vutsrqponmlk ro
-        "#;
+        ";
         let bls_config = BlsConfig::new(config);
         assert_eq!(
             bls_config.initrd,
@@ -295,11 +298,11 @@ mod tests {
 
     #[test]
     fn test_comment() {
-        let config = r#"
+        let config = r"
             # A comment that should be ignored.
             title Linux
             linux /vmlinuz-linux
-        "#;
+        ";
         let bls_config = BlsConfig::new(config);
         assert_eq!(bls_config.title, Some("Linux".to_owned()));
         assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()));
@@ -307,36 +310,43 @@ mod tests {
 
     #[test]
     fn test_duplicate() {
-        let config = r#"
+        let config = r"
             title Linux
             title Linux 2
             linux /vmlinuz-linux
-        "#;
+        ";
         let bls_config = BlsConfig::new(config);
         // the last title in sequence takes priority. not based on any kind of rule or specification but a side effect of the parser implementation
         assert_eq!(bls_config.title, Some("Linux 2".to_owned()));
-        assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()))
+        assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()));
     }
 
     #[test]
     fn test_boot_counter() {
         let filename = "somelinuxconf+3.conf";
         // we do not care about expects since its a test
-        let mut ctr = BootCounter::new(filename).expect("Failed to create a boot counter from filename in test");
+        let mut ctr = BootCounter::new(filename)
+            .expect("Failed to create a boot counter from filename in test");
         ctr.decrement();
         assert_eq!(
-            ctr.to_filename(),
-            CString16::try_from("somelinuxconf+2-1.conf").expect("Failed to convert simple string to CString16")
+            ctr.to_filename()
+                .expect("Failed to convert simple string to a filename"),
+            CString16::try_from("somelinuxconf+2-1.conf")
+                .expect("Failed to convert simple string to CString16")
         );
         ctr.decrement();
         assert_eq!(
-            ctr.to_filename(),
-            CString16::try_from("somelinuxconf+1-2.conf").expect("Failed to convert simple string to CString16")
+            ctr.to_filename()
+                .expect("Failed to convert simple string to a filename"),
+            CString16::try_from("somelinuxconf+1-2.conf")
+                .expect("Failed to convert simple string to CString16")
         );
         ctr.decrement();
         assert_eq!(
-            ctr.to_filename(),
-            CString16::try_from("somelinuxconf+0-3.conf").expect("Failed to convert simple string to CString16")
+            ctr.to_filename()
+                .expect("Failed to convert simple string to a filename"),
+            CString16::try_from("somelinuxconf+0-3.conf")
+                .expect("Failed to convert simple string to CString16")
         );
         assert!(ctr.is_bad());
     }

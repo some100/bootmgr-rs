@@ -1,5 +1,4 @@
-#![allow(clippy::cast_possible_truncation)]
-//! UEFI Backend for ratatui
+//! UEFI Backend for ratatui.
 
 use core::fmt::Write;
 
@@ -15,7 +14,9 @@ use uefi::{
     proto::console::text::{Color as UefiColor, Output},
 };
 
-fn ansi_to_uefi_color_fg(color: RatatuiColor) -> UefiColor {
+use crate::system::helper::truncate_usize_to_u16;
+
+const fn ansi_to_uefi_color_fg(color: RatatuiColor) -> UefiColor {
     match color {
         RatatuiColor::Black => UefiColor::Black,
         RatatuiColor::Red => UefiColor::Red,
@@ -35,7 +36,7 @@ fn ansi_to_uefi_color_fg(color: RatatuiColor) -> UefiColor {
     }
 }
 
-fn ansi_to_uefi_color_bg(color: RatatuiColor) -> UefiColor {
+const fn ansi_to_uefi_color_bg(color: RatatuiColor) -> UefiColor {
     // only the first 8 colors may be used for bg
     match color {
         RatatuiColor::Blue => UefiColor::Blue,
@@ -48,9 +49,15 @@ fn ansi_to_uefi_color_bg(color: RatatuiColor) -> UefiColor {
     }
 }
 
+/// UEFI Backend for ratatui.
 pub struct UefiBackend {
+    /// The [`Output`] of the UEFI terminal.
     pub output: ScopedProtocol<Output>,
+
+    /// The foreground color.
     pub fg: UefiColor,
+
+    /// The background color.
     pub bg: UefiColor,
 }
 
@@ -70,8 +77,9 @@ impl UefiBackend {
         })
     }
 
-    #[must_use]
-    pub fn with_output(output: ScopedProtocol<Output>) -> Self {
+    /// Create a new ratatui UEFI backend given an [`Output`].
+    #[must_use = "Has no effect if the result is unused"]
+    pub const fn with_output(output: ScopedProtocol<Output>) -> Self {
         Self {
             output,
             fg: UefiColor::White,
@@ -79,12 +87,14 @@ impl UefiBackend {
         }
     }
 
+    /// Set the colors of the terminal.
     pub fn set_color(&mut self, fg: RatatuiColor, bg: RatatuiColor) {
         self.fg = ansi_to_uefi_color_fg(fg);
         self.bg = ansi_to_uefi_color_bg(bg);
         self.reset_color();
     }
 
+    /// Set the colors of the terminal to the ones set previously by [`Self::set_color`].
     pub fn reset_color(&mut self) {
         let _ = self.output.set_color(self.fg, self.bg);
     }
@@ -123,7 +133,12 @@ impl Backend for UefiBackend {
 
     fn get_cursor_position(&mut self) -> uefi::Result<Position> {
         let (x, y) = self.output.cursor_position();
-        Ok((x as u16, y as u16).into())
+
+        // as long as your screen has less than 65536 rows and columns,
+        // truncation should be generally safe here
+        let x = truncate_usize_to_u16(x);
+        let y = truncate_usize_to_u16(y);
+        Ok((x, y).into())
     }
 
     fn set_cursor_position<P: Into<Position>>(&mut self, position: P) -> uefi::Result<()> {
@@ -152,19 +167,14 @@ impl Backend for UefiBackend {
             .output
             .current_mode()?
             .ok_or_else(|| uefi::Error::new(Status::UNSUPPORTED, ()))?;
-        Ok(Size::new(mode.columns() as u16, mode.rows() as u16))
+        let columns = truncate_usize_to_u16(mode.columns());
+        let rows = truncate_usize_to_u16(mode.rows());
+        Ok(Size::new(columns, rows))
     }
 
     fn window_size(&mut self) -> uefi::Result<WindowSize> {
-        let mode = self
-            .output
-            .current_mode()?
-            .ok_or_else(|| uefi::Error::new(Status::UNSUPPORTED, ()))?;
         Ok(WindowSize {
-            columns_rows: Size {
-                width: mode.columns() as u16,
-                height: mode.rows() as u16,
-            },
+            columns_rows: self.size()?,
             pixels: Size {
                 width: 0,
                 height: 0,

@@ -1,60 +1,108 @@
-//! Provides [`Config`], the main configuration struct
+//! Provides [`Config`], the main configuration struct.
+//!
+//! This will generally represent a boot entry in the boot manager.
 
 use alloc::{string::String, vec, vec::Vec};
 use log::{error, warn};
+use thiserror::Error;
 use uefi::{
-    Handle,
     boot::{self, SearchType},
     proto::media::fs::SimpleFileSystem,
 };
 
 use crate::{
+    BootResult,
     boot::action::BootAction,
-    config::parsers::parse_all_configs,
-    error::BootError,
+    config::{
+        parsers::parse_all_configs,
+        types::{Architecture, DevicetreePath, EfiPath, FsHandle, MachineId, SortKey},
+    },
     system::{
-        fs::{check_file_exists_str, check_path_valid, is_target_partition},
+        fs::{check_file_exists_str, is_target_partition},
         helper::get_arch,
     },
 };
 
 pub mod builder;
 pub mod parsers;
+pub mod types;
 
-const MACHINE_ID_LEN: usize = 32;
+/// Errors indicating that a [`Config`] is invalid.
+#[derive(Error, Debug)]
+pub enum ConfigError {
+    /// There was no `Handle` when one was required.
+    #[error("Config {0} missing handle")]
+    ConfigMissingHandle(String),
+
+    /// There was no EFI executable specified when one was required.
+    #[error("Config {0} missing EFI")]
+    ConfigMissingEfi(String),
+
+    /// The [`Config`]'s architecture field did not match the system architecture.
+    #[error("Config {0} has non-matching architecture")]
+    NonMatchingArch(String),
+
+    /// The path specified by the [`Config`] does not exist.
+    #[error("{0} does not exist at path {1}")]
+    NotExist(&'static str, String),
+}
 
 /// The standard [`Config`]
 #[derive(Clone, Debug, Default)]
 pub struct Config {
+    /// The preferred boot name of the entry.
     pub title: Option<String>,
-    pub version: Option<String>,
-    pub machine_id: Option<String>,
-    pub sort_key: Option<String>,
-    pub options: Option<String>,
-    pub devicetree: Option<String>,
-    pub architecture: Option<String>,
 
+    /// The version of the entry for sorting.
+    pub version: Option<String>,
+
+    /// The machine-id for sorting.
+    pub machine_id: Option<MachineId>,
+
+    /// The sort-key for sorting.
+    pub sort_key: Option<SortKey>,
+
+    /// The options specified in loading the image.
+    pub options: Option<String>,
+
+    /// The path to a devicetree, if one is required.
+    pub devicetree: Option<DevicetreePath>,
+
+    /// The architecture of the entry for filtering.
+    pub architecture: Option<Architecture>,
+
+    /// The path to an EFI executable, if one is required.
+    pub efi: Option<EfiPath>,
+
+    /// The [`BootAction`] of the entry, for deciding which loader to use.
     pub action: BootAction,
+
+    /// Checks if an entry is bad, for sorting and deranking.
     pub bad: bool,
-    pub handle: Option<Handle>,
-    pub efi: String,
+
+    /// The [`FsHandle`] of the entry, if one is required.
+    pub handle: Option<FsHandle>,
+
+    /// The filename of the entry.
     pub filename: String,
+
+    /// The suffix of the filename of the entry.
     pub suffix: String,
 }
 
 impl Config {
     /// Returns a [`Vec`] over every [`String`] struct field that should be edited
-    #[must_use]
+    #[must_use = "Has no effect if the result is unused"]
     pub fn get_str_fields(&self) -> Vec<(&'static str, Option<&String>)> {
         vec![
             ("title", self.title.as_ref()),
             ("version", self.version.as_ref()),
-            ("machine_id", self.machine_id.as_ref()),
-            ("sort_key", self.sort_key.as_ref()),
+            ("machine_id", self.machine_id.as_deref()),
+            ("sort_key", self.sort_key.as_deref()),
             ("options", self.options.as_ref()),
-            ("devicetree", self.devicetree.as_ref()),
-            ("architecture", self.architecture.as_ref()),
-            ("efi", Some(&self.efi)),
+            ("devicetree", self.devicetree.as_deref()),
+            ("architecture", self.architecture.as_deref()),
+            ("efi", self.efi.as_deref()),
         ]
     }
 
@@ -73,72 +121,21 @@ impl Config {
     /// are met. This ensures that any of the [`Config`]s will be guaranteed to
     /// at least start.
     ///
+    /// # Panics
+    ///
+    /// May panic if the [`FsHandle`] somehow does not support [`SimpleFileSystem`]. However, this cannot happen
+    /// as the constructor for [`FsHandle`] requires a valid handle that supports [`SimpleFileSystem`].
+    ///
     /// # Errors
     ///
     /// May return an `Error` if any of the error criteria are met:
     /// 1. Non matching architecture with system
-    /// 2. Invalid sort key
-    /// 3. Invalid machine ID
-    /// 4. Invalid EFI executable path
-    /// 5. Invalid devicetree path
-    /// 6. Nonexistent EFI executable
-    /// 7. (if applicable) Nonexistent devicetree
-    pub fn validate(&mut self) -> Result<(), BootError> {
-        if let Some(target) = &self.architecture
-            && let Some(arch) = get_arch()
-            && *target != arch
-        {
-            return Err(BootError::NonMatchingArch(target.clone()));
-        }
-        if let Some(sort_key) = &self.sort_key
-            && !sort_key
-                .chars()
-                .all(|x| x.is_ascii_alphanumeric() || x == '.' || x == '_' || x == '-')
-        {
-            error!("Config {} has invalid sort key {}", self.filename, sort_key);
-            self.sort_key = None;
-        }
-        if let Some(machine_id) = &self.machine_id
-            && (machine_id.chars().count() != MACHINE_ID_LEN
-                || !machine_id
-                    .chars()
-                    .all(|x| x.is_ascii_hexdigit() && x.is_ascii_lowercase()))
-        {
-            error!(
-                "Config {} has invalid machine id {}",
-                self.filename, machine_id
-            );
-            self.machine_id = None;
-        }
-        if !check_path_valid(&self.efi) {
-            return Err(BootError::InvalidPath(
-                self.filename.clone(),
-                self.efi.clone(),
-            ));
-        }
-        if let Some(devicetree) = &self.devicetree
-            && !check_path_valid(devicetree)
-        {
-            return Err(BootError::InvalidPath(
-                self.filename.clone(),
-                devicetree.clone(),
-            ));
-        }
-        if let Some(handle) = self.handle {
-            let mut fs = boot::open_protocol_exclusive(handle)?;
-            match check_file_exists_str(&mut fs, &self.efi) {
-                Ok(false) | Err(_) => return Err(BootError::NotExist("EFI", self.efi.clone())),
-                _ => (),
-            }
-            if let Some(devicetree) = &self.devicetree {
-                match check_file_exists_str(&mut fs, devicetree) {
-                    Ok(false) | Err(_) => {
-                        return Err(BootError::NotExist("Devicetree", devicetree.clone()));
-                    }
-                    _ => (),
-                }
-            }
-        }
+    /// 2. Nonexistent EFI executable
+    /// 3. (if applicable) Nonexistent devicetree
+    pub fn validate(&self) -> Result<(), ConfigError> {
+        self.validate_arch()?;
+        self.validate_efi()?;
+        self.validate_paths()?;
 
         Ok(())
     }
@@ -150,6 +147,44 @@ impl Config {
             warn!("Config {} does not have a title", self.filename);
         }
     }
+
+    fn validate_arch(&self) -> Result<(), ConfigError> {
+        if let Some(target) = &self.architecture
+            && let Some(arch) = get_arch()
+            && target != &arch
+        {
+            return Err(ConfigError::NonMatchingArch((**target).clone()));
+        }
+        Ok(())
+    }
+
+    fn validate_efi(&self) -> Result<(), ConfigError> {
+        if matches!(self.action, BootAction::BootEfi | BootAction::BootTftp) && self.efi.is_none() {
+            return Err(ConfigError::ConfigMissingEfi(self.filename.clone()));
+        }
+        Ok(())
+    }
+
+    fn validate_paths(&self) -> Result<(), ConfigError> {
+        if let Some(handle) = self.handle {
+            // this should not panic, as handle is FsHandle and must always support SimpleFileSystem
+            let mut fs = boot::open_protocol_exclusive(*handle)
+                .expect("Handle does not support SimpleFileSystem");
+            if let Some(efi) = &self.efi
+                && check_file_exists_str(&mut fs, efi).unwrap_or(false)
+            {
+                return Err(ConfigError::NotExist("EFI", (**efi).clone()));
+            }
+            if let Some(devicetree) = &self.devicetree
+                && check_file_exists_str(&mut fs, devicetree).unwrap_or(false)
+            {
+                return Err(ConfigError::NotExist("Devicetree", (**devicetree).clone()));
+            }
+        } else if matches!(self.action, BootAction::BootEfi) {
+            return Err(ConfigError::ConfigMissingHandle(self.filename.clone()));
+        }
+        Ok(())
+    }
 }
 
 /// Gets every [`Config`] from every filesystem that is available, and returns it in a [`Vec<Config>`]
@@ -159,7 +194,7 @@ impl Config {
 /// # Errors
 ///
 /// May return an `Error` if there are no handles in the system that support [`SimpleFileSystem`].
-pub fn get_configs() -> uefi::Result<Vec<Config>> {
+pub fn get_configs() -> BootResult<Vec<Config>> {
     let mut configs = Vec::with_capacity(4); // a system is likely to have up to 4 configs
     let handles =
         boot::locate_handle_buffer(SearchType::from_proto::<SimpleFileSystem>())?.to_vec();
@@ -175,7 +210,7 @@ pub fn get_configs() -> uefi::Result<Vec<Config>> {
 
     configs.retain_mut(Config::is_good);
 
-    configs.sort_by(|a, b| {
+    configs.sort_unstable_by(|a, b| {
         a.bad
             .cmp(&b.bad) // derank bad entries
             .then_with(|| b.sort_key.is_some().cmp(&a.sort_key.is_some())) // always sort entries with sort keys earlier
@@ -197,71 +232,26 @@ mod tests {
     use super::*;
     use alloc::borrow::ToOwned;
 
+    // This is technically not a valid Config.
+    // This simply tests that the config validator will mark valid fields as correct.
     #[test]
-    fn test_full_config() {
+    fn test_non_efi_config() {
+        let machine_id =
+            MachineId::new("1234567890abcdef1234567890abcdef").expect("Machine id is invalid");
+        let sort_key = SortKey::new("linux").expect("Sort key is invalid");
+        let efi = EfiPath::new("\\vmlinuz-linux").expect("EFI is invalid");
         let mut config = Config {
             title: Some("Linux".to_owned()),
             version: Some("6.10.0".to_owned()),
-            machine_id: Some("1234567890abcdefghijklmnopqrstuv".to_owned()),
-            sort_key: Some("linux".to_owned()),
+            machine_id: Some(machine_id),
+            sort_key: Some(sort_key),
             options: Some("root=PARTUUID=1234abcd-56ef-78gh-90ij-klmnopqrstuv ro".to_owned()),
-            efi: "\\vmlinuz-linux".to_owned(),
+            efi: Some(efi),
             filename: "linux.conf".to_owned(),
             suffix: ".conf".to_owned(),
+            action: BootAction::BootTftp,
             ..Config::default()
         };
         assert!(config.is_good());
-    }
-
-    #[test]
-    fn test_invalid_sort_key() {
-        let mut config = Config {
-            sort_key: Some(";'[];\\[]-=invalid sort key".to_owned()),
-            efi: "\\foo\\bar".to_owned(),
-            ..Config::default()
-        };
-        config.validate().expect("Config is invalid outside of sort key"); // this means that the validate function is borked
-        assert!(config.sort_key.is_none());
-    }
-
-    #[test]
-    fn test_invalid_machine_id() {
-        let mut config = Config {
-            machine_id: Some("invalidthing".to_owned()), // obviously invalid
-            efi: "\\foo\\bar".to_owned(),
-            ..Config::default()
-        };
-        config.validate().expect("Config is invalid outside of machine id");
-        assert!(config.machine_id.is_none());
-        config.machine_id = Some("1".to_owned());
-        config.validate().expect("Config is invalid outside of machine id");
-        assert!(config.machine_id.is_none());
-        config.machine_id = Some("1234567890abcdefghijklmnopqrstu".to_owned()); // slightly less obviously invalid
-        config.validate().expect("Config is invalid outside of machine id");
-        assert!(config.machine_id.is_none());
-    }
-
-    #[test]
-    fn test_invalid_efi_path() {
-        let mut config = Config {
-            efi: "** -= . : <> ? \\very very bad path".to_owned(),
-            ..Config::default()
-        };
-        assert!(!config.is_good());
-        let mut config = Config {
-            efi: "/a/path/with/forward/slashes".to_owned(),
-            ..Config::default()
-        };
-        assert!(!config.is_good());
-    }
-
-    #[test]
-    fn test_invalid_dtb_path() {
-        let mut config = Config {
-            devicetree: Some("\\** / : ???? .dtb".to_owned()),
-            efi: "\\foo\\bar".to_owned(),
-            ..Config::default()
-        };
-        assert!(!config.is_good());
     }
 }

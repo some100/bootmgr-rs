@@ -1,29 +1,31 @@
-//! Provides functions for booting
+//! Provides [`BootMgr`], a struct which abstracts most of loading a [`Config`].
 
 use alloc::vec::Vec;
 use log::error;
 use uefi::{Handle, cstr16};
 
 use crate::{
-    boot::{action::add_special_boot, config::BootConfig, loader::efi},
+    BootResult,
+    boot::{action::add_special_boot, config::BootConfig, loader::load_boot_option},
     config::{Config, get_configs},
-    error::BootError,
     system::{
         drivers::load_drivers,
         variable::{get_variable, set_variable},
     },
 };
 
-mod devicetree;
-mod loader;
-
 pub mod action;
 pub mod config;
+pub mod devicetree;
+pub mod loader;
 pub mod secure_boot;
 
 /// The storage for configuration files.
 pub struct BootMgr {
+    /// The configuration of the boot manager.
     pub boot_config: BootConfig,
+
+    /// The boot options.
     pub configs: Vec<Config>,
 }
 
@@ -31,18 +33,18 @@ impl BootMgr {
     /// Creates a new [`BootMgr`], load drivers, then populate it with [`Config`]s.
     ///
     /// It will also add special boot options, like Reboot, Shutdown, and Reset to Firmware.
-    /// This will also parse the main configuration file located at `\\EFI\\BOOT\\bootmgr-rs.conf`
+    /// This will also parse the main configuration file located at `\\loader\\bootmgr-rs.conf`
     /// for user settings.
     ///
     /// # Errors
     ///
     /// May return an `Error` if a fatal error occurred when parsing the [`BootConfig`] (such as the image handle not
     /// supporting `SimpleFileSystem`) or when parsing the [`Config`]s.
-    pub fn new() -> Result<Self, BootError> {
+    pub fn new() -> BootResult<Self> {
         let boot_config = BootConfig::new()?;
         load_drivers(&boot_config.driver_path)?; // load drivers before configs from other fs are parsed
         let mut configs = get_configs()?;
-        add_special_boot(&mut configs);
+        add_special_boot(&mut configs, &boot_config);
 
         Ok(Self {
             boot_config,
@@ -55,13 +57,19 @@ impl BootMgr {
     /// # Errors
     ///
     /// May return an `Error` if an error occurred while loading the boot option.
-    pub fn load(&self, selected: usize) -> Result<Handle, BootError> {
+    pub fn load(&mut self, selected: usize) -> BootResult<Handle> {
         let config = &self.configs[selected];
-        efi::load_boot_option(config)
+        match load_boot_option(config) {
+            Ok(handle) => Ok(handle),
+            Err(e) => {
+                self.configs[selected].bad = true;
+                Err(e)
+            }
+        }
     }
 
     /// Returns a clone of the inner [`Vec<Config>`].
-    #[must_use]
+    #[must_use = "Has no effect if the result is unused"]
     pub fn list(&self) -> Vec<Config> {
         self.configs.clone()
     }
@@ -78,7 +86,7 @@ impl BootMgr {
     /// 2. Config file
     ///
     /// If the default boot option is set in neither, then 0 is returned
-    #[must_use]
+    #[must_use = "Has no effect if the result is unused"]
     pub fn get_default(&self) -> usize {
         if let Ok(idx) = get_variable::<usize>(cstr16!("BootDefault"), None)
             && idx < self.configs.len()
@@ -100,7 +108,7 @@ impl BootMgr {
     /// This is stored in a UEFI variable, so it may not be completely reliable across firmware implementations.
     pub fn set_default(&self, option: usize) {
         if option < self.configs.len()
-            && let Err(e) = set_variable::<usize>(cstr16!("BootDefault"), None, None, option)
+            && let Err(e) = set_variable::<usize>(cstr16!("BootDefault"), None, None, Some(option))
         {
             error!("Failed to set BootDefault UEFI variable: {e}");
         }

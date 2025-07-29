@@ -1,7 +1,11 @@
+//! Simple panic handler that stalls for 10 seconds, then shuts down the system.
+//!
+//! This is disabled when fuzzing or testing, to avoid conflicts with std.
+
 #![cfg(all(not(fuzzing), not(test)))] // this causes a conflict if fuzzing or testing if enabled
 use core::fmt::Write;
 
-const PANIC_DELAY: usize = 10_000_000;
+const PANIC_DELAY: usize = 10_000_000; // 10 seconds
 
 #[panic_handler]
 fn panic_handler(info: &core::panic::PanicInfo) -> ! {

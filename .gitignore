@@ -1,1 +1,7 @@
 /target
+
+/bootmgr-rs-tests/target
+
+/fuzz/artifacts
+/fuzz/corpus
+/fuzz/target

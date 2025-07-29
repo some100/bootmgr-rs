@@ -1,15 +1,69 @@
+//! UEFI variable storage helpers.
+//!
+//! These store a number into a UEFI variable in a custom vendor namespace.
+
 use alloc::{vec, vec::Vec};
 use uefi::{
     CStr16, Status, guid,
     runtime::{self, VariableAttributes, VariableVendor},
 };
 
+use crate::{BootResult, error::BootError};
+
 const BOOTMGR_GUID: uefi::Guid = guid!("23600d08-561e-4e68-a024-1d7d6e04ee4e");
+
+trait UefiVariableStorage {
+    fn get_variable<T: UefiVariable + 'static>(
+        name: &CStr16,
+        vendor: &VariableVendor,
+        buf: &mut [u8],
+    ) -> BootResult<T>;
+    fn set_variable<T: UefiVariable + 'static>(
+        name: &CStr16,
+        vendor: &VariableVendor,
+        attributes: VariableAttributes,
+        num: Option<T>,
+    ) -> BootResult<()>;
+}
+
+struct RuntimeUefiVariableStorage;
+
+impl UefiVariableStorage for RuntimeUefiVariableStorage {
+    fn get_variable<T: UefiVariable>(
+        name: &CStr16,
+        vendor: &VariableVendor,
+        buf: &mut [u8],
+    ) -> BootResult<T> {
+        match runtime::get_variable(name, vendor, buf) {
+            Ok((var, _)) => Ok(T::from_le_bytes(var)),
+            Err(e) if e.status() == Status::NOT_FOUND => Ok(T::default()), // pretend that we got all zeroes if its not found
+            Err(e) => Err(BootError::Uefi(e.to_err_without_payload())),
+        }
+    }
+
+    fn set_variable<T: UefiVariable>(
+        name: &CStr16,
+        vendor: &VariableVendor,
+        attributes: VariableAttributes,
+        num: Option<T>,
+    ) -> BootResult<()> {
+        let num = match num {
+            Some(num) => num.to_le_bytes(),
+            None => Vec::with_capacity(0), // a zero sized array will delete the variable
+        };
+        Ok(runtime::set_variable(name, vendor, attributes, &num)?)
+    }
+}
 
 /// A value that can be stored in a UEFI variable.
 pub trait UefiVariable: Sized {
+    /// Convert `Self` to a vector of little endian bytes.
     fn to_le_bytes(self) -> Vec<u8>;
+
+    /// Convert a vector of little endian bytes to `Self`.
     fn from_le_bytes(bytes: &[u8]) -> Self;
+
+    /// Return 0, or an equivalent value.
     fn default() -> Self;
 }
 
@@ -61,25 +115,23 @@ impl UefiVariable for u8 {
 /// not the global variables vendor space. In other words, unless you are storing your own variables,
 /// it may not be what you expect.
 ///
+/// Passing None for num will result in the variable being deleted.
+///
 /// # Errors
 ///
 /// May return an `Error` for many reasons, see [`runtime::set_variable`]
-pub fn set_variable<T: UefiVariable>(
+pub fn set_variable<T: UefiVariable + 'static>(
     name: &CStr16,
     vendor: Option<VariableVendor>,
     attrs: Option<VariableAttributes>,
-    num: T
-) -> uefi::Result<()> {
-    let bytes = num.to_le_bytes();
-    let vendor = match vendor {
-        Some(vendor) => vendor,
-        None => runtime::VariableVendor(BOOTMGR_GUID),
-    };
-    let attrs = match attrs {
-        Some(attrs) => attrs,
-        None => VariableAttributes::NON_VOLATILE | VariableAttributes::BOOTSERVICE_ACCESS,
-    };
-    runtime::set_variable(name, &vendor, attrs, &bytes)
+    num: Option<T>,
+) -> BootResult<()> {
+    let vendor = vendor.unwrap_or(runtime::VariableVendor(BOOTMGR_GUID));
+    let attrs = attrs.map_or_else(
+        || VariableAttributes::NON_VOLATILE | VariableAttributes::BOOTSERVICE_ACCESS,
+        |x| x,
+    );
+    RuntimeUefiVariableStorage::set_variable(name, &vendor, attrs, num)
 }
 
 /// Gets a UEFI variable of a [`UefiVariable`] given the name
@@ -91,18 +143,11 @@ pub fn set_variable<T: UefiVariable>(
 /// # Errors
 ///
 /// May return an `Error` for many reasons, see [`runtime::get_variable`]
-pub fn get_variable<T: UefiVariable>(
+pub fn get_variable<T: UefiVariable + 'static>(
     name: &CStr16,
     vendor: Option<VariableVendor>,
-) -> uefi::Result<T> {
+) -> BootResult<T> {
     let mut buf = vec![0; size_of::<T>()];
-    let vendor = match vendor {
-        Some(vendor) => vendor,
-        None => runtime::VariableVendor(BOOTMGR_GUID),
-    };
-    match runtime::get_variable(name, &vendor, &mut buf) {
-        Ok((var, _)) => Ok(T::from_le_bytes(var)),
-        Err(e) if e.status() == Status::NOT_FOUND => Ok(T::default()), // pretend that we got all zeroes if its not found
-        Err(e) => Err(e.to_err_without_payload()),
-    }
+    let vendor = vendor.unwrap_or(runtime::VariableVendor(BOOTMGR_GUID));
+    RuntimeUefiVariableStorage::get_variable(name, &vendor, &mut buf)
 }

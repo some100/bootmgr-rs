@@ -1,41 +1,166 @@
 //! Secure Boot support module.
+//!
+//! Secure Boot interacts with the loading of images through the `SecurityArch` and
+//! `Security2Arch` protocol. In firmware, if any of these two are published, `LoadImage`
+//! must use those protocols on every image that is loaded. The `Security2Arch` protocol
+//! takes priority.
+//!
+//! Internally, the `FileAuthentication` and `FileAuthenticationState` methods are used for
+//! verifying images. These methods can also be replaced with our own custom made ones, mainly
+//! also using Shim.
+//!
+//! This hooks onto `SecurityArch` and `Security2Arch` in order to replace their
+//! authenticators with custom ones using Shim or any other validator.
+//!
+//! These hooks are temporary and should be uninstalled after the image is loaded.
 
-use uefi::{Status, boot, cstr16, runtime::VariableVendor};
+use core::cell::OnceCell;
+use core::{ffi::c_void, ops::Deref, ptr::NonNull};
 
-use crate::system::{protos::Security2Arch, variable::get_variable};
+use log::warn;
+use thiserror::Error;
+use uefi::{
+    Status, cstr16,
+    proto::device_path::{DevicePath, FfiDevicePath},
+    runtime::VariableVendor,
+};
 
-/// Verifies an image with the firmware's Secure Boot support.
-///
-/// It's worth noting that this may be considered technically redundant as any security violation errors
-/// will be caught by `LoadImage`. However, we do catch this specific error a little bit earlier this way
-/// (though not that much earlier).
-///
-/// # Errors
-///
-/// May return an `Error` if the firmware does not support [`Security2Arch`], or the image could not be loaded
-/// due to a security violation.
-pub fn verify_image(file_buffer: &mut [u8]) -> uefi::Result<()> {
-    if secure_boot_enabled() {
-        let handle = boot::get_handle_for_protocol::<Security2Arch>()?;
-        let security_arch = boot::open_protocol_exclusive::<Security2Arch>(handle)?;
+use crate::{
+    BootResult,
+    boot::secure_boot::security_override::SecurityOverrideInner,
+    system::{
+        protos::{Security2ArchProtocol, SecurityArchProtocol},
+        variable::get_variable,
+    },
+};
 
-        match security_arch.authentication(None, file_buffer, false) {
-            Status::ACCESS_DENIED | // for error handling purposes they're basically the same
-            Status::SECURITY_VIOLATION => return Err(Status::SECURITY_VIOLATION.into()),
-            _ => (),
-        }
-    }
+pub mod security_override;
+pub mod shim;
 
-    Ok(())
+/// An `Error` that may result from validating an image with Secure Boot.
+#[derive(Error, Debug)]
+pub enum SecureBootError {
+    /// Neither a device path nor a file buffer were specified to the image.
+    #[error("DevicePath and file buffer were both None")]
+    NoDevicePathOrFile,
+    /// A validator was not installed, but the security hooks were installed.
+    #[error("Validator was not installed")]
+    NoValidator,
 }
 
-/// Tests if secure boot is enabled through a UEFI variable.
-#[must_use]
-pub fn secure_boot_enabled() -> bool {
-    if let Ok(var) = get_variable::<u8>(cstr16!("SecureBoot"), Some(VariableVendor::GLOBAL_VARIABLE))
-        && var == 1
-    {
-        return true;
+type AuthState = unsafe extern "efiapi" fn(
+    this: *const SecurityArchProtocol,
+    auth_status: u32,
+    file: *const FfiDevicePath,
+) -> Status;
+
+type Authentication = unsafe extern "efiapi" fn(
+    this: *const Security2ArchProtocol,
+    device_path: *const FfiDevicePath,
+    file_buffer: *mut c_void,
+    file_size: usize,
+    boot_policy: u8,
+) -> Status;
+
+/// The function signature for a validator.
+pub type Validator = fn(
+    ctx: Option<NonNull<u8>>,
+    device_path: Option<&DevicePath>,
+    file_buffer: Option<&mut [u8]>,
+    file_size: usize,
+) -> BootResult<()>;
+
+static SECURITY_OVERRIDE: SecurityOverride = SecurityOverride {
+    inner: OnceCell::new(),
+};
+
+/// The security override, for installing a custom validator.
+pub struct SecurityOverride {
+    inner: OnceCell<SecurityOverrideInner>,
+}
+
+impl Deref for SecurityOverride {
+    type Target = SecurityOverrideInner;
+
+    fn deref(&self) -> &Self::Target {
+        self.inner
+            .get()
+            .expect("Secure Boot OnceCell not initialized")
     }
-    false
+}
+
+// SAFETY: uefi is a single threaded environment there is no notion of thread safety
+unsafe impl Sync for SecurityOverride {}
+
+/// Tests if secure boot is enabled through a UEFI variable.
+#[must_use = "Has no effect if the result is unused"]
+pub fn secure_boot_enabled() -> bool {
+    matches!(
+        get_variable::<u8>(cstr16!("SecureBoot"), Some(VariableVendor::GLOBAL_VARIABLE)),
+        Ok(1)
+    )
+}
+
+/// Installs a security override given a [`Validator`] and optionally a `validator_ctx`.
+pub fn install_security_override(validator: Validator, validator_ctx: Option<NonNull<u8>>) {
+    let security_override = &SECURITY_OVERRIDE;
+    let mut inner = SecurityOverrideInner::default();
+    inner.install_validator(validator, validator_ctx);
+
+    let _ = security_override.inner.set(inner);
+}
+
+/// Uninstalls the security override. Should be used after installing the security override.
+pub fn uninstall_security_override() {
+    let security_override = &SECURITY_OVERRIDE;
+
+    security_override.uninstall_validator();
+}
+
+unsafe extern "efiapi" fn security_hook(
+    this: *const SecurityArchProtocol,
+    auth_status: u32,
+    file: *const FfiDevicePath,
+) -> Status {
+    let security_override = &SECURITY_OVERRIDE;
+
+    match security_override.call_validator(ffi_ptr_to_device_path(file), None) {
+        Err(e) => {
+            warn!("{e}");
+            unsafe { security_override.call_original_hook(this, auth_status, file) }
+        }
+        _ => Status::SUCCESS,
+    }
+}
+
+unsafe extern "efiapi" fn security2_hook(
+    this: *const Security2ArchProtocol,
+    device_path: *const FfiDevicePath,
+    file_buffer: *mut c_void,
+    file_size: usize,
+    boot_policy: u8,
+) -> Status {
+    let security_override = &SECURITY_OVERRIDE;
+
+    let file_slice =
+        unsafe { core::slice::from_raw_parts_mut(file_buffer.cast::<u8>(), file_size) };
+    match security_override.call_validator(ffi_ptr_to_device_path(device_path), Some(file_slice)) {
+        Err(e) => {
+            warn!("{e}");
+            unsafe {
+                security_override.call_original_hook2(
+                    this,
+                    device_path,
+                    file_buffer,
+                    file_size,
+                    boot_policy,
+                )
+            }
+        }
+        _ => Status::SUCCESS,
+    }
+}
+
+fn ffi_ptr_to_device_path<'a>(ptr: *const FfiDevicePath) -> Option<&'a DevicePath> {
+    (!ptr.is_null()).then(|| unsafe { DevicePath::from_ffi_ptr(ptr) })
 }

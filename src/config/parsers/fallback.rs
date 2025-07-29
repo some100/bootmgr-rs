@@ -23,16 +23,23 @@ impl ConfigParser for FallbackConfig {
         handle: Handle,
         configs: &mut Vec<Config>,
     ) {
-        let filename = match get_arch().as_deref() {
+        let filename = match get_arch().as_deref().map(alloc::string::String::as_str) {
             Some("x86") => "BOOTia32.efi",
             Some("x64") => "BOOTx64.efi",
             Some("arm") => "BOOTaa32.efi",
             Some("aa64") => "BOOTaa64.efi",
             _ => return,
         };
-        let filename = str_to_cstr(filename);
 
-        if let Ok(true) = check_file_exists(fs, &get_path_cstr(FALLBACK_PREFIX, &filename))
+        let Ok(filename) = str_to_cstr(filename) else {
+            return; // there is no way this can fail, as filename can only be one of four strings
+        };
+
+        let Ok(path) = get_path_cstr(FALLBACK_PREFIX, &filename) else {
+            return; // this also should not fail, since this path is hardcoded and valid
+        };
+
+        if check_file_exists(fs, &path)
             && let Ok(volume_label) = get_volume_label(fs)
         {
             let efi = format!("{FALLBACK_PREFIX}\\{filename}");
@@ -41,7 +48,8 @@ impl ConfigParser for FallbackConfig {
             } else {
                 &volume_label // prefer the volume label if it exists, so we can tell the difference between fallbacks
             };
-            let config = ConfigBuilder::new(efi, &filename, FALLBACK_SUFFIX)
+            let config = ConfigBuilder::new(&filename, FALLBACK_SUFFIX)
+                .efi(efi)
                 .title(title)
                 .sort_key("fallback")
                 .handle(handle);

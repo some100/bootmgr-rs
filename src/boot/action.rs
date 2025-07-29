@@ -1,40 +1,61 @@
 //! Provides [`BootAction`], which allows special actions to be done when an entry is loaded
 
 use alloc::{borrow::ToOwned, vec::Vec};
-use uefi::{
-    Status,
-    runtime::{self, ResetType},
+use uefi::Handle;
+
+use crate::{
+    BootResult,
+    boot::{config::BootConfig, loader},
+    config::Config,
 };
 
-use crate::{boot::action::firmware::reset_to_firmware, config::Config};
-
 pub mod firmware;
+pub mod pxe;
+pub mod reboot;
+pub mod shutdown;
 
+/// Actions that decide which boot loader to use.
+///
+/// This also handles the special cases of rebooting, shutting down, and resetting to firmware.
+#[non_exhaustive]
 #[derive(Clone, Debug, Default)]
 pub enum BootAction {
+    /// Boot using the EFI boot loader.
     #[default]
-    Boot,
+    BootEfi,
+
+    /// Boot using the TFTP boot loader.
+    BootTftp,
+
+    /// Reboot the system.
     Reboot,
+
+    /// Shut down the system.
     Shutdown,
+
+    /// Reboot the system into firmware setup.
     ResetToFirmware,
 }
 
-/// Performs an action (reboot, shutdown, reset to firmware) depending on the passed boot action.
-///
-/// # Errors
-///
-/// May return an `Error` if resetting to firmware fails.
-pub fn handle_action(action: &BootAction) -> uefi::Result<()> {
-    match action {
-        BootAction::Reboot => runtime::reset(ResetType::WARM, Status::SUCCESS, None),
-        BootAction::Shutdown => runtime::reset(ResetType::SHUTDOWN, Status::SUCCESS, None),
-        BootAction::ResetToFirmware => reset_to_firmware(),
-        BootAction::Boot => Ok(()),
+impl BootAction {
+    /// Runs a boot action given a config.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if any of the actions fail.
+    pub fn run(&self, config: &Config) -> BootResult<Handle> {
+        match self {
+            BootAction::Reboot => reboot::reset(),
+            BootAction::Shutdown => shutdown::shutdown(),
+            BootAction::ResetToFirmware => firmware::reset_to_firmware()?,
+            BootAction::BootEfi => loader::efi::load_boot_option(config),
+            BootAction::BootTftp => loader::tftp::load_boot_option(config),
+        }
     }
 }
 
-/// Adds reboot, shutdown, and reset into firmware setup boot entries.
-pub fn add_special_boot(configs: &mut Vec<Config>) {
+/// Adds reboot, shutdown, reset into firmware, and optionally a PXE boot entry.
+pub fn add_special_boot(configs: &mut Vec<Config>, boot_config: &BootConfig) {
     let actions = [
         ("Reboot", BootAction::Reboot),
         ("Shutdown", BootAction::Shutdown),
@@ -51,6 +72,12 @@ pub fn add_special_boot(configs: &mut Vec<Config>) {
             ..Config::default()
         };
 
+        configs.push(config);
+    }
+
+    if boot_config.pxe
+        && let Ok(Some(config)) = pxe::get_pxe_offer()
+    {
         configs.push(config);
     }
 }

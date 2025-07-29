@@ -1,24 +1,25 @@
 [package]
 name = "bootmgr-rs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 
 [dependencies]
 log = "0.4.27"
 nt-hive = { version = "0.3.0", default-features = false, features = ["alloc"], optional = true }
-pelite = { version = "0.10.0", default-features = false, optional = true }
+object = { version = "0.37.1", default-features = false, features = ["pe", "read_core"], optional = true }
 ratatui-core = "0.1.0-alpha.6"
 ratatui-widgets = "0.3.0-alpha.5"
 thiserror = { version = "2.0.12", default-features = false }
 uefi = { version = "0.35.0", features = ["alloc"] }
 
 [features]
-default = ["bls", "fallback", "osx", "shell", "uki", "windows", "editor"]
+default = ["bls", "fallback", "osx", "pxe", "shell", "uki", "windows", "editor"]
 bls = []
 fallback = []
 osx = []
+pxe = []
 shell = []
-uki = ["dep:pelite"]
+uki = ["dep:object"]
 windows = ["dep:nt-hive"]
 editor = []
 
@@ -30,3 +31,6 @@ strip = true
 opt-level = "s"
 lto = true
 panic = "abort"
+
+[dev-dependencies]
+mockall = "0.13.1"

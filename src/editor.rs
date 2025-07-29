@@ -1,15 +1,24 @@
-#![allow(clippy::cast_possible_truncation)]
-//! The optional basic editor for temporarily modifying [`Config`]s
+//! The optional basic editor for modifying [`Config`]s.
+//!
+//! The modifications made by the editor are not persistent. They remain only in memory. Any long term modifications
+//! should be done in an actual operating system environment. It's still useful for editing boot options if the need
+//! ever arises.
 
 use alloc::{string::String, vec::Vec};
-use ratatui_core::{layout::Position, style::Color, terminal::Terminal};
+use ratatui_core::{layout::Position, terminal::Terminal};
 use uefi::{
     Event,
     boot::{self, ScopedProtocol},
     proto::console::text::{Input, Key, ScanCode},
 };
 
-use crate::{config::Config, error::BootError, ui::ratatui_backend::UefiBackend};
+use crate::{
+    BootResult,
+    app::AppError,
+    config::{Config, builder::ConfigBuilder},
+    system::helper::truncate_usize_to_u16,
+    ui::{ratatui_backend::UefiBackend, theme::Theme},
+};
 
 mod ui;
 mod widget;
@@ -17,21 +26,41 @@ mod widget;
 /// The basic editor
 #[derive(Default)]
 pub struct Editor {
+    /// Checks if the editor is currently editing.
     pub editing: bool,
+
+    /// Stores the `wait_for_key` event.
     pub events: Option<[Event; 1]>,
+
+    /// Tracks the current position of the cursor.
     pub cursor_pos: usize,
+
+    /// Stores the fields that are in the [`Config`].
     pub fields: Vec<(&'static str, String)>,
+
+    /// Stores which field is currently being edited.
     pub idx: usize,
+
+    /// Stores the value of the field.
     pub value: String,
-    pub fg: Color,
-    pub bg: Color,
+
+    /// Stores the [`Theme`] of the UI.
+    pub theme: Theme,
 }
 
 impl Editor {
     /// Creates a new [`Editor`].
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the [`Input`] protocol was already closed before the [`Editor`]
+    /// was initialized.
+    pub fn new(input: &ScopedProtocol<Input>, theme: Theme) -> BootResult<Self> {
+        Ok(Self {
+            events: Some([input.wait_for_key_event().ok_or(AppError::InputClosed)?]),
+            theme,
+            ..Self::default()
+        })
     }
 
     /// Provides the main loop for the [`Editor`].
@@ -46,21 +75,23 @@ impl Editor {
         config: &mut Config,
         input: &mut ScopedProtocol<Input>,
         terminal: &mut Terminal<UefiBackend>,
-        fg: Color,
-        bg: Color,
-    ) -> Result<(), BootError> {
-        terminal.backend_mut().set_color(fg, bg);
-        self.fg = fg;
-        self.bg = bg;
+    ) -> BootResult<()> {
+        if let Some(fg) = self.theme.base.fg
+            && let Some(bg) = self.theme.base.bg
+        {
+            terminal.backend_mut().set_color(fg, bg);
+        }
 
         terminal.clear()?;
 
-        self.init_state(input, config)?;
+        self.init_state(config);
 
         loop {
             terminal.draw(|f| f.render_widget(&mut *self, f.area()))?;
             terminal.show_cursor()?;
-            terminal.set_cursor_position(Position::new(self.cursor_pos as u16, 3))?; // top bar is ALWAYS 3 length
+
+            let cursor_pos = truncate_usize_to_u16(self.cursor_pos);
+            terminal.set_cursor_position(Position::new(cursor_pos, 3))?; // top bar is ALWAYS 3 length
 
             self.wait_for_events();
             self.handle_key(input)?;
@@ -78,12 +109,7 @@ impl Editor {
     }
 
     // Reads the [`Config`] file into the field and initializes the state
-    fn init_state(
-        &mut self,
-        input: &ScopedProtocol<Input>,
-        config: &Config,
-    ) -> Result<(), BootError> {
-        self.events = Some([input.wait_for_key_event().ok_or(BootError::InputClosed)?]);
+    fn init_state(&mut self, config: &Config) {
         self.fields = config
             .get_str_fields()
             .into_iter()
@@ -92,7 +118,6 @@ impl Editor {
         self.value = self.fields[0].1.clone();
         self.cursor_pos = self.value.chars().count();
         self.idx = 0;
-        Ok(())
     }
 
     fn wait_for_events(&mut self) {
@@ -103,53 +128,58 @@ impl Editor {
         let _ = boot::wait_for_event(events);
     }
 
-    fn handle_key(&mut self, input: &mut ScopedProtocol<Input>) -> Result<(), BootError> {
+    fn handle_key(&mut self, input: &mut ScopedProtocol<Input>) -> BootResult<()> {
         match input.read_key()? {
-            Some(Key::Special(key)) => match key {
-                ScanCode::ESCAPE => {
-                    self.save_to_field();
-                    self.editing = false;
-                }
-                ScanCode::UP => {
-                    self.save_to_field();
-                    if self.idx > 0 {
-                        self.idx -= 1;
-                    }
-                    self.load_from_field();
-                }
-                ScanCode::DOWN => {
-                    self.save_to_field();
-                    if self.idx + 1 < self.fields.len() {
-                        self.idx += 1;
-                    }
-                    self.load_from_field();
-                }
-                ScanCode::LEFT => {
-                    self.cursor_pos = self.cursor_pos.saturating_sub(1);
-                }
-                ScanCode::RIGHT => {
-                    self.cursor_pos = (self.cursor_pos + 1).min(self.value.len());
-                }
-                _ => (),
-            },
-            Some(Key::Printable(key)) => {
-                let key = char::from(key);
-                match key {
-                    '\x08' => {
-                        if self.cursor_pos > 0 {
-                            self.value.remove(self.cursor_pos - 1);
-                            self.cursor_pos -= 1;
-                        }
-                    } // backspace
-                    key => {
-                        self.value.insert(self.cursor_pos, key);
-                        self.cursor_pos += 1;
-                    }
-                }
-            }
+            Some(Key::Special(key)) => self.handle_special_key(key),
+            Some(Key::Printable(key)) => self.handle_printable_key(key.into()),
             _ => (),
         }
         Ok(())
+    }
+
+    fn handle_special_key(&mut self, key: ScanCode) {
+        match key {
+            ScanCode::ESCAPE => {
+                self.save_to_field();
+                self.editing = false;
+            }
+            ScanCode::UP => {
+                self.save_to_field();
+                if self.idx > 0 {
+                    self.idx -= 1;
+                }
+                self.load_from_field();
+            }
+            ScanCode::DOWN => {
+                self.save_to_field();
+                if self.idx + 1 < self.fields.len() {
+                    self.idx += 1;
+                }
+                self.load_from_field();
+            }
+            ScanCode::LEFT => {
+                self.cursor_pos = self.cursor_pos.saturating_sub(1);
+            }
+            ScanCode::RIGHT => {
+                self.cursor_pos = (self.cursor_pos + 1).min(self.value.len());
+            }
+            _ => (),
+        }
+    }
+
+    fn handle_printable_key(&mut self, key: char) {
+        match key {
+            '\x08' => {
+                if self.cursor_pos > 0 {
+                    self.value.remove(self.cursor_pos - 1);
+                    self.cursor_pos -= 1;
+                }
+            } // backspace
+            key => {
+                self.value.insert(self.cursor_pos, key);
+                self.cursor_pos += 1;
+            }
+        }
     }
 
     fn save_to_field(&mut self) {
@@ -162,21 +192,18 @@ impl Editor {
     }
 
     fn save_to_config(&self, config: &mut Config) {
+        let mut config = ConfigBuilder::from(config.clone());
         for (key, val) in &self.fields {
-            let some_val = match val.clone() {
-                val if !val.is_empty() => Some(val),
-                _ => None,
-            };
-            match *key {
-                "title" => config.title = some_val,
-                "version" => config.version = some_val,
-                "machine_id" => config.machine_id = some_val,
-                "sort_key" => config.sort_key = some_val,
-                "options" => config.options = some_val,
-                "devicetree" => config.devicetree = some_val,
-                "architecture" => config.architecture = some_val,
-                "efi" => config.efi.clone_from(val),
-                _ => (),
+            config = match *key {
+                "title" => config.title(val),
+                "version" => config.version(val),
+                "machine_id" => config.machine_id(val),
+                "sort_key" => config.sort_key(val),
+                "options" => config.options(val),
+                "devicetree" => config.devicetree(val),
+                "architecture" => config.architecture(val),
+                "efi" => config.efi(val),
+                _ => config,
             }
         }
     }

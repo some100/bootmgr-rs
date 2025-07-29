@@ -5,8 +5,13 @@ use uefi::{
     runtime::{self, ResetType, VariableAttributes, VariableVendor},
 };
 
-use crate::system::variable::{get_variable, set_variable};
+use crate::{
+    BootResult,
+    error::BootError,
+    system::variable::{get_variable, set_variable},
+};
 
+/// The bit that indicates to the firmware if booting into firmware setup should be done.
 pub const EFI_OS_INDICATIONS_BOOT_TO_FW_UI: u64 = 1;
 
 /// Reboots to firmware setup using the `OsIndications` variable
@@ -18,16 +23,16 @@ pub const EFI_OS_INDICATIONS_BOOT_TO_FW_UI: u64 = 1;
 /// # Errors
 ///
 /// May return an `Error` for many reasons, see [`uefi::runtime::get_variable`] and [`uefi::runtime::set_variable`]
-pub fn reset_to_firmware() -> uefi::Result<()> {
+pub fn reset_to_firmware() -> BootResult<!> {
     if !is_supported()? {
-        return Err(Status::UNSUPPORTED.into());
+        return Err(BootError::Uefi(Status::UNSUPPORTED.into()));
     }
     set_reset_to_firmware_flag()?;
-    runtime::reset(ResetType::WARM, Status::SUCCESS, None); // never returns, ever
+    runtime::reset(ResetType::WARM, Status::SUCCESS, None); // never returns, ever, and cannot fail
 }
 
 // Sets the EFI_OS_INDICATIONS_BOOT_TO_FW_UI bit.
-fn set_reset_to_firmware_flag() -> uefi::Result<()> {
+fn set_reset_to_firmware_flag() -> BootResult<()> {
     let mut osind = get_variable::<u64>(
         cstr16!("OsIndications"),
         Some(VariableVendor::GLOBAL_VARIABLE),
@@ -41,13 +46,13 @@ fn set_reset_to_firmware_flag() -> uefi::Result<()> {
                 | VariableAttributes::BOOTSERVICE_ACCESS
                 | VariableAttributes::RUNTIME_ACCESS,
         ),
-        osind,
+        Some(osind),
     )?;
     Ok(())
 }
 
-// Checks if it is supported to reboot to firmware
-fn is_supported() -> uefi::Result<bool> {
+// Checks rebooting to firmware is supported.
+fn is_supported() -> BootResult<bool> {
     let supported = get_variable::<u64>(
         cstr16!("OsIndicationsSupported"),
         Some(VariableVendor::GLOBAL_VARIABLE),

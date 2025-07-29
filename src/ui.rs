@@ -1,4 +1,11 @@
-//! The user interface of the bootloader
+//! The user interface of the bootloader.
+//!
+//! The overall design of the UI is very heavily inspired off of text-only bootloaders like Microsoft's bootmgr and
+//! systemd-boot. The architecture of the UI is built upon ratatui, which means that it is quite extensible and a
+//! more complicated UI could be created. However, such a UI would probably be slower than the current UI.
+//!
+//! The theme of the UI can be changed through the bootloader's config file. There is support for changing the color,
+//! and the highlight color.
 
 use alloc::{format, vec, vec::Vec};
 use ratatui_core::{
@@ -8,41 +15,46 @@ use ratatui_core::{
     text::{Line, Span, Text},
     widgets::{StatefulWidget, Widget},
 };
-use ratatui_widgets::list::List;
+use ratatui_widgets::{block::Block, borders::Borders, list::List, paragraph::Paragraph};
 
 use crate::app::App;
 
 mod widget;
 
+pub mod boot_list;
 pub mod ratatui_backend;
+pub mod theme;
 
 impl App {
     /// Renders a `BootList`.
     pub fn render_list(&mut self, area: Rect, buf: &mut Buffer) {
         let list = List::new(self.boot_list.items.clone())
-            .style(
-                Style::new()
-                    .fg(self.boot_mgr.boot_config.fg)
-                    .bg(self.boot_mgr.boot_config.bg),
-            )
-            .highlight_style(
-                Style::new()
-                    .fg(self.boot_mgr.boot_config.highlight_fg)
-                    .bg(self.boot_mgr.boot_config.highlight_bg),
-            )
+            .style(self.theme.base)
+            .highlight_style(self.theme.highlight)
             .highlight_symbol(" → ");
 
         StatefulWidget::render(list, area, buf, &mut self.boot_list.state);
     }
 
+    /// Renders the name of the program, as well as the version number.
+    pub fn render_header(&self, area: Rect, buf: &mut Buffer) {
+        let header_block = Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default());
+        let header = Paragraph::new(Text::styled(
+            format!("bootmgr-rs {}", env!("CARGO_PKG_VERSION")),
+            self.theme.base,
+        ))
+        .alignment(Alignment::Center)
+        .block(header_block);
+
+        Widget::render(header, area, buf);
+    }
+
     /// Renders the timeout below the `BootList`.
     pub fn render_timeout(&self, area: Rect, buf: &mut Buffer) {
         let mut text = Line::raw(" ")
-            .style(
-                Style::new()
-                    .fg(self.boot_mgr.boot_config.fg)
-                    .bg(self.boot_mgr.boot_config.bg),
-            )
+            .style(self.theme.base)
             .alignment(Alignment::Center);
         if self.timeout.is_positive() {
             text.push_span(format!("Booting in {} seconds", self.timeout));
@@ -65,18 +77,8 @@ impl App {
         let spans: Vec<_> = keys
             .iter()
             .flat_map(|(key, desc)| {
-                let key = Span::styled(
-                    format!(" {key} "),
-                    Style::new()
-                        .fg(self.boot_mgr.boot_config.highlight_fg)
-                        .bg(self.boot_mgr.boot_config.highlight_bg),
-                );
-                let desc = Span::styled(
-                    format!(" {desc} "),
-                    Style::new()
-                        .fg(self.boot_mgr.boot_config.fg)
-                        .bg(self.boot_mgr.boot_config.bg),
-                );
+                let key = Span::styled(format!(" {key} "), self.theme.highlight);
+                let desc = Span::styled(format!(" {desc} "), self.theme.base);
                 [key, desc]
             })
             .collect();
@@ -91,11 +93,7 @@ impl App {
         let mut lines = Vec::with_capacity(2);
         if self.set_default {
             let line = Line::raw("Setting default boot option")
-                .style(
-                    Style::new()
-                        .fg(self.boot_mgr.boot_config.fg)
-                        .bg(self.boot_mgr.boot_config.bg),
-                )
+                .style(self.theme.base)
                 .alignment(Alignment::Center);
 
             lines.push(line);

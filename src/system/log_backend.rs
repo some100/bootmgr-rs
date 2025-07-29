@@ -1,4 +1,4 @@
-//! UEFI backend for log
+//! Simple UEFI backend for the [`log`] crate.
 
 use core::fmt::Write;
 
@@ -6,16 +6,19 @@ use alloc::boxed::Box;
 use log::{Level, Metadata, Record};
 use uefi::{runtime, system::with_stdout};
 
+/// A simple logging backend for UEFI.
 #[derive(Default)]
 pub struct UefiLogger;
 
 impl UefiLogger {
-    #[must_use]
-    pub fn new() -> Self {
+    /// Constructs a new [`UefiLogger`].
+    #[must_use = "Has no effect if the result is unused"]
+    pub const fn new() -> Self {
         Self
     }
 
-    #[must_use]
+    /// Constructs a new [`UefiLogger`], then immediately leaks it so that it can be used with `set_logger`.
+    #[must_use = "Has no effect if the result is unused"]
     pub fn static_new() -> &'static Self {
         Box::leak(Box::new(Self::new()))
     }
@@ -29,16 +32,16 @@ impl log::Log for UefiLogger {
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
             let time = runtime::get_time().unwrap_or(runtime::Time::invalid());
+            let msg = format_args!(
+                "[{} {} {}:{}] - {}\n",
+                time,
+                record.level(),
+                record.file().unwrap_or_default(),
+                record.line().unwrap_or_default(),
+                record.args()
+            );
             with_stdout(|stdout| {
-                let _ = writeln!(
-                    stdout,
-                    "[{} {} {}:{}] - {}",
-                    time,
-                    record.level(),
-                    record.file().unwrap_or_default(),
-                    record.line().unwrap_or_default(),
-                    record.args()
-                );
+                let _ = stdout.write_fmt(msg);
             });
         }
     }

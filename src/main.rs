@@ -1,6 +1,5 @@
 #![no_main]
 #![no_std]
-#![warn(clippy::mod_module_files)]
 
 use bootmgr_rs::{app::App, system::log_backend::UefiLogger, ui::ratatui_backend::UefiBackend};
 
