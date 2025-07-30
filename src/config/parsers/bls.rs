@@ -1,3 +1,4 @@
+//! A parser for BootLoaderSpec type #1, a versionless specification for consistent boot entries.
 #![cfg(feature = "bls")]
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
@@ -18,17 +19,30 @@ use crate::{
     },
 };
 
+/// The configuration prefix.
 const BLS_PREFIX: &CStr16 = cstr16!("\\loader\\entries");
+
+/// The configuration suffix.
 const BLS_SUFFIX: &str = ".conf";
 
-struct BootCounter {
+/// An implementation of the `BootLoaderSpec` boot counting feature.
+pub struct BootCounter {
+    /// The base name of the configuration name (without .conf, or boot counting)
     base_name: String,
+
+    /// The amount of tries left as in the configuration name
     left: u32,
+
+    /// The amount of boot attempts done as in the configuration name.
     done: u32,
 }
 
 impl BootCounter {
-    fn new(filename: impl Into<String>) -> Option<Self> {
+    /// Create a new [`BootCounter`] given a filename containing a boot counter.
+    ///
+    /// Will return [`None`] if there is no boot counter, or the file does not contain a valid
+    /// boot counter.
+    pub fn new(filename: impl Into<String>) -> Option<Self> {
         let filename = filename.into();
 
         let filename = filename.trim_end_matches(BLS_SUFFIX);
@@ -51,6 +65,7 @@ impl BootCounter {
         })
     }
 
+    /// Convert the current [`BootCounter`] into a filename for renaming.
     fn to_filename(&self) -> BootResult<CString16> {
         let str = if self.done > 0 {
             format!("{}+{}-{}.conf", self.base_name, self.left, self.done)
@@ -61,6 +76,7 @@ impl BootCounter {
         Ok(str_to_cstr(&str)?)
     }
 
+    /// Decrement the [`BootCounter`] if the tries were not exhausted.
     const fn decrement(&mut self) {
         if self.left > 0 {
             self.left -= 1;
@@ -68,6 +84,7 @@ impl BootCounter {
         }
     }
 
+    /// Check if the [`BootCounter`] is bad, or if the tries left is 0.
     const fn is_bad(&self) -> bool {
         self.left == 0
     }
@@ -76,21 +93,45 @@ impl BootCounter {
 /// The parser for `BootLoaderSpec` type #1 configuration files
 #[derive(Default)]
 pub struct BlsConfig {
+    /// The title of the configuration.
     title: Option<String>,
+
+    /// The version of the configuration.
     version: Option<String>,
+
+    /// The machine-id of the configuration.
     machine_id: Option<String>,
+
+    /// The sort-key of the configuration.
     sort_key: Option<String>,
+
+    /// The linux path of the configuration.
     linux: Option<String>,
+
+    /// The initrds of the configuration.
     initrd: Option<String>,
+
+    /// The efi path of the configuration.
     efi: Option<String>,
+
+    /// The options of the configuration.
     options: Option<String>,
+
+    /// The devicetree path of the configuration.
     devicetree: Option<String>,
+
+    /// The devicetree overlay path of the configuration.
     devicetree_overlay: Option<String>,
+
+    /// The architecture of the configuration.
     architecture: Option<String>,
 }
 
 impl BlsConfig {
     /// Creates a new [`BlsConfig`], parsing it from a BLS configuration file formatted string.
+    ///
+    /// If there are multiple key-value pairs of the same type, then the latest one will be used.
+    /// This is not for any reason in particular, it is more of a side effect of the way the parser is implemented.
     #[must_use = "Has no effect if the result is unused"]
     pub fn new(content: &str) -> Self {
         let mut config = Self::default();
@@ -174,6 +215,7 @@ impl ConfigParser for BlsConfig {
     }
 }
 
+/// Parse a BLS file given the [`FileInfo`], a [`SimpleFileSystem`] protocol, and a handle to that protocol.
 fn get_bls_config(
     file: &FileInfo,
     fs: &mut ScopedProtocol<SimpleFileSystem>,
@@ -222,6 +264,7 @@ fn get_bls_config(
     Ok(Some(config.build()))
 }
 
+/// Check if a certain config is bad given the [`FileInfo`] and a [`SimpleFileSystem`] protocol.
 fn check_bad(file: &FileInfo, fs: &mut ScopedProtocol<SimpleFileSystem>) -> bool {
     let counter = BootCounter::new(file.file_name());
 

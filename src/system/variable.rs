@@ -10,14 +10,21 @@ use uefi::{
 
 use crate::{BootResult, error::BootError};
 
+/// The custom variable namespace for the boot manager.
 const BOOTMGR_GUID: uefi::Guid = guid!("23600d08-561e-4e68-a024-1d7d6e04ee4e");
 
+/// A trait for implementations of UEFI variable storage.
+///
+/// Usually this will use runtime services.
 trait UefiVariableStorage {
+    /// Get a variable given its name, a variable vendor, and a mutable byte slice.
     fn get_variable<T: UefiVariable + 'static>(
         name: &CStr16,
         vendor: &VariableVendor,
         buf: &mut [u8],
     ) -> BootResult<T>;
+
+    /// Set a variable given its name, a variable vendor, variable attributes, and the chosen type.
     fn set_variable<T: UefiVariable + 'static>(
         name: &CStr16,
         vendor: &VariableVendor,
@@ -26,6 +33,7 @@ trait UefiVariableStorage {
     ) -> BootResult<()>;
 }
 
+/// UEFI variable storage implementation with runtime services..
 struct RuntimeUefiVariableStorage;
 
 impl UefiVariableStorage for RuntimeUefiVariableStorage {
@@ -115,6 +123,8 @@ impl UefiVariable for u8 {
 /// not the global variables vendor space. In other words, unless you are storing your own variables,
 /// it may not be what you expect.
 ///
+/// This custom namespace is accessible at GUID `23600d08-561e-4e68-a024-1d7d6e04ee4e`.
+///
 /// Passing None for num will result in the variable being deleted.
 ///
 /// # Errors
@@ -139,6 +149,8 @@ pub fn set_variable<T: UefiVariable + 'static>(
 /// If None is specified for the vendor, then the variable will be searched for in a custom GUID space,
 /// not the global variables vendor space. In other words, unless you are storing your own variables,
 /// it may not be what you expect.
+///
+/// This custom namespace is accessible at GUID `23600d08-561e-4e68-a024-1d7d6e04ee4e`.
 ///
 /// # Errors
 ///

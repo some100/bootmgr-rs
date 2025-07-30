@@ -19,6 +19,7 @@ use ratatui_widgets::{block::Block, borders::Borders, list::List, paragraph::Par
 
 use crate::app::App;
 
+/// App widget implementation.
 mod widget;
 
 pub mod boot_list;

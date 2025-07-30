@@ -1,3 +1,4 @@
+//! A parser for BootLoaderSpec type #2, a versionless specification for single Linux boot binaries.
 #![cfg(feature = "uki")]
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
@@ -22,7 +23,10 @@ use crate::{
     },
 };
 
+/// The configuration prefix.
 const UKI_PREFIX: &CStr16 = cstr16!("\\EFI\\Linux");
+
+/// The configuration suffix.
 const UKI_SUFFIX: &str = ".efi";
 
 /// Errors that may result from parsing the UKI config.
@@ -35,17 +39,37 @@ pub enum UkiError {
 
 #[derive(Default)]
 struct Osrel {
+    /// The `NAME` specified in .osrel
     name: Option<String>,
+
+    /// The `ID` specified in .osrel
     id: Option<String>,
+
+    /// The `IMAGE_ID` specified in .osrel
     image_id: Option<String>,
+
+    /// The `IMAGE_VERSION` specified in .osrel
     image_version: Option<String>,
+
+    /// The `PRETTY_NAME` specified in .osrel
     pretty_name: Option<String>,
+
+    /// The `VERSION` specified in .osrel
     version: Option<String>,
+
+    /// The `VERSION_ID` specified in .osrel
     version_id: Option<String>,
+
+    /// The `BUILD_ID` specified in .osrel
     build_id: Option<String>,
 }
 
 impl Osrel {
+    /// Create a new [`Osrel`].
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the section does not contain any data.
     fn new(content: Option<Section<'_, '_>>) -> Result<Self, UkiError> {
         let mut osrel = Self::default();
         if let Some(content) = content {
@@ -76,12 +100,19 @@ impl Osrel {
 
 /// The parser for UKIs (also known as `BootLoaderSpec` type #2 files)
 pub struct UkiConfig {
+    /// The title of the configuration.
     title: String,
+
+    /// The sort-key of the configuration.
     sort_key: String,
+
+    /// The version of the configuration.
     version: Option<String>,
 }
 
 impl UkiConfig {
+    /// Creates a new [`UkiConfig`].
+    ///
     /// # Errors
     ///
     /// May return an `Error` if the provided content is not a PE file.
@@ -135,6 +166,7 @@ impl ConfigParser for UkiConfig {
     }
 }
 
+/// Parse a UKI executable given the [`FileInfo`], a [`SimpleFileSystem`] protocol, and a handle to that protocol.
 fn get_uki_config(
     file: &FileInfo,
     fs: &mut ScopedProtocol<SimpleFileSystem>,

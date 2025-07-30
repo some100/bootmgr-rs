@@ -28,7 +28,12 @@ pub enum DriverError {
     Unsupported(String),
 }
 
-// Loads a driver from a given [`FileInfo`], then starts the driver using StartImage
+/// Loads a driver from a given [`FileInfo`], then starts the driver using `StartImage`
+///
+/// # Errors
+///
+/// May return an `Error` if the image handle does not support [`DevicePath`], or the driver (image) could not be
+/// loaded, or the image is not a valid driver, or the image could not be started.
 fn load_driver(driver_path: &CStr16, file: &FileInfo, vec: &mut Vec<u8>) -> BootResult<()> {
     let handle_path = boot::open_protocol_exclusive::<DevicePath>(boot::image_handle())?;
     let path_cstr = get_path_cstr(driver_path, file.file_name())?;
@@ -79,7 +84,12 @@ pub fn load_drivers(driver_path: &str) -> BootResult<()> {
     Ok(())
 }
 
-// Reconnects every handle so that drivers can take effect
+/// Reconnects every handle so that drivers can take effect
+///
+/// # Errors
+///
+/// This can't actually return an `Error`, as that would mean there are literally no handles on the system which would be
+/// impossible.
 fn reconnect_drivers() -> BootResult<()> {
     let handles = boot::locate_handle_buffer(boot::SearchType::AllHandles)?;
     for handle in handles.iter() {

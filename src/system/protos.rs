@@ -18,12 +18,17 @@ use uefi::{
     },
 };
 
+/// A "boolean" that is actually a [`u8`]. Used for FFI interop.
 type Bool = u8;
 
+/// A raw binding for `EFI_DT_FIXUP_PROTOCOL`. Provides only one function, which is to fixup DTB blobs.
 #[derive(Debug)]
 #[repr(C)]
 struct DevicetreeFixupProtocol {
+    /// The version of the protocol.
     revision: u64,
+
+    /// Applies firmware fixups to a buffer.
     fixup: unsafe extern "efiapi" fn(
         this: *mut Self,
         fdt: *mut c_void,
@@ -33,6 +38,7 @@ struct DevicetreeFixupProtocol {
 }
 
 impl DevicetreeFixupProtocol {
+    /// The GUID of the protocol.
     const GUID: uefi::Guid = guid!("e617d64c-fe08-46da-f4dc-bbd5870c7300");
 }
 
@@ -80,6 +86,7 @@ pub struct SecurityArchProtocol {
 }
 
 impl SecurityArchProtocol {
+    /// The GUID of the protocol.
     const GUID: uefi::Guid = guid!("a46423e3-4617-49f1-b9ff-d1bfa9115839");
 }
 
@@ -136,6 +143,7 @@ pub struct Security2ArchProtocol {
 }
 
 impl Security2ArchProtocol {
+    /// The GUID of the protocol.
     const GUID: uefi::Guid = guid!("94ab2f58-1438-4ef1-9152-18941a3a0e68");
 }
 
@@ -222,6 +230,7 @@ pub struct ShimImageLoaderProtocol {
 }
 
 impl ShimImageLoaderProtocol {
+    /// The GUID of the protocol.
     const GUID: uefi::Guid = guid!("1f492041-fadb-4e59-9e57-7cafe73a55ab");
 }
 

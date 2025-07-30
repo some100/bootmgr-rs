@@ -1,3 +1,4 @@
+//! A parser for the Windows BCD and Windows boot manager.
 #![cfg(feature = "windows")]
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
@@ -15,9 +16,13 @@ use crate::{
     },
 };
 
+/// The configuration prefix.
 const WIN_PREFIX: &CStr16 = cstr16!("\\EFI\\Microsoft\\Boot");
+
+/// The configuration suffix.
 const WIN_SUFFIX: &str = ".efi";
 
+/// The path to the `displayorder` element.
 const DISPLAYORDER_PATH: &str =
     "Objects\\{9dea862c-5cdd-4e70-acc1-f32b344d4795}\\Elements\\24000001";
 
@@ -39,10 +44,13 @@ pub enum WinError {
 
 /// The parser for Windows boot configurations
 pub struct WinConfig {
+    /// The title of the Windows configuration, if found.
     title: String,
 }
 
 impl WinConfig {
+    /// Creates a new [`WinConfig`].
+    ///
     /// # Errors
     ///
     /// May return an `Error` if the provided file is not a [`Hive`], there is not `displayorder`,
@@ -69,6 +77,14 @@ impl WinConfig {
         Ok(config)
     }
 
+    /// Get the [`String`] value of a certain key.
+    ///
+    /// This parses the `Element` value of a key as a singular [`String`].
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the BCD is missing that key, the BCD is missing the `Element` value,
+    /// or the value is not `REG_SZ` or `REG_EXPAND_SZ`.
     fn get_value_of_key(
         path: &str,
         key_name: &'static str,
@@ -84,6 +100,14 @@ impl WinConfig {
         Ok(value)
     }
 
+    /// Get the [`String`] values of a certain key.
+    ///
+    /// This parses the `Element` value of a key as a vector of [`String`].
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the BCD is missing that key, the BCD is missing the `Element` value,
+    /// or the value is not `REG_MULTI_SZ`.
     fn get_values_of_key(
         path: &str,
         key_name: &'static str,
@@ -127,6 +151,7 @@ impl ConfigParser for WinConfig {
     }
 }
 
+/// Parse a BLS file given a [`SimpleFileSystem`] protocol, and a handle to that protocol.
 fn get_win_config(fs: &mut ScopedProtocol<SimpleFileSystem>, handle: Handle) -> BootResult<Config> {
     let content = read(fs, &get_path_cstr(WIN_PREFIX, cstr16!("BCD"))?)?;
 

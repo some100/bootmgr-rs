@@ -148,6 +148,11 @@ impl Config {
         }
     }
 
+    /// Validate an architecture by checking if it is the same as the system architecture.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the architecture does not match with the system.
     fn validate_arch(&self) -> Result<(), ConfigError> {
         if let Some(target) = &self.architecture
             && let Some(arch) = get_arch()
@@ -158,6 +163,12 @@ impl Config {
         Ok(())
     }
 
+    /// Validate an EFI path by checking if it exists when the [`BootAction`] requires it.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if there is no EFI path, and the action field is one of [`BootAction::BootEfi`] or
+    /// [`BootAction::BootTftp`].
     fn validate_efi(&self) -> Result<(), ConfigError> {
         if matches!(self.action, BootAction::BootEfi | BootAction::BootTftp) && self.efi.is_none() {
             return Err(ConfigError::ConfigMissingEfi(self.filename.clone()));
@@ -165,6 +176,11 @@ impl Config {
         Ok(())
     }
 
+    /// Validates EFI and devicetree paths by checking if it exists within the filesystem.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the paths do not exist in the filesystem when they are in the [`Config`].
     fn validate_paths(&self) -> Result<(), ConfigError> {
         if let Some(handle) = self.handle {
             // this should not panic, as handle is FsHandle and must always support SimpleFileSystem

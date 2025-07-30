@@ -19,6 +19,7 @@ use crate::{
     },
 };
 
+/// The hardcoded configuration path for the [`BootConfig`].
 const CONFIG_PATH: &CStr16 = cstr16!("\\loader\\bootmgr-rs.conf");
 
 /// The configuration file for the bootloader.
@@ -140,6 +141,9 @@ impl Default for BootConfig {
     }
 }
 
+/// Returns a foreground color given a color's string representation.
+///
+/// Any unrecognized colors will return [`Color::Black`].
 fn match_str_color_fg(color: &str) -> Color {
     match color {
         "red" => Color::Red,
@@ -161,6 +165,10 @@ fn match_str_color_fg(color: &str) -> Color {
     }
 }
 
+/// Returns a background color given a color's string representation.
+///
+/// The pool of colors is significantly less than foreground, and any unrecognized colors
+/// will also return [`Color::Black`].
 fn match_str_color_bg(color: &str) -> Color {
     match color {
         "blue" => Color::Blue,
@@ -170,5 +178,36 @@ fn match_str_color_bg(color: &str) -> Color {
         "magenta" => Color::Magenta,
         "gray" | "white" => Color::Gray, // close enough
         _ => Color::Black,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_full_config() {
+        let config = r"
+            timeout 100
+            default 2
+            driver_path /efi/drivers
+            editor true
+            pxe false
+            background gray
+            foreground white
+            highlight_background black
+            highlight_foreground white
+        ";
+
+        let config = BootConfig::get_boot_config(config);
+        assert_eq!(config.timeout, 100);
+        assert_eq!(config.default, Some(2));
+        assert_eq!(config.driver_path, "\\efi\\drivers".to_owned());
+        assert!(config.editor);
+        assert!(!config.pxe);
+        assert_eq!(config.bg, Color::Gray);
+        assert_eq!(config.fg, Color::White);
+        assert_eq!(config.highlight_bg, Color::Black);
+        assert_eq!(config.highlight_fg, Color::White);
     }
 }

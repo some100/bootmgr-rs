@@ -16,6 +16,7 @@ use uefi::{
 
 use crate::{BootResult, config::types::Architecture};
 
+/// The length of a BLS machine-id.
 const MACHINE_ID_LEN: usize = 32;
 
 /// An `Error` that may result from converting a [`String`] to another format.

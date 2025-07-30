@@ -20,7 +20,10 @@ use crate::{
 
 use crate::features::editor::Editor;
 
+/// The error delay in microseconds.
 const ERROR_DELAY: usize = 5_000_000; // 5 seconds
+
+/// The timeout timer interval in microseconds.
 const TIMER_INTERVAL: u64 = 10_000_000; // 1 second
 
 /// An `Error` that may result from running or initializing the [`App`].
@@ -29,6 +32,10 @@ pub enum AppError {
     /// The [`Input`] protocol was closed for any reason.
     #[error("Keyboard Input protocol was closed")]
     InputClosed,
+
+    /// There are no boot entries in the boot list.
+    #[error("No boot entries found")]
+    NoEntries,
 }
 
 /// The current status of the [`App`].
@@ -85,6 +92,10 @@ impl App {
     pub fn new() -> BootResult<Self> {
         let boot_mgr = BootMgr::new()?;
         let boot_list = BootList::new(&boot_mgr);
+
+        if boot_list.items.is_empty() {
+            return Err(AppError::NoEntries.into());
+        }
 
         let theme = Theme::new(&boot_mgr.boot_config);
 
@@ -146,7 +157,11 @@ impl App {
         drop(terminal);
     }
 
-    // initializes the state of the terminal and events
+    /// Initializes the state of the terminal and events.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the terminal could not be cleared, or the events could not be created.
     fn init_state(&mut self, terminal: &mut Terminal<UefiBackend>) -> BootResult<()> {
         if let Some(fg) = self.theme.base.fg
             && let Some(bg) = self.theme.base.bg
@@ -160,7 +175,12 @@ impl App {
         Ok(())
     }
 
-    // might try to boot the currently selected boot option, probably
+    /// Might try to boot the currently selected boot option, probably. Will return a handle to the loaded image
+    /// if the image is loaded.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the terminal could not be cleared.
     fn maybe_boot(&mut self, terminal: &mut Terminal<UefiBackend>) -> BootResult<Option<Handle>> {
         if matches!(self.state, AppState::Booting)
             && let Some(option) = self.boot_list.state.selected()
@@ -185,7 +205,11 @@ impl App {
         Ok(None)
     }
 
-    // might launch the editor, probably
+    /// Might launch the editor, probably.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if there was some sort of error or failure in the interactive editor.
     fn maybe_launch_editor(&mut self, terminal: &mut Terminal<UefiBackend>) -> BootResult<()> {
         if self.editor.editing
             && self.boot_mgr.boot_config.editor
@@ -201,7 +225,11 @@ impl App {
         Ok(())
     }
 
-    // waits for one of the two events, the timeout and key press
+    /// Waits for one of the two events, the timeout and key press.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the events could not be created.
     fn wait_for_events(&mut self) -> BootResult<()> {
         let Some(events) = &mut self.events else {
             return Ok(()); // if there are somehow no events, dont wait
@@ -225,19 +253,26 @@ impl App {
         Ok(())
     }
 
+    /// Create the key and timer events.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the input is closed, or the timer event could not be opened.
     fn create_events(&mut self) -> BootResult<()> {
-        let timer_event = Self::get_timer_event()?;
-        self.events = unsafe {
-            Some([
-                self.input
-                    .wait_for_key_event()
-                    .ok_or(AppError::InputClosed)?,
-                timer_event.unsafe_clone(),
-            ])
-        };
+        self.events = Some([
+            self.input
+                .wait_for_key_event()
+                .ok_or(AppError::InputClosed)?,
+            Self::get_timer_event()?,
+        ]);
         Ok(())
     }
 
+    /// Handle a key that was pressed.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if there was some sort of device error with the [`Input`].
     fn handle_key(&mut self) -> BootResult<()> {
         match self.input.read_key()? {
             Some(Key::Special(key)) => self.handle_special_key(key),
@@ -247,6 +282,9 @@ impl App {
         Ok(())
     }
 
+    /// Handle a special key.
+    ///
+    /// This includes the arrow keys for selection, and the escape key for exiting.
     fn handle_special_key(&mut self, key: ScanCode) {
         match key {
             ScanCode::UP => {
@@ -262,6 +300,10 @@ impl App {
         }
     }
 
+    /// Handle a printable key.
+    ///
+    /// This includes w/s for alternate selection, +/= for setting the default, e for editing, or the
+    /// enter key for selecting a boot option.
     fn handle_printable_key(&mut self, key: char) {
         let key = key.to_ascii_lowercase();
         match key {
@@ -281,6 +323,11 @@ impl App {
         self.timeout = -1;
     }
 
+    /// Create a timer event.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if there was not enough memory for the timer to be allocated.
     fn get_timer_event() -> BootResult<Event> {
         // there are no callbacks, so this is safe
         let timer_event = unsafe {

@@ -22,6 +22,7 @@ use uefi::{
 
 use crate::{BootResult, error::BootError, system::helper::str_to_cstr};
 
+/// The partition GUID of an `XBOOTLDR` partition.
 const XBOOTLDR_PARTITION: uefi::Guid = guid!("bc13c2ff-59e6-4262-a352-b275fd6f7172");
 
 /// Gets the volume label from a `SimpleFileSystem`

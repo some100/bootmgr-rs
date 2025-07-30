@@ -5,36 +5,37 @@
 use core::cell::UnsafeCell;
 
 use crate::{
-    BootResult,
-    boot::{devicetree::install_devicetree, loader::LoadError, secure_boot::shim::shim_load_image},
-    config::Config,
-    system::helper::{get_device_path, str_to_cstr},
+    boot::{devicetree::install_devicetree, loader::{get_efi, LoadError}, secure_boot::shim::shim_load_image}, config::Config, system::helper::{get_device_path, str_to_cstr}, BootResult
 };
 
 use alloc::vec::Vec;
 use uefi::{
     CStr16, CString16, Handle,
-    boot::{self, ScopedProtocol, image_handle},
+    boot::{self, ScopedProtocol},
     proto::{device_path::DevicePath, loaded_image::LoadedImage, media::fs::SimpleFileSystem},
 };
 
-// An instance of LoadOptions that remains for the lifetime of the program.
-// This is because load options must last long enough so that it can be safely
-// passed into set_load_options.
+/// An instance of `LoadOptions` that remains for the lifetime of the program.
+/// This is because load options must last long enough so that it can be safely
+/// passed into [`LoadOptions::set_load_options`].
 static LOAD_OPTIONS: LoadOptions = LoadOptions {
     options: UnsafeCell::new(None),
 };
 
+/// Storage struct for a [`CString16`] with load options.
 struct LoadOptions {
+    /// [`UnsafeCell`] wrapper around the load options.
     options: UnsafeCell<Option<CString16>>,
 }
 
 impl LoadOptions {
+    /// Set the current load options from a [`CStr16`] slice.
     fn set(&self, s: &CStr16) {
         let options = unsafe { &mut *self.options.get() };
         *options = Some(s.into());
     }
 
+    /// Get the current load options as a possibly null u8 raw pointer.
     fn get(&self) -> Option<*const u8> {
         unsafe {
             (*self.options.get())
@@ -43,10 +44,12 @@ impl LoadOptions {
         }
     }
 
+    /// Get the number of bytes of the load options.
     fn size(&self) -> usize {
         unsafe { (*self.options.get()).as_ref() }.map_or(0, |x| x.num_bytes())
     }
 
+    /// Set the load options of an image to the load options of the struct.
     fn set_load_options(&self, image: &mut ScopedProtocol<LoadedImage>) {
         if let Some(ptr) = self.get() {
             // it is quite unlikely that the load options will literally exceed 4 gb in length, so its safe to truncate
@@ -60,6 +63,7 @@ impl LoadOptions {
         }
     }
 
+    /// Clear the load options of the struct.
     fn clear(&self) {
         let options = unsafe { &mut *self.options.get() };
         *options = None;
@@ -85,10 +89,7 @@ pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
 
     let mut fs = boot::open_protocol_exclusive(handle)?;
 
-    let file = config
-        .efi
-        .as_deref()
-        .ok_or_else(|| LoadError::ConfigMissingEfi(config.filename.clone()))?;
+    let file = get_efi(config)?;
 
     let s = str_to_cstr(file)?;
 
@@ -97,6 +98,11 @@ pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
     setup_image(&mut fs, handle, config)
 }
 
+/// Load an image given a [`Handle`] and a path.
+///
+/// # Errors
+///
+/// May return an `Error` if the handle does not support [`DevicePath`], or the image could not be loaded.
 fn load_image_from_path(handle: Handle, path: &CStr16) -> BootResult<Handle> {
     let dev_path = boot::open_protocol_exclusive::<DevicePath>(handle)?;
     let mut vec = Vec::new();
@@ -104,12 +110,17 @@ fn load_image_from_path(handle: Handle, path: &CStr16) -> BootResult<Handle> {
 
     let src = boot::LoadImageSource::FromDevicePath {
         device_path: &path,
-        boot_policy: uefi::proto::BootPolicy::ExactMatch,
+        boot_policy: uefi::proto::BootPolicy::BootSelection,
     };
-    shim_load_image(image_handle(), src)
+    shim_load_image(boot::image_handle(), src) // this will either load with shim validation, or just load the image
 }
 
-// Sets up the image for boot with load options and devicetree.
+/// Sets up the image for boot with load options and optionally loading a devicetree.
+///
+/// # Errors
+///
+/// May return an `Error` if the image does not support [`LoadedImage`], or, if a devicetree
+/// is present, the devicetree could not be installed.
 fn setup_image(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     handle: Handle,
@@ -117,7 +128,7 @@ fn setup_image(
 ) -> BootResult<Handle> {
     let load_options = &LOAD_OPTIONS;
 
-    config
+    let _ = config
         .devicetree
         .as_ref()
         .map(|x| install_devicetree(x, fs))

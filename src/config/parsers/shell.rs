@@ -1,3 +1,4 @@
+//! An auto detector for the UEFI shell (located at /shellx64.efi)
 #![cfg(feature = "shell")]
 
 use alloc::{format, vec::Vec};
@@ -8,7 +9,10 @@ use crate::{
     system::{fs::check_file_exists, helper::get_path_cstr},
 };
 
+/// The configuration prefix.
 const SHELL_PREFIX: &CStr16 = cstr16!(""); // the root of the partition
+
+/// The configuration suffix.
 const SHELL_SUFFIX: &str = ".efi";
 
 /// A "parser" for detecting shellx64.efi

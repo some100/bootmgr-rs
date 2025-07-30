@@ -1,3 +1,4 @@
+//! An auto detector for the macOS boot loader.
 #![cfg(feature = "osx")]
 
 use alloc::{format, vec::Vec};
@@ -8,7 +9,10 @@ use crate::{
     system::{fs::check_file_exists, helper::get_path_cstr},
 };
 
+/// The configuration prefix.
 const BOOTEFI_PREFIX: &CStr16 = cstr16!("\\System\\Library\\CoreServices");
+
+/// The configuration suffix.
 const BOOTEFI_SUFFIX: &str = ".efi";
 
 /// A "parser" for detecting macOS boot configurations

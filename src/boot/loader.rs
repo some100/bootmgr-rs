@@ -43,3 +43,12 @@ pub enum LoadError {
 pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
     config.action.run(config)
 }
+
+/// Get an EFI path from a [`Config`].
+/// 
+/// # Errors
+/// 
+/// May return an `Error` if the [`Config`] does not contain an EFI path.
+fn get_efi(config: &Config) -> Result<&String, LoadError> {
+    config.efi.as_deref().ok_or_else(|| LoadError::ConfigMissingEfi(config.filename.clone()))
+}

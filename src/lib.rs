@@ -7,9 +7,11 @@
 #![feature(never_type)]
 #![warn(clippy::pedantic)]
 #![warn(clippy::mod_module_files)]
+#![warn(clippy::missing_docs_in_private_items)]
 #![warn(missing_docs)]
 
-type BootResult<T> = Result<T, crate::error::BootError>;
+/// The primary result type that wraps around [`crate::error::BootError`].
+pub type BootResult<T> = Result<T, crate::error::BootError>;
 
 pub mod app;
 pub mod boot;

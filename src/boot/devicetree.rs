@@ -19,9 +19,16 @@ use crate::system::fs::read;
 use crate::system::helper::{normalize_path, str_to_cstr};
 use crate::system::protos::DevicetreeFixup;
 
+/// GUID for the configuration table for devicetree blobs.
 const DTB_CONF_TABLE: uefi::Guid = guid!("b1b621d5-f19c-41a5-830b-d9152c69aae0");
+
+/// GUID for the configuration table for devicetree fixups.
 const DTB_FIXUP_TABLE: uefi::Guid = guid!("e617d64c-fe08-46da-f4dc-bbd5870c7300");
+
+/// Flag indicating that fixups should be applied to the devicetree blob.
 const EFI_DT_APPLY_FIXUPS: u32 = 0x0000_0001;
+
+/// Flag indicating that memory should be reserved.
 const EFI_DT_RESERVE_MEMORY: u32 = 0x0000_0002;
 
 /// An `Error` that may result from loading a devicetree.
@@ -33,18 +40,28 @@ pub enum DevicetreeError {
 }
 
 struct Devicetree {
+    /// The size of the devicetree blob.
     size: usize,
+
+    /// A [`NonNull`] pointer to the devicetree blob.
     ptr: NonNull<u8>,
 }
 
+/// A RAII guard for [`Devicetree`] that leaks upon installation, in order to
+/// safely install the devicetree blob to the configuration table.
 #[must_use = "Will drop the inner Devicetree if immediately dropped"]
 struct DevicetreeGuard {
+    /// The inner [`Devicetree`].
     devicetree: Option<Devicetree>,
 }
 
 impl Devicetree {
+    /// Get a new [`Devicetree`] given a byte slice of a devicetree blob, and optionally its size which is
+    /// determined from the content length if excluded.
     fn new(content: &[u8], size: Option<usize>) -> BootResult<Self> {
         let size = size.unwrap_or(content.len());
+
+        // ptr must be an allocation of type ACPI_RECLAIM, because dtb data must be ACPI_RECLAIM
         let ptr = boot::allocate_pool(boot::MemoryType::ACPI_RECLAIM, size)?;
         unsafe {
             // SAFETY: ptr is exactly the same length as size, so this is safe
@@ -53,6 +70,7 @@ impl Devicetree {
         Ok(Self { size, ptr })
     }
 
+    /// Apply fixups to the devicetree blob with the [`DevicetreeFixup`] protocol.
     fn fixup(&mut self, fixup: &mut ScopedProtocol<DevicetreeFixup>) -> BootResult<()> {
         unsafe {
             // SAFETY: self.ptr is guaranteed NonNull
@@ -66,8 +84,10 @@ impl Devicetree {
         }
     }
 
+    /// Install the devicetree blob into the configuration table.
     fn install(&self) -> BootResult<()> {
         unsafe {
+            // SAFETY: the ptr is not modified or freed afterwards, especially when using DevicetreeGuard
             Ok(boot::install_configuration_table(
                 &DTB_CONF_TABLE,
                 self.ptr.as_ptr() as *const c_void,
@@ -87,12 +107,15 @@ impl Drop for Devicetree {
 }
 
 impl DevicetreeGuard {
+    /// Get a new [`DevicetreeGuard`] given a byte slice to a devicetree blob and optionally its size.
+    /// This delegates to the inner [`Devicetree`] constructor.
     fn new(content: &[u8], size: Option<usize>) -> BootResult<Self> {
         Ok(Self {
             devicetree: Some(Devicetree::new(content, size)?),
         })
     }
 
+    /// Apply fixups to the devicetree blob. This delegates to the inner [`Devicetree`].
     fn fixup(&mut self, fixup: &mut ScopedProtocol<DevicetreeFixup>) -> BootResult<()> {
         if let Some(devicetree) = &mut self.devicetree {
             devicetree.fixup(fixup)?;
@@ -100,6 +123,8 @@ impl DevicetreeGuard {
         Ok(())
     }
 
+    /// Install the devicetree into the configuration table. This delegates to the inner [`Devicetree`],
+    /// but also leaks the pointer so that it may safely stay in the configuration table.
     fn install(&mut self) -> BootResult<()> {
         let devicetree = self.devicetree.take();
         if let Some(devicetree) = devicetree {
@@ -109,6 +134,11 @@ impl DevicetreeGuard {
         Ok(())
     }
 
+    /// Get the size of the devicetree blob.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the [`DevicetreeGuard`] was already consumed.
     fn size(&self) -> Result<usize, DevicetreeError> {
         Ok(self
             .devicetree
@@ -117,6 +147,11 @@ impl DevicetreeGuard {
             .size)
     }
 
+    /// Get the pointer of the devicetree blob.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the [`DevicetreeGuard`] was already consumed.
     fn ptr(&self) -> Result<NonNull<u8>, DevicetreeError> {
         Ok(self
             .devicetree
@@ -125,8 +160,14 @@ impl DevicetreeGuard {
             .ptr)
     }
 
+    /// Get the devicetree blob as a byte slice.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the [`DevicetreeGuard`] was already consumed.
     fn as_slice<'a>(&self) -> Result<&'a [u8], DevicetreeError> {
         unsafe {
+            // SAFETY: self.ptr is guaranteed nonnull
             Ok(core::slice::from_raw_parts(
                 self.ptr()?.as_ptr(),
                 self.size()?,
@@ -144,7 +185,17 @@ impl Drop for DevicetreeGuard {
     }
 }
 
-// Lets the firmware apply fixups to the provided devicetree.
+/// Lets the firmware apply fixups to the provided devicetree.
+/// This essentially attempts to open the [`DevicetreeFixup`] protocol on the system if it exists, then running its fixup method
+/// in order to apply firmware fixups to a DTB blob.
+///
+/// This also handles resizing the buffer, in case it is too small for the fixup method. This is possible because it may return
+/// an error of status `BUFFER_TOO_SMALL`, with the bytes needed as the payload.
+///
+/// # Errors
+///
+/// May return an `Error` if the firmware does not support [`DevicetreeFixup`], or the devicetree could not be converted into a slice,
+/// or the devicetree failed to fixup after resizing the buffer.
 fn fixup_devicetree(devicetree: &mut DevicetreeGuard) -> BootResult<()> {
     let Ok(fixup) = boot::locate_handle_buffer(boot::SearchType::ByProtocol(&DTB_FIXUP_TABLE))
     else {

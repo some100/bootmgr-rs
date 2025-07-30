@@ -72,6 +72,10 @@ impl SecurityOverrideInner {
         self.uninstall_security2_hook();
     }
 
+    /// Checks if the security override should not be installed.
+    ///
+    /// If the validators are exactly the same (function pointer addresses are equal), or secure boot
+    /// is not enabled, then it returns [`false`].
     fn should_skip_install(
         &mut self,
         validator: Validator,
@@ -94,6 +98,9 @@ impl SecurityOverrideInner {
         false
     }
 
+    /// Installs the security hook for [`SecurityArch`].
+    ///
+    /// It will only install the hook if the firmware supports [`SecurityArch`].
     fn install_security1_hook(&mut self) {
         if let Ok(handle) = boot::get_handle_for_protocol::<SecurityArch>()
             && let Ok(mut security) = boot::open_protocol_exclusive::<SecurityArch>(handle)
@@ -104,6 +111,9 @@ impl SecurityOverrideInner {
         }
     }
 
+    /// Installs the security hook for [`Security2Arch`].
+    ///
+    /// It will only install the hook if the firmware supports [`Security2Arch`].
     fn install_security2_hook(&mut self) {
         if let Ok(handle) = boot::get_handle_for_protocol::<Security2Arch>()
             && let Ok(mut security) = boot::open_protocol_exclusive::<Security2Arch>(handle)
@@ -114,6 +124,14 @@ impl SecurityOverrideInner {
         }
     }
 
+    /// Uninstalls the security hook for [`SecurityArch`].
+    ///
+    /// Three conditions must be true:
+    /// - Original hook installed in struct
+    /// - [`SecurityArch`] [`Handle`] present in struct
+    /// - Firmware supports [`SecurityArch`].
+    ///
+    /// Otherwise, this method will do nothing.
     fn uninstall_security1_hook(&self) {
         if let Some(original_hook) = self.original_hook
             && let Some(handle) = self.security
@@ -123,6 +141,14 @@ impl SecurityOverrideInner {
         }
     }
 
+    /// Uninstalls the security hook for [`Security2Arch`].
+    ///
+    /// Three conditions must be true:
+    /// - Original hook installed in struct
+    /// - [`Security2Arch`] [`Handle`] present in struct
+    /// - Firmware supports [`Security2Arch`].
+    ///
+    /// Otherwise, this method will do nothing.
     fn uninstall_security2_hook(&self) {
         if let Some(original_hook2) = self.original_hook2
             && let Some(handle) = self.security2
@@ -158,6 +184,8 @@ impl SecurityOverrideInner {
 
     /// Calls the original hook for [`SecurityArch`] that was there previously before the custom validator was installed.
     ///
+    /// This should only be called in the security hook function. You should never have to use this directly.
+    ///
     /// # Safety
     ///
     /// This function takes raw pointers as parameters, which means that if null or misaligned pointers are
@@ -177,6 +205,8 @@ impl SecurityOverrideInner {
     }
 
     /// Calls the original hook for [`Security2Arch`] that was there previously before the custom validator was installed.
+    ///
+    /// This should only be called in the security hook function. You should never have to use this directly.
     ///
     /// # Safety
     ///

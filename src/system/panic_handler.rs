@@ -5,8 +5,10 @@
 #![cfg(all(not(fuzzing), not(test)))] // this causes a conflict if fuzzing or testing if enabled
 use core::fmt::Write;
 
+/// The delay of the panic handler in microseconds.
 const PANIC_DELAY: usize = 10_000_000; // 10 seconds
 
+/// The panic handler.
 #[panic_handler]
 fn panic_handler(info: &core::panic::PanicInfo) -> ! {
     uefi::system::with_stdout(|stdout| {

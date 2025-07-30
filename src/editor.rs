@@ -21,6 +21,8 @@ use crate::{
 };
 
 mod ui;
+
+/// Editor widget implementation.
 mod widget;
 
 /// The basic editor
@@ -108,7 +110,7 @@ impl Editor {
         Ok(())
     }
 
-    // Reads the [`Config`] file into the field and initializes the state
+    /// Reads the [`Config`] file into the field and initializes the state
     fn init_state(&mut self, config: &Config) {
         self.fields = config
             .get_str_fields()
@@ -120,6 +122,7 @@ impl Editor {
         self.idx = 0;
     }
 
+    /// Wait for the key event.
     fn wait_for_events(&mut self) {
         let Some(events) = &mut self.events else {
             return;
@@ -128,6 +131,11 @@ impl Editor {
         let _ = boot::wait_for_event(events);
     }
 
+    /// Handle a key that was pressed.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if there was some sort of device error with the [`Input`].
     fn handle_key(&mut self, input: &mut ScopedProtocol<Input>) -> BootResult<()> {
         match input.read_key()? {
             Some(Key::Special(key)) => self.handle_special_key(key),
@@ -137,6 +145,11 @@ impl Editor {
         Ok(())
     }
 
+    /// Handle a special key.
+    ///
+    /// If the key is an escape, then the values are saved into the config field and the editor exits.
+    /// If the key is up or down, then the current field will be saved and a new field will be loaded.
+    /// If the key is left or right, then the cursor position is moved.
     fn handle_special_key(&mut self, key: ScanCode) {
         match key {
             ScanCode::ESCAPE => {
@@ -167,6 +180,10 @@ impl Editor {
         }
     }
 
+    /// Handle a printable key.
+    ///
+    /// If the key is a backspace, then it will remove the current value and push the cursor position back by one.
+    /// If the key is anything else, then that key will be inserted into the current value.
     fn handle_printable_key(&mut self, key: char) {
         match key {
             '\x08' => {
@@ -182,15 +199,22 @@ impl Editor {
         }
     }
 
+    /// Save the current value into the config field.
     fn save_to_field(&mut self) {
         self.fields[self.idx].1 = self.value.clone();
     }
 
+    /// Load a new value and cursor position from a config field.
     fn load_from_field(&mut self) {
         self.value = self.fields[self.idx].1.clone();
         self.cursor_pos = self.value.chars().count();
     }
 
+    /// Parse the fields of the editor back into the [`Config`].
+    ///
+    /// This only makes in memory changes to the [`Config`], because it is impossible at this stage to determine
+    /// the origin of the [`Config`]. If the [`Config`] originated from a Windows BCD, or a UKI executable, it would
+    /// not be possible to change the configuration options permanently (without significantly more complicated logic).
     fn save_to_config(&self, config: &mut Config) {
         let mut config = ConfigBuilder::from(config.clone());
         for (key, val) in &self.fields {

@@ -16,6 +16,16 @@ use crate::{
 
 /// Attempts to obtain a response through PXE DHCP. If one is obtained, create a [`Config`] for it.
 ///
+/// PXE works through using DHCP to provide the boot file, possibly parameters, and the IP address where
+/// the file is hosted. This function provides a basic means to obtain a boot file from a DHCP server, as
+/// well as the server where the boot file was obtained from. Respectively, these are stored in the EFI
+/// and filename fields of the [`Config`].
+///
+/// If the [`Config`] is an HTTP boot configuration, detected by checking if the boot name starts with
+/// `http://` or `https://`, those will not return a [`Config`]. This is because there is no support for
+/// HTTP boot, and if a DHCP server is replying with HTTP boot configurations, there is likely some type of
+/// mismatch or error. If HTTP boot is needed, chainload a more feature complete loader like `iPXE`.
+///
 /// # Errors
 ///
 /// May return an `Error` if the firmware does not support [`BaseCode`].
@@ -38,7 +48,7 @@ pub fn get_pxe_offer() -> BootResult<Option<Config>> {
         };
         let file = file.to_string_lossy();
 
-        if !file.starts_with("http://") {
+        if !file.starts_with("http://") && !file.starts_with("https://") {
             let addr = Ipv4Addr::from(reply.bootp_si_addr).to_string();
 
             let config = ConfigBuilder::new(addr, "")

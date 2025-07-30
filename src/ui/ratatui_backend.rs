@@ -14,8 +14,12 @@ use uefi::{
     proto::console::text::{Color as UefiColor, Output},
 };
 
-use crate::system::helper::truncate_usize_to_u16;
+use crate::{BootResult, error::BootError, system::helper::truncate_usize_to_u16};
 
+/// Convert ANSI colors [`RatatuiColor`] to UEFI foreground colors [`UefiColor`].
+///
+/// [`RatatuiColor::Reset`], [`RatatuiColor::Rgb`], [`RatatuiColor::Indexed`], and [`RatatuiColor::White`]
+/// are mapped to [`UefiColor::White`].
 const fn ansi_to_uefi_color_fg(color: RatatuiColor) -> UefiColor {
     match color {
         RatatuiColor::Black => UefiColor::Black,
@@ -36,6 +40,10 @@ const fn ansi_to_uefi_color_fg(color: RatatuiColor) -> UefiColor {
     }
 }
 
+/// Convert ANSI colors [`RatatuiColor`] to UEFI background colors [`UefiColor`].
+///
+/// Note that the selection of colors for UEFI backgrounds are much more limited than for foregrounds.
+/// Any unrecognized or unusable colors are mapped to [`UefiColor::Black`].
 const fn ansi_to_uefi_color_bg(color: RatatuiColor) -> UefiColor {
     // only the first 8 colors may be used for bg
     match color {
@@ -67,7 +75,7 @@ impl UefiBackend {
     /// # Errors
     ///
     /// May return an `Error` if the system does not support an [`Output`].
-    pub fn new() -> uefi::Result<Self> {
+    pub fn new() -> BootResult<Self> {
         let handle = boot::get_handle_for_protocol::<Output>()?;
         let output = boot::open_protocol_exclusive::<Output>(handle)?;
         Ok(Self {
@@ -101,9 +109,9 @@ impl UefiBackend {
 }
 
 impl Backend for UefiBackend {
-    type Error = uefi::Error;
+    type Error = BootError;
 
-    fn draw<'a, I>(&mut self, content: I) -> uefi::Result<()>
+    fn draw<'a, I>(&mut self, content: I) -> BootResult<()>
     where
         I: Iterator<Item = (u16, u16, &'a Cell)>,
     {
@@ -116,22 +124,22 @@ impl Backend for UefiBackend {
 
             self.output
                 .write_str(cell.symbol())
-                .map_err(|_| uefi::Error::new(Status::DEVICE_ERROR, ()))?;
+                .map_err(|_| BootError::Uefi(Status::DEVICE_ERROR.into()))?;
         }
         Ok(())
     }
 
-    fn hide_cursor(&mut self) -> uefi::Result<()> {
+    fn hide_cursor(&mut self) -> BootResult<()> {
         let _ = self.output.enable_cursor(false);
         Ok(())
     }
 
-    fn show_cursor(&mut self) -> uefi::Result<()> {
+    fn show_cursor(&mut self) -> BootResult<()> {
         let _ = self.output.enable_cursor(true);
         Ok(())
     }
 
-    fn get_cursor_position(&mut self) -> uefi::Result<Position> {
+    fn get_cursor_position(&mut self) -> BootResult<Position> {
         let (x, y) = self.output.cursor_position();
 
         // as long as your screen has less than 65536 rows and columns,
@@ -141,38 +149,35 @@ impl Backend for UefiBackend {
         Ok((x, y).into())
     }
 
-    fn set_cursor_position<P: Into<Position>>(&mut self, position: P) -> uefi::Result<()> {
+    fn set_cursor_position<P: Into<Position>>(&mut self, position: P) -> BootResult<()> {
         let Position { x, y } = position.into();
         self.output.set_cursor_position(x as usize, y as usize)?;
         Ok(())
     }
 
-    fn clear(&mut self) -> uefi::Result<()> {
+    fn clear(&mut self) -> BootResult<()> {
         self.output.clear()?;
         Ok(())
     }
 
-    fn clear_region(&mut self, clear_type: ClearType) -> uefi::Result<()> {
+    fn clear_region(&mut self, clear_type: ClearType) -> BootResult<()> {
         match clear_type {
             ClearType::All => self.clear(),
-            ClearType::AfterCursor
-            | ClearType::BeforeCursor
-            | ClearType::CurrentLine
-            | ClearType::UntilNewLine => Err(uefi::Error::new(Status::UNSUPPORTED, ())),
+            _ => Err(BootError::Uefi(Status::UNSUPPORTED.into())),
         }
     }
 
-    fn size(&self) -> uefi::Result<Size> {
+    fn size(&self) -> BootResult<Size> {
         let mode = self
             .output
             .current_mode()?
-            .ok_or_else(|| uefi::Error::new(Status::UNSUPPORTED, ()))?;
+            .ok_or_else(|| BootError::Uefi(Status::UNSUPPORTED.into()))?;
         let columns = truncate_usize_to_u16(mode.columns());
         let rows = truncate_usize_to_u16(mode.rows());
         Ok(Size::new(columns, rows))
     }
 
-    fn window_size(&mut self) -> uefi::Result<WindowSize> {
+    fn window_size(&mut self) -> BootResult<WindowSize> {
         Ok(WindowSize {
             columns_rows: self.size()?,
             pixels: Size {
@@ -182,7 +187,7 @@ impl Backend for UefiBackend {
         })
     }
 
-    fn flush(&mut self) -> uefi::Result<()> {
+    fn flush(&mut self) -> BootResult<()> {
         Ok(())
     }
 }

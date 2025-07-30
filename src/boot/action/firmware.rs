@@ -31,7 +31,7 @@ pub fn reset_to_firmware() -> BootResult<!> {
     runtime::reset(ResetType::WARM, Status::SUCCESS, None); // never returns, ever, and cannot fail
 }
 
-// Sets the EFI_OS_INDICATIONS_BOOT_TO_FW_UI bit.
+/// Sets the [`EFI_OS_INDICATIONS_BOOT_TO_FW_UI`] bit.
 fn set_reset_to_firmware_flag() -> BootResult<()> {
     let mut osind = get_variable::<u64>(
         cstr16!("OsIndications"),
@@ -51,7 +51,7 @@ fn set_reset_to_firmware_flag() -> BootResult<()> {
     Ok(())
 }
 
-// Checks rebooting to firmware is supported.
+/// Checks if rebooting to firmware is supported.
 fn is_supported() -> BootResult<bool> {
     let supported = get_variable::<u64>(
         cstr16!("OsIndicationsSupported"),

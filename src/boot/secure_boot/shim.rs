@@ -20,6 +20,12 @@ use crate::{
     system::{fs::read, helper::device_path_to_text, protos::ShimImageLoader},
 };
 
+/// Checks an image using [`ShimLock`] protocol when provided the [`DevicePath`].
+///
+/// # Errors
+///
+/// May return an `Error` if the device path does not lead to a handle supporting [`SimpleFileSystem`],
+/// or the system does not support `DevicePathToText`, or the file does not exist in the filesystem.
 fn validate_from_device_path(
     mut device_path: &DevicePath,
     shim: &mut ScopedProtocol<ShimLock>,
@@ -33,15 +39,19 @@ fn validate_from_device_path(
     Ok(shim.verify(&file_buffer)?)
 }
 
+/// Checks for the presence of [`ShimLock`].
 fn shim_loaded() -> bool {
     boot::get_handle_for_protocol::<ShimLock>().is_ok()
 }
 
-// Checks if shim is recent enough to hook onto LoadImage and not require custom security override
+/// Checks if shim is recent enough to hook onto `LoadImage` and not require custom security override
+///
+/// It does this by checking for presence of [`ShimImageLoader`], which is Shim v16+ only.
 fn shim_is_recent() -> bool {
     boot::get_handle_for_protocol::<ShimImageLoader>().is_ok()
 }
 
+/// Shim validator with [`super::Validator`] function signature.
 fn shim_validate(
     _ctx: Option<NonNull<u8>>,
     device_path: Option<&DevicePath>,
@@ -68,6 +78,10 @@ fn shim_validate(
 /// Due to this, we can temporarily override these protocols with our own custom hooks, then uninstall them once we're finished
 /// loading the image. Even if we aren't using Shim, we can still benefit from Secure Boot as `LoadImage` will automatically
 /// validate those images without our input. This is even if we don't install those security overrides.
+///
+/// When Shim is not loaded, or Shim v16+ is used, or Secure Boot is not enabled, this function simply attempts to load an image
+/// without any prior security override, then return the handle from that. Installing a security override is not required for Shim
+/// v16+ as [`ShimImageLoader`] is used, which hooks onto `LoadImage` and friends and automatically does the security overrides for us.
 ///
 /// # Errors
 ///

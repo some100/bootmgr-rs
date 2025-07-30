@@ -15,10 +15,7 @@ use uefi::{
 };
 
 use crate::{
-    BootResult,
-    boot::{loader::LoadError, secure_boot::shim::shim_load_image},
-    config::Config,
-    system::helper::{bytes_to_cstr8, str_to_cstring},
+    boot::{loader::{get_efi, LoadError}, secure_boot::shim::shim_load_image}, config::Config, system::helper::{bytes_to_cstr8, str_to_cstring}, BootResult
 };
 
 /// Loads a boot option from a given [`Config`] through TFTP.
@@ -42,10 +39,7 @@ pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
         base_code.start(true)?;
     }
 
-    let efi = config
-        .efi
-        .as_deref()
-        .ok_or_else(|| LoadError::ConfigMissingEfi(config.filename.clone()))?;
+    let efi = get_efi(config)?;
 
     let filename = str_to_cstring(efi)?;
     let filename_bytes = filename.as_bytes_with_nul();

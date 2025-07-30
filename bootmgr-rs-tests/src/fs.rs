@@ -1,5 +1,7 @@
 use bootmgr_rs::system::fs::{check_file_exists, create, delete, read, rename, write};
-use uefi::{boot, cstr16, println, CStr16};
+use uefi::{CStr16, boot, cstr16, println};
+
+use crate::press_for_reboot;
 
 const FILE_PATH: &CStr16 = cstr16!("\\foo.file");
 const FILE_CONTENT: &[u8] = &55usize.to_le_bytes();
@@ -17,4 +19,6 @@ pub fn test_filesystem() {
     delete(&mut fs, ALT_FILE_PATH).unwrap();
     assert!(!check_file_exists(&mut fs, ALT_FILE_PATH));
     println!("All filesystem assertions passed!");
+    println!("Press a key to reboot");
+    press_for_reboot();
 }

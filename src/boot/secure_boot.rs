@@ -48,12 +48,18 @@ pub enum SecureBootError {
     NoValidator,
 }
 
+/// The type alias for the [`SecurityArchProtocol`] `auth_state` function.
+///
+/// Should probably not be used directly.
 type AuthState = unsafe extern "efiapi" fn(
     this: *const SecurityArchProtocol,
     auth_status: u32,
     file: *const FfiDevicePath,
 ) -> Status;
 
+/// The type alias for the [`Security2ArchProtocol`] `authentication` function.
+///
+/// Should probably not be used directly.
 type Authentication = unsafe extern "efiapi" fn(
     this: *const Security2ArchProtocol,
     device_path: *const FfiDevicePath,
@@ -70,12 +76,18 @@ pub type Validator = fn(
     file_size: usize,
 ) -> BootResult<()>;
 
+/// A once initialized instance of [`SecurityOverrideInner`] that lasts for the lifetime of the program.
+///
+/// This is required because of how the security hooks that are installed do not have a usable context field,
+/// so we cannot simply supply the inner security override as that context. Instead, we have a static instance
+/// of the [`SecurityOverrideInner`] that the security hooks may access.
 static SECURITY_OVERRIDE: SecurityOverride = SecurityOverride {
     inner: OnceCell::new(),
 };
 
 /// The security override, for installing a custom validator.
 pub struct SecurityOverride {
+    /// The inner [`SecurityOverrideInner`] wrapped around a [`OnceCell`] for safety.
     inner: OnceCell<SecurityOverrideInner>,
 }
 
@@ -117,6 +129,10 @@ pub fn uninstall_security_override() {
     security_override.uninstall_validator();
 }
 
+/// The override hook for [`SecurityArchProtocol`].
+///
+/// This calls the custom validator to validate the `file` parameter. If the validator fails, then the original hook
+/// will be used to verify the image.
 unsafe extern "efiapi" fn security_hook(
     this: *const SecurityArchProtocol,
     auth_status: u32,
@@ -133,6 +149,10 @@ unsafe extern "efiapi" fn security_hook(
     }
 }
 
+/// The override hook for [`Security2ArchProtocol`].
+///
+/// This calls the custom validator to validate the either the `device_path` or `file_buffer` parameters. If the
+/// validator fails, then the original hook will be used to verify the image.
 unsafe extern "efiapi" fn security2_hook(
     this: *const Security2ArchProtocol,
     device_path: *const FfiDevicePath,
@@ -161,6 +181,9 @@ unsafe extern "efiapi" fn security2_hook(
     }
 }
 
+/// Convert an [`FfiDevicePath`] to a [`DevicePath`].
+///
+/// If [`FfiDevicePath`] is null, then it will return [`None`].
 fn ffi_ptr_to_device_path<'a>(ptr: *const FfiDevicePath) -> Option<&'a DevicePath> {
     (!ptr.is_null()).then(|| unsafe { DevicePath::from_ffi_ptr(ptr) })
 }

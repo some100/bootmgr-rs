@@ -1,3 +1,4 @@
+//! An auto detector for the fallback boot loader (BOOTx64.efi, etc.)
 #![cfg(feature = "fallback")]
 
 use alloc::{format, vec::Vec};
@@ -11,7 +12,10 @@ use crate::{
     },
 };
 
+/// The configuration prefix.
 const FALLBACK_PREFIX: &CStr16 = cstr16!("\\EFI\\BOOT");
+
+/// The configuration suffix.
 const FALLBACK_SUFFIX: &str = ".efi";
 
 /// A "parser" for detecting BOOTx64.efi, BOOTia32.efi, BOOTaa32.efi, BOOTaa64.efi
