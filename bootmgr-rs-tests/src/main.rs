@@ -5,7 +5,7 @@
 
 // DISCLAIMER: This code extensively uses unwrap and expect, as any errors in testing should be treated as fatal.
 
-use bootmgr_rs::{boot::action::reboot, system::log_backend::UefiLogger};
+use bootmgr_rs::{BootResult, boot::action::reboot, system::log_backend::UefiLogger};
 use uefi::{
     prelude::*,
     println,
@@ -24,9 +24,8 @@ mod fs;
 mod load;
 mod variables;
 
-#[entry]
-fn main() -> Status {
-    uefi::helpers::init().unwrap();
+fn main_func() -> BootResult<()> {
+    uefi::helpers::init()?;
     log::set_logger(UefiLogger::static_new())
         .map(|()| log::set_max_level(log::LevelFilter::Info))
         .expect("Failed to set logger"); // set up logger so that errors produced by the library will get caught as well
@@ -43,20 +42,23 @@ fn main() -> Status {
         "It's recommended that the tests are tested in order, as they will rely on each other in that order."
     );
     loop {
-        match read_key() {
-            Key::Printable(char) => {
-                let char = char::from(char);
-                match char {
-                    '1' => test_custom_actions(),
-                    '2' => test_variables(),
-                    '3' => test_filesystem(),
-                    '4' => test_loading(),
-                    _ => (),
-                }
-            }
-            _ => (),
+        if let Key::Printable(char) = read_key() {
+            let char = char::from(char);
+            return match char {
+                '1' => test_custom_actions(),
+                '2' => test_variables(),
+                '3' => test_filesystem(),
+                '4' => test_loading(),
+                _ => Ok(()),
+            };
         }
     }
+}
+
+#[entry]
+fn main() -> Status {
+    main_func().unwrap_or_else(|e| panic!("Failed to run test: {e}"));
+    Status::SUCCESS
 }
 
 fn press_for_reboot() -> ! {

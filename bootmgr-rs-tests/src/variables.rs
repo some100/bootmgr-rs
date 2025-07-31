@@ -1,4 +1,7 @@
-use bootmgr_rs::system::variable::{get_variable, set_variable};
+use bootmgr_rs::{
+    BootResult,
+    system::variable::{get_variable, set_variable},
+};
 use uefi::{CStr16, cstr16, println};
 
 use crate::press_for_reboot;
@@ -26,7 +29,7 @@ pub fn check_variable() {
     }
 }
 
-pub fn test_variables() {
+pub fn test_variables() -> BootResult<()> {
     set_variable(VARIABLE_NAME, None, None, Some(VARIABLE_CONTENT)).unwrap();
     println!("Set value of TestVariable to 23");
     assert_eq!(

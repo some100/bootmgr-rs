@@ -11,7 +11,7 @@ cargo-fuzz = true
 libfuzzer-sys = "0.4"
 
 [dependencies.bootmgr-rs]
-path = ".."
+path = "../bootmgr-rs"
 
 [[bin]]
 name = "fuzz_bls_parser"

@@ -11,14 +11,18 @@ Compile it, then install the produced .efi file to \EFI\BOOT\BOOTx64.efi. This i
 bootmgr-rs is written in Rust, so the Cargo toolchain is required for compilation.
 ```
 git clone https://github.com/some100/bootmgr-rs
-cargo build -r --target x86_64-unknown-uefi
+cargo xtask build -r
 ```
 
 ## Testing
 
-Tests can be run using `cargo test --lib` as usual. 
+Unit tests and clippy can be run using `cargo xtask test`.
 
-Integration tests are located in the `bootmgr-rs-tests` directory, and are built as a standard UEFI rust application. It can be built using `cargo build --target x86_64-unknown-uefi`.
+Integration tests can be run using `cargo xtask test run`.
+
+Fuzz tests can be run with `cargo xtask fuzz -f <PARSER>`, where PARSER is one of `bls`, `boot`, `uki`, and `win`.
+
+If the main program needs to be tested, then it can be run using `cargo xtask run`.
 
 ## License
 

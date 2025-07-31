@@ -1,4 +1,5 @@
 use bootmgr_rs::{
+    BootResult,
     boot::loader::load_boot_option,
     config::builder::ConfigBuilder,
     system::{
@@ -31,7 +32,7 @@ pub fn check_loaded() {
     }
 }
 
-pub fn test_loading() {
+pub fn test_loading() -> BootResult<()> {
     println!(
         "Will try to load an image from either {SHELL_PATH} or {FALLBACK_PATH} on same filesystem"
     );
@@ -39,7 +40,7 @@ pub fn test_loading() {
     let _ = read_key();
 
     let efi = {
-        let mut fs = boot::get_image_file_system(boot::image_handle()).unwrap();
+        let mut fs = boot::get_image_file_system(boot::image_handle())?;
         if check_file_exists(&mut fs, SHELL_PATH) {
             SHELL_PATH
         } else if check_file_exists(&mut fs, FALLBACK_PATH) {
@@ -54,16 +55,19 @@ pub fn test_loading() {
     }; // fs dropped here
 
     let handle = {
-        let loaded_image =
-            boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle()).unwrap();
-        let device_handle = loaded_image.device().unwrap();
-        let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle).unwrap();
-        boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path).unwrap()
+        let loaded_image = boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle())?;
+        let device_handle = loaded_image
+            .device()
+            .unwrap_or_else(|| panic!("Image handle was not loaded from a storage device"));
+        let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle)?;
+        boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path)?
     }; // so that the handle will be able to be opened for loading the boot option
 
     let config = ConfigBuilder::new("", "").efi(efi).handle(handle).build();
 
-    let handle = load_boot_option(&config).unwrap();
-    set_variable::<usize>(LOADED_VARIABLE_NAME, None, None, Some(1)).unwrap();
-    boot::start_image(handle).unwrap();
+    let handle = load_boot_option(&config)?;
+    set_variable::<usize>(LOADED_VARIABLE_NAME, None, None, Some(1))?;
+    boot::start_image(handle)?;
+
+    Ok(())
 }
