@@ -152,7 +152,9 @@ impl Config {
     pub fn lint(&self) {
         if self.title.as_ref().is_none_or(|x| x.trim().is_empty()) {
             if self.filename.is_empty() {
-                warn!("Config found with no filename or title, assigning a title of its boot index");
+                warn!(
+                    "Config found with no filename or title, assigning a title of its boot index"
+                );
             } else {
                 warn!("Config {} does not have a title", self.filename);
             }
@@ -199,12 +201,12 @@ impl Config {
                 return Err(ConfigError::FsUnsupported(self.filename.clone())); // this should not happen.
             };
             if let Some(efi) = &self.efi
-                && check_file_exists_str(&mut fs, efi).unwrap_or(false)
+                && !check_file_exists_str(&mut fs, efi).unwrap_or(false)
             {
                 return Err(ConfigError::NotExist("EFI", (**efi).clone()));
             }
             if let Some(devicetree) = &self.devicetree
-                && check_file_exists_str(&mut fs, devicetree).unwrap_or(false)
+                && !check_file_exists_str(&mut fs, devicetree).unwrap_or(false)
             {
                 return Err(ConfigError::NotExist("Devicetree", (**devicetree).clone()));
             }
@@ -257,17 +259,18 @@ pub fn get_configs() -> BootResult<Vec<Config>> {
 
 #[cfg(test)]
 mod tests {
+    use crate::config::types::TypeError;
+
     use super::*;
     use alloc::borrow::ToOwned;
 
     // This is technically not a valid Config.
     // This simply tests that the config validator will mark valid fields as correct.
     #[test]
-    fn test_non_efi_config() {
-        let machine_id =
-            MachineId::new("1234567890abcdef1234567890abcdef").expect("Machine id is invalid");
-        let sort_key = SortKey::new("linux").expect("Sort key is invalid");
-        let efi = EfiPath::new("\\vmlinuz-linux").expect("EFI is invalid");
+    fn test_non_efi_config() -> Result<(), TypeError> {
+        let machine_id = MachineId::new("1234567890abcdef1234567890abcdef")?;
+        let sort_key = SortKey::new("linux")?;
+        let efi = EfiPath::new("\\vmlinuz-linux")?;
         let mut config = Config {
             title: Some("Linux".to_owned()),
             version: Some("6.10.0".to_owned()),
@@ -281,5 +284,6 @@ mod tests {
             ..Config::default()
         };
         assert!(config.is_good());
+        Ok(())
     }
 }

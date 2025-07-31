@@ -3,7 +3,10 @@
 //! It may be constructed from an iterator of [`Config`]s, or through its new method from a [`BootMgr`] containing
 //! a [`Vec`] of [`Config`]s.
 
-use alloc::{string::{String, ToString}, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use ratatui_widgets::list::ListState;
 
 use crate::{boot::BootMgr, config::Config};
@@ -43,7 +46,7 @@ impl BootList {
 }
 
 /// Picks a title for a [`Config`] using one of three sources.
-/// 
+///
 /// If the title of the [`Config`] is found, then that is used and preferred because it indicates the preferred
 /// name for the boot option.
 /// If the title is not present, and the filename is not empty, then the filename is used. This is because it can

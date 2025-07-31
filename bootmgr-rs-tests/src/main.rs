@@ -30,8 +30,8 @@ fn main_func() -> BootResult<()> {
         .map(|()| log::set_max_level(log::LevelFilter::Info))
         .expect("Failed to set logger"); // set up logger so that errors produced by the library will get caught as well
 
-    check_loaded();
-    check_variable();
+    check_loaded()?;
+    check_variable()?;
 
     println!("Select the test you would like to do:");
     println!("1. Custom action test");
@@ -42,7 +42,7 @@ fn main_func() -> BootResult<()> {
         "It's recommended that the tests are tested in order, as they will rely on each other in that order."
     );
     loop {
-        if let Key::Printable(char) = read_key() {
+        if let Key::Printable(char) = read_key()? {
             let char = char::from(char);
             return match char {
                 '1' => test_custom_actions(),
@@ -66,10 +66,12 @@ fn press_for_reboot() -> ! {
     reboot::reset();
 }
 
-fn read_key() -> Key {
-    let handle = boot::get_handle_for_protocol::<Input>().unwrap();
-    let mut input = boot::open_protocol_exclusive::<Input>(handle).unwrap();
-    let mut events = [input.wait_for_key_event().unwrap()];
-    boot::wait_for_event(&mut events).unwrap();
-    input.read_key().unwrap().unwrap()
+fn read_key() -> BootResult<Key> {
+    let handle = boot::get_handle_for_protocol::<Input>()?;
+    let mut input = boot::open_protocol_exclusive::<Input>(handle)?;
+    let mut events = [input
+        .wait_for_key_event()
+        .expect("Input device not present")];
+    boot::wait_for_event(&mut events).discard_errdata()?;
+    Ok(input.read_key()?.expect("Input device not present"))
 }

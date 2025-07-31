@@ -219,8 +219,10 @@ mod tests {
     #[test]
     fn test_sort_key() {
         let sort_key = SortKey::new("a-valid-sort-key");
-        assert!(sort_key.is_ok());
-        assert_eq!(*sort_key.unwrap(), "a-valid-sort-key".to_owned());
+        assert!(matches!(
+            sort_key.as_deref().map(String::as_str),
+            Ok("a-valid-sort-key")
+        ));
         let sort_key = SortKey::new(";'[];\\[]-=invalid sort key");
         assert!(sort_key.is_err());
     }
@@ -228,11 +230,10 @@ mod tests {
     #[test]
     fn test_machine_id() {
         let machine_id = MachineId::new("93274530989549038301177646597349");
-        assert!(machine_id.is_ok());
-        assert_eq!(
-            *machine_id.unwrap(),
-            "93274530989549038301177646597349".to_owned()
-        );
+        assert!(matches!(
+            machine_id.as_deref().map(String::as_str),
+            Ok("93274530989549038301177646597349")
+        ));
         let machine_id = MachineId::new("invalidthing");
         assert!(machine_id.is_err());
         let machine_id = MachineId::new("1");
@@ -244,8 +245,10 @@ mod tests {
     #[test]
     fn test_dtb_path() {
         let devicetree = DevicetreePath::new("\\foo\\bar.dtb");
-        assert!(devicetree.is_ok());
-        assert_eq!(*devicetree.unwrap(), "\\foo\\bar.dtb".to_owned());
+        assert!(matches!(
+            devicetree.as_deref().map(String::as_str),
+            Ok("\\foo\\bar.dtb")
+        ));
         let devicetree = DevicetreePath::new("\\** / : ???? .dtb");
         assert!(devicetree.is_err());
     }
@@ -253,8 +256,7 @@ mod tests {
     #[test]
     fn test_arch() {
         let arch = Architecture::new("x64");
-        assert!(arch.is_ok());
-        assert_eq!(*arch.unwrap(), "x64".to_owned());
+        assert!(matches!(arch.as_deref().map(String::as_str), Ok("x64")));
         let arch = Architecture::new("notreal64");
         assert!(arch.is_err());
     }
@@ -262,8 +264,10 @@ mod tests {
     #[test]
     fn test_efi_path() {
         let efi = EfiPath::new("\\foo\\bar.efi");
-        assert!(efi.is_ok());
-        assert_eq!(*efi.unwrap(), "\\foo\\bar.efi".to_owned());
+        assert!(matches!(
+            efi.as_deref().map(String::as_str),
+            Ok("\\foo\\bar.efi")
+        ));
         let efi = EfiPath::new(":somethinginvalid*\">><?????;.ef");
         assert!(efi.is_err());
     }

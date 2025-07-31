@@ -9,7 +9,7 @@ pub fn test_custom_actions() -> BootResult<()> {
     println!("2. Shutdown");
     println!("3. Reboot to Firmware Setup");
     loop {
-        if let Key::Printable(char) = read_key() {
+        if let Key::Printable(char) = read_key()? {
             let char = char::from(char);
             match char {
                 '1' => reboot::reset(),

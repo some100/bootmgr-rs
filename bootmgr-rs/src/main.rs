@@ -1,6 +1,8 @@
 //! The `bootmgr-rs` application.
 //!
 //! This provides a [`main`] function that runs the library.
+//! It uses every single part of the library, and the final executable (on release builds) is a little bit over 300 KB
+//! with all features.
 //! Because UEFI applications may only return Status, every failable call here will panic on error.
 
 #![no_main]

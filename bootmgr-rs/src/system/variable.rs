@@ -153,6 +153,9 @@ pub fn set_variable<T: UefiVariable + 'static>(
 ///
 /// This custom namespace is accessible at GUID `23600d08-561e-4e68-a024-1d7d6e04ee4e`.
 ///
+/// If the variable was not found, a default value of `0` will be returned. This is more convenient to handle
+/// internally as its easier to not handle specially the case of the variable not being found.
+///
 /// # Errors
 ///
 /// May return an `Error` for many reasons, see [`runtime::get_variable`]

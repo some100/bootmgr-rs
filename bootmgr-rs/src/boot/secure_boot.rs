@@ -14,8 +14,8 @@
 //!
 //! These hooks are temporary and should be uninstalled after the image is loaded.
 
-use core::cell::OnceCell;
-use core::{ffi::c_void, ops::Deref, ptr::NonNull};
+use core::cell::Cell;
+use core::{ffi::c_void, ptr::NonNull};
 
 use log::warn;
 use thiserror::Error;
@@ -82,22 +82,21 @@ pub type Validator = fn(
 /// so we cannot simply supply the inner security override as that context. Instead, we have a static instance
 /// of the [`SecurityOverrideInner`] that the security hooks may access.
 static SECURITY_OVERRIDE: SecurityOverride = SecurityOverride {
-    inner: OnceCell::new(),
+    inner: Cell::new(None),
 };
 
 /// The security override, for installing a custom validator.
 pub struct SecurityOverride {
-    /// The inner [`SecurityOverrideInner`] wrapped around a [`OnceCell`] for safety.
-    inner: OnceCell<SecurityOverrideInner>,
+    /// The inner [`SecurityOverrideInner`] wrapped around a [`Cell`] for safety.
+    inner: Cell<Option<SecurityOverrideInner>>,
 }
 
-impl Deref for SecurityOverride {
-    type Target = SecurityOverrideInner;
-
-    fn deref(&self) -> &Self::Target {
-        self.inner
-            .get()
-            .expect("Secure Boot OnceCell not initialized")
+impl SecurityOverride {
+    /// Return a copy of the inner [`SecurityOverrideInner`].
+    ///
+    /// This will panic if the [`Cell`] is not yet initialized.
+    fn get(&self) -> SecurityOverrideInner {
+        self.inner.get().expect("Secure Boot Cell not initialized")
     }
 }
 
@@ -119,14 +118,15 @@ pub fn install_security_override(validator: Validator, validator_ctx: Option<Non
     let mut inner = SecurityOverrideInner::default();
     inner.install_validator(validator, validator_ctx);
 
-    let _ = security_override.inner.set(inner);
+    security_override.inner.set(Some(inner));
 }
 
 /// Uninstalls the security override. Should be used after installing the security override.
 pub fn uninstall_security_override() {
     let security_override = &SECURITY_OVERRIDE;
 
-    security_override.uninstall_validator();
+    security_override.get().uninstall_validator();
+    security_override.inner.take();
 }
 
 /// The override hook for [`SecurityArchProtocol`].
@@ -140,10 +140,17 @@ unsafe extern "efiapi" fn security_hook(
 ) -> Status {
     let security_override = &SECURITY_OVERRIDE;
 
-    match security_override.call_validator(ffi_ptr_to_device_path(file), None) {
+    match security_override
+        .get()
+        .call_validator(ffi_ptr_to_device_path(file), None)
+    {
         Err(e) => {
             warn!("{e}");
-            unsafe { security_override.call_original_hook(this, auth_status, file) }
+            unsafe {
+                security_override
+                    .get()
+                    .call_original_hook(this, auth_status, file)
+            }
         }
         _ => Status::SUCCESS,
     }
@@ -164,11 +171,14 @@ unsafe extern "efiapi" fn security2_hook(
 
     let file_slice =
         unsafe { core::slice::from_raw_parts_mut(file_buffer.cast::<u8>(), file_size) };
-    match security_override.call_validator(ffi_ptr_to_device_path(device_path), Some(file_slice)) {
+    match security_override
+        .get()
+        .call_validator(ffi_ptr_to_device_path(device_path), Some(file_slice))
+    {
         Err(e) => {
             warn!("{e}");
             unsafe {
-                security_override.call_original_hook2(
+                security_override.get().call_original_hook2(
                     this,
                     device_path,
                     file_buffer,

@@ -5,6 +5,7 @@ use core::mem::MaybeUninit;
 use alloc::ffi::CString;
 
 use alloc::string::String;
+use log::warn;
 use smallvec::SmallVec;
 use thiserror::Error;
 use uefi::CStr8;
@@ -156,7 +157,7 @@ pub fn get_arch() -> Option<Architecture> {
 }
 
 /// Gets the joined [`DevicePath`] given an existing [`DevicePath`] (likely to a partition) and a file's path.
-/// 
+///
 /// The provided mutable buffer must be large enough to fit the final [`DevicePath`].
 ///
 /// # Errors
@@ -186,16 +187,23 @@ pub fn normalize_path(path: &str) -> String {
 /// Performs a truncating cast from usize to u16.
 #[must_use = "Has no effect if the result is unused"]
 pub fn truncate_usize_to_u16(num: usize) -> u16 {
-    match u16::try_from(num) {
-        Ok(num) => num,
-        _ => u16::MAX,
+    if let Ok(num) = u16::try_from(num) {
+        num
+    } else {
+        // even though explicit truncation is the preferred behavior, this should still be unusual
+        // may be indicative of a bad value being passed in
+        warn!(
+            "Got number {num} that was larger than the u16 limit, setting to {}",
+            u16::MAX
+        );
+        u16::MAX
     }
 }
 
 /// Converts a byte slice into an `&mut [MaybeUninit<u8>]`.
 pub fn slice_to_maybe_uninit(slice: &mut [u8]) -> &mut [MaybeUninit<u8>] {
-    unsafe { 
-        core::slice::from_raw_parts_mut(slice.as_mut_ptr().cast::<MaybeUninit<u8>>(), slice.len()) 
+    unsafe {
+        core::slice::from_raw_parts_mut(slice.as_mut_ptr().cast::<MaybeUninit<u8>>(), slice.len())
     }
 }
 

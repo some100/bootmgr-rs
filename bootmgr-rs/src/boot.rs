@@ -63,7 +63,7 @@ impl BootMgr {
             Ok(handle) => Ok(handle),
             Err(e) => {
                 self.configs[selected].bad = true;
-                Err(e)
+                Err(e) // after setting as bad, finally return the error
             }
         }
     }

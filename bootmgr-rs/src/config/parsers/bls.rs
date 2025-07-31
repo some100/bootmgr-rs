@@ -1,4 +1,15 @@
 //! A parser for BootLoaderSpec type #1, a versionless specification for consistent boot entries.
+//!
+//! Example configuration:
+//!
+//! ```text
+//! # a comment
+//!
+//! title Linux
+//! sort_key linux
+//! linux /vmlinuz-linux
+//! options root=UUID=e09d636b-0cd9-4e84-8a39-84432cfc2b8e ro
+//! ```
 #![cfg(feature = "bls")]
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};

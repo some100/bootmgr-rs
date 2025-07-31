@@ -122,10 +122,12 @@ impl Editor {
 
     /// Reads the [`Config`] file into the field and initializes the state
     fn init_state(&mut self, config: &Config) {
-        self.fields.extend(config
-            .get_str_fields()
-            .iter()
-            .map(|(k, v)| (*k, v.cloned().unwrap_or_default())));
+        self.fields.extend(
+            config
+                .get_str_fields()
+                .iter()
+                .map(|(k, v)| (*k, v.cloned().unwrap_or_default())),
+        );
 
         self.cursor_pos = self.fields[0].1.chars().count();
         self.idx = 0;

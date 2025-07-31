@@ -1,7 +1,13 @@
 //! Filesystem helper functions for other modules.
 //!
 //! These mostly wrap around the UEFI [`SimpleFileSystem`] protocol to make an interface that's slightly more
-//! intuitive and more in line with the Rust standard library. This is clear from functions like [`read_to_string`].
+//! intuitive and more in line with the Rust standard library.
+//!
+//! This is mainly intended for FAT filesystems (hence the assumption in `helper.rs` that the max path is 256 chars in length).
+//! However, [`SimpleFileSystem`] is also abstractable over filesystems of other types. This is only possible with UEFI drivers,
+//! so if a filesystem other than FAT needs to be supported, then the appropriate driver implementing [`SimpleFileSystem`] should
+//! be put in the drivers directory.
+//!
 //! This module also provides filesystem-related testing functions, like [`check_file_exists`].
 
 use alloc::{borrow::ToOwned, boxed::Box, string::String, vec, vec::Vec};

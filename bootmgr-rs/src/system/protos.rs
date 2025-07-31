@@ -22,7 +22,7 @@ use uefi::{
 type Bool = u8;
 
 /// A raw binding for `EFI_DT_FIXUP_PROTOCOL`. Provides only one function, which is to fixup DTB blobs.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 #[repr(C)]
 struct DevicetreeFixupProtocol {
     /// The version of the protocol.
@@ -47,7 +47,7 @@ impl DevicetreeFixupProtocol {
 /// In ARM hardware, devicetrees are used to supply information about the hardware to the software.
 /// However, some of the properties of the hardware can only be known at boot time. Therefore, the firmware
 /// may apply fixups to the devicetree in order for it to be more accurate and aligned with the hardware.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 #[repr(transparent)]
 #[unsafe_protocol(DevicetreeFixupProtocol::GUID)]
 pub struct DevicetreeFixup(DevicetreeFixupProtocol);
@@ -71,7 +71,7 @@ impl DevicetreeFixup {
 /// The raw Security Arch protocol implementation.
 ///
 /// You should rarely ever need to use this, unless you are installing a custom validator.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct SecurityArchProtocol {
     /// Check the authentication status of a file using the `auth_status` parameter.
@@ -96,7 +96,7 @@ impl SecurityArchProtocol {
 /// according to platform security policy.
 ///
 /// Its main purpose is to authenticate files according to abstracted platform specific security policies.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[repr(transparent)]
 #[unsafe_protocol(SecurityArchProtocol::GUID)]
 pub struct SecurityArch(SecurityArchProtocol);
@@ -125,7 +125,7 @@ impl SecurityArch {
 /// The raw Security2 Arch protocol implementation.
 ///
 /// You should rarely ever need to use this, unless you are installing a custom validator.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct Security2ArchProtocol {
     /// Check the authentication status of a file from either a raw pointer to an [`FfiDevicePath`], or
@@ -153,7 +153,7 @@ impl Security2ArchProtocol {
 /// according to platform security policy.
 ///
 /// Its main purpose is to authenticate files according to the security policy of the firmware.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[repr(transparent)]
 #[unsafe_protocol(Security2ArchProtocol::GUID)]
 pub struct Security2Arch(Security2ArchProtocol);

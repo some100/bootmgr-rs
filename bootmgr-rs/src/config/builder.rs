@@ -222,12 +222,15 @@ mod tests {
             .options("Some options")
             .build();
 
-        assert_eq!(*config.efi.unwrap(), "\\foo\\foo.bar".to_owned());
+        assert_eq!(config.efi.as_deref(), Some(&"\\foo\\foo.bar".to_owned()));
         assert_eq!(config.filename, "foo.bar".to_owned());
         assert_eq!(config.suffix, ".bar".to_owned());
         assert_eq!(config.title, Some("Some title".to_owned()));
         assert_eq!(config.version, Some("some.version".to_owned()));
-        assert_eq!(*config.sort_key.unwrap(), "some-sort-key");
+        assert_eq!(
+            config.sort_key.as_deref(),
+            Some(&"some-sort-key".to_owned())
+        );
         assert_eq!(config.options, Some("Some options".to_owned()));
     }
 
@@ -238,7 +241,10 @@ mod tests {
             .devicetree("/baz/baz.qux")
             .build();
 
-        assert_eq!(*config.efi.unwrap(), "\\foo\\foo.bar".to_owned());
-        assert_eq!(*config.devicetree.unwrap(), "\\baz\\baz.qux".to_owned());
+        assert_eq!(config.efi.as_deref(), Some(&"\\foo\\foo.bar".to_owned()));
+        assert_eq!(
+            config.devicetree.as_deref(),
+            Some(&"\\baz\\baz.qux".to_owned())
+        );
     }
 }

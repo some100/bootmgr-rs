@@ -2,7 +2,7 @@
 //!
 //! This will also handle devicetree installs and Shim authentication if either are available.
 
-use core::cell::UnsafeCell;
+use core::cell::RefCell;
 
 use crate::{
     BootResult,
@@ -25,34 +25,33 @@ use uefi::{
 /// This is because load options must last long enough so that it can be safely
 /// passed into [`LoadOptions::set_load_options`].
 static LOAD_OPTIONS: LoadOptions = LoadOptions {
-    options: UnsafeCell::new(None),
+    options: RefCell::new(None),
 };
 
 /// Storage struct for a [`CString16`] with load options.
 struct LoadOptions {
-    /// [`UnsafeCell`] wrapper around the load options.
-    options: UnsafeCell<Option<CString16>>,
+    /// [`RefCell`] wrapper around the load options.
+    options: RefCell<Option<CString16>>,
 }
 
 impl LoadOptions {
     /// Set the current load options from a [`CStr16`] slice.
     fn set(&self, s: &CStr16) {
-        let options = unsafe { &mut *self.options.get() };
+        let mut options = self.options.borrow_mut();
         *options = Some(s.into());
     }
 
     /// Get the current load options as a possibly null u8 raw pointer.
     fn get(&self) -> Option<*const u8> {
-        unsafe {
-            (*self.options.get())
-                .as_ref()
-                .map(|x| x.as_ptr().cast::<u8>())
-        }
+        self.options
+            .borrow()
+            .as_ref()
+            .map(|x| x.as_ptr().cast::<u8>())
     }
 
     /// Get the number of bytes of the load options.
     fn size(&self) -> usize {
-        unsafe { (*self.options.get()).as_ref() }.map_or(0, |x| x.num_bytes())
+        self.options.borrow().as_ref().map_or(0, |x| x.num_bytes())
     }
 
     /// Set the load options of an image to the load options of the struct.
@@ -64,15 +63,10 @@ impl LoadOptions {
                 _ => u32::MAX,
             };
             unsafe {
+                // SAFETY: this should ONLY be used with a static cell, as the pointer must last long enough for the loaded image to use it
                 image.set_load_options(ptr, size);
             }
         }
-    }
-
-    /// Clear the load options of the struct.
-    fn clear(&self) {
-        let options = unsafe { &mut *self.options.get() };
-        *options = None;
     }
 }
 
@@ -146,9 +140,6 @@ fn setup_image(
     load_options.set(&str_to_cstr(options)?);
 
     load_options.set_load_options(&mut image);
-
-    // now that we have already set the load options in the image, we clear it since we do not need it anymore
-    load_options.clear();
 
     Ok(handle)
 }

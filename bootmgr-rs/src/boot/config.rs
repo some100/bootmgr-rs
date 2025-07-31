@@ -5,6 +5,31 @@
 //!
 //! The general syntax of the configuration file is not too dissimilar from that of BLS configuration files that
 //! come with systemd-boot.
+//!
+//! Example configuration:
+//!
+//! ```text
+//! # Adjusts the time for the default boot option to be picked
+//! timeout 10
+//!
+//! # Selects the default boot option through its index on the boot list
+//! default 3
+//!
+//! # Change the path where drivers are searched
+//! driver_path /EFI/Drivers
+//!
+//! # Enable or disable the builtin editor
+//! editor true
+//!
+//! # Enable or disable PXE boot discovery
+//! pxe true
+//!
+//! # Change the colors of the application
+//! bg magenta
+//! fg light_yellow
+//! highlight_bg gray
+//! highlight_fg black
+//! ```
 
 use alloc::{borrow::ToOwned, string::String};
 use log::warn;
@@ -86,6 +111,9 @@ impl BootConfig {
         if let Ok(content) = str::from_utf8(content) {
             for line in content.lines() {
                 let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
 
                 if let Some((key, value)) = line.split_once(' ') {
                     let value = value.trim().to_owned();

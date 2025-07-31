@@ -83,9 +83,7 @@ impl SecurityOverrideInner {
     /// Uninstalls the custom validator.
     ///
     /// Note that this method takes `&self`, which means that it does not modify any of the inner members.
-    /// In the `bootmgr-rs` application, the validator may be set a grand total of one time due to it using
-    /// a `OnceCell` behind a static variable. This simply uninstalls the validator from the firmware's
-    /// security hooks.
+    /// It is up to the caller to zero out the struct from that point on.
     pub fn uninstall_validator(&self) {
         self.uninstall_security1_hook();
         self.uninstall_security2_hook();

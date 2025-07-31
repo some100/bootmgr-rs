@@ -56,19 +56,21 @@ pub enum LoadError {
 ///     }
 /// };
 ///
+/// // assume this function returns BootResult
+///
 /// let handle = {
 ///     let loaded_image =
-///         boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle()).unwrap();
-///     let device_handle = loaded_image.device().unwrap();
-///     let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle).unwrap();
-///     boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path).unwrap()
+///         boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle())?;
+///     let device_handle = loaded_image.device().expect("Image was not loaded from a filesystem");
+///     let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle)?;
+///     boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path)?
 /// }; // so that the handle will be able to be opened for loading the boot option
 ///
 /// let config = ConfigBuilder::new("foo.bar", ".bar").efi("/efi/boot/bootx64.efi").handle(handle).build();
 ///
-/// let image = load_boot_option(&config).unwrap();
+/// let image = load_boot_option(&config)?;
 ///
-/// boot::start_image(image).unwrap();
+/// boot::start_image(image)?;
 /// ```
 pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
     config.action.run(config)

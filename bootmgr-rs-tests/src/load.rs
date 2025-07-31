@@ -18,11 +18,11 @@ const LOADED_VARIABLE_NAME: &CStr16 = cstr16!("LoadedFromPrevTest");
 const SHELL_PATH: &CStr16 = cstr16!("\\shellx64.efi");
 const FALLBACK_PATH: &CStr16 = cstr16!("\\EFI\\BOOT\\BOOTx64.efi");
 
-pub fn check_loaded() {
+pub fn check_loaded() -> BootResult<()> {
     if let Ok(num) = get_variable::<usize>(LOADED_VARIABLE_NAME, None)
         && num != 0
     {
-        set_variable::<usize>(LOADED_VARIABLE_NAME, None, None, None).unwrap();
+        set_variable::<usize>(LOADED_VARIABLE_NAME, None, None, None)?;
         println!("Successfully passed load image test");
         println!(
             "If a panic from unwrap resulted before this, then the test was not actually passed."
@@ -30,6 +30,7 @@ pub fn check_loaded() {
         println!("Press a key to reboot");
         press_for_reboot();
     }
+    Ok(())
 }
 
 pub fn test_loading() -> BootResult<()> {
