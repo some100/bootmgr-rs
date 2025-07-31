@@ -45,6 +45,9 @@ struct Devicetree {
 
     /// A [`NonNull`] pointer to the devicetree blob.
     ptr: NonNull<u8>,
+
+    /// The devicetree blob as a slice.
+    slice: &'static [u8],
 }
 
 /// A RAII guard for [`Devicetree`] that leaks upon installation, in order to
@@ -67,21 +70,19 @@ impl Devicetree {
             // SAFETY: ptr is exactly the same length as size, so this is safe
             copy_nonoverlapping(content.as_ptr(), ptr.as_ptr(), content.len());
         }
-        Ok(Self { size, ptr })
+        let slice = unsafe { core::slice::from_raw_parts(ptr.as_ptr(), size) }; // store the slice in the struct
+        Ok(Self { size, ptr, slice })
     }
 
     /// Apply fixups to the devicetree blob with the [`DevicetreeFixup`] protocol.
     fn fixup(&mut self, fixup: &mut ScopedProtocol<DevicetreeFixup>) -> BootResult<()> {
-        unsafe {
-            // SAFETY: self.ptr is guaranteed NonNull
-            Ok(fixup
-                .fixup(
-                    self.ptr.as_ptr().cast::<c_void>(),
-                    &mut self.size,
-                    EFI_DT_APPLY_FIXUPS | EFI_DT_RESERVE_MEMORY,
-                )
-                .to_result()?)
-        }
+        Ok(fixup
+            .fixup(
+                self.ptr,
+                &mut self.size,
+                EFI_DT_APPLY_FIXUPS | EFI_DT_RESERVE_MEMORY,
+            )
+            .to_result()?)
     }
 
     /// Install the devicetree blob into the configuration table.
@@ -147,41 +148,23 @@ impl DevicetreeGuard {
             .size)
     }
 
-    /// Get the pointer of the devicetree blob.
-    ///
-    /// # Errors
-    ///
-    /// May return an `Error` if the [`DevicetreeGuard`] was already consumed.
-    fn ptr(&self) -> Result<NonNull<u8>, DevicetreeError> {
-        Ok(self
-            .devicetree
-            .as_ref()
-            .ok_or(DevicetreeError::DevicetreeGuardConsumed)?
-            .ptr)
-    }
-
     /// Get the devicetree blob as a byte slice.
     ///
     /// # Errors
     ///
     /// May return an `Error` if the [`DevicetreeGuard`] was already consumed.
-    fn as_slice<'a>(&self) -> Result<&'a [u8], DevicetreeError> {
-        unsafe {
-            // SAFETY: self.ptr is guaranteed nonnull
-            Ok(core::slice::from_raw_parts(
-                self.ptr()?.as_ptr(),
-                self.size()?,
-            ))
-        }
+    fn slice(&self) -> Result<&[u8], DevicetreeError> {
+        Ok(self
+            .devicetree
+            .as_ref()
+            .ok_or(DevicetreeError::DevicetreeGuardConsumed)?
+            .slice)
     }
 }
 
 impl Drop for DevicetreeGuard {
     fn drop(&mut self) {
-        let devicetree = self.devicetree.take();
-        if let Some(devicetree) = devicetree {
-            drop(devicetree);
-        }
+        self.devicetree.take();
     }
 }
 
@@ -208,12 +191,12 @@ fn fixup_devicetree(devicetree: &mut DevicetreeGuard) -> BootResult<()> {
 
     let mut fixup = boot::open_protocol_exclusive::<DevicetreeFixup>(*fixup)?;
 
-    let devtree_as_slice = devicetree.as_slice()?;
+    let slice = devicetree.slice()?.to_vec();
 
     if let Err(BootError::Uefi(e)) = devicetree.fixup(&mut fixup)
         && e.status() == Status::BUFFER_TOO_SMALL
     {
-        *devicetree = DevicetreeGuard::new(devtree_as_slice, Some(devicetree.size()?))?;
+        *devicetree = DevicetreeGuard::new(&slice, Some(devicetree.size()?))?;
         devicetree.fixup(&mut fixup)?;
     }
 

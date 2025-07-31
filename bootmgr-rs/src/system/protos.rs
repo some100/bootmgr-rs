@@ -8,7 +8,7 @@
 //! Technically, it also provides [`ShimImageLoader`], however that isn't really used for anything as if Shim
 //! is loaded, it will have already hooked onto `LoadImage` and such. It only exists to detect its existence.
 
-use core::ffi::c_void;
+use core::{ffi::c_void, ptr::NonNull};
 
 use uefi::{
     Status, guid,
@@ -54,16 +54,8 @@ pub struct DevicetreeFixup(DevicetreeFixupProtocol);
 
 impl DevicetreeFixup {
     /// Apply fixups to a devicetree buffer.
-    ///
-    /// # Safety
-    ///
-    /// You probably should not call this with a null pointer for fdt.
-    pub unsafe fn fixup(
-        &mut self,
-        fdt: *mut c_void,
-        buffer_size: &mut usize,
-        flags: u32,
-    ) -> Status {
+    pub fn fixup(&mut self, fdt: NonNull<u8>, buffer_size: &mut usize, flags: u32) -> Status {
+        let fdt = fdt.as_ptr().cast::<c_void>();
         unsafe { (self.0.fixup)(&raw mut self.0, fdt, buffer_size, flags) }
     }
 }
