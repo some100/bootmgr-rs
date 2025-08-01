@@ -4,6 +4,8 @@
 //! The current support for PXE is insanely basic, and any more complex configurations (such as HTTP boot)
 //! should use a more comprehensive PXE loader such as `iPXE` instead. This should be preferred even if your
 //! configuration is very simple.
+//!
+//! Currently, there are no plans to add support for more advanced configurations like HTTP boot.
 
 use alloc::vec;
 
@@ -47,16 +49,14 @@ pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
 
     let efi = get_efi(config)?;
 
-    let filename = str_to_cstring(efi)?;
+    let filename = str_to_cstring(efi)?; // convert efi to a CString, not to be confused with a CString16
     let filename_bytes = filename.as_bytes_with_nul();
     let filename_cstr = bytes_to_cstr8(filename_bytes)?;
 
     // if its too big, its due to 32 bit platform limitations, and it would not be possible to allocate a buffer
     // greater than the pointer width max either way. truncating should generally be fine on 64 bit platforms though
-    let size = match usize::try_from(base_code.tftp_get_file_size(&addr, filename_cstr)?) {
-        Ok(size) => size,
-        _ => usize::MAX,
-    };
+    let size =
+        usize::try_from(base_code.tftp_get_file_size(&addr, filename_cstr)?).unwrap_or(usize::MAX);
 
     let mut vec = vec![0; size];
     base_code.tftp_read_file(&addr, filename_cstr, Some(&mut vec))?;

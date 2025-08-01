@@ -47,7 +47,7 @@ impl BootAction {
         match self {
             BootAction::Reboot => reboot::reset(),
             BootAction::Shutdown => shutdown::shutdown(),
-            BootAction::ResetToFirmware => firmware::reset_to_firmware()?,
+            BootAction::ResetToFirmware => firmware::reset_to_firmware(),
             BootAction::BootEfi => loader::efi::load_boot_option(config),
             BootAction::BootTftp => loader::tftp::load_boot_option(config),
         }

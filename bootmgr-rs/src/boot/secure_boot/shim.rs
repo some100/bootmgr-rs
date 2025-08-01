@@ -13,10 +13,7 @@ use uefi::{
 
 use crate::{
     BootResult,
-    boot::secure_boot::{
-        SecureBootError, install_security_override, secure_boot_enabled,
-        uninstall_security_override,
-    },
+    boot::secure_boot::{SecureBootError, SecurityOverrideGuard, secure_boot_enabled},
     system::{fs::read, helper::device_path_to_text, protos::ShimImageLoader},
 };
 
@@ -46,7 +43,9 @@ fn shim_loaded() -> bool {
 
 /// Checks if shim is recent enough to hook onto `LoadImage` and not require custom security override
 ///
-/// It does this by checking for presence of [`ShimImageLoader`], which is Shim v16+ only.
+/// It does this by checking for presence of [`ShimImageLoader`], which is Shim v16+ only. If
+/// [`ShimImageLoader`] is loaded, that indicates that shim had already replaced the function pointers
+/// with its own validators, so there would be nothing for us to do.
 fn shim_is_recent() -> bool {
     boot::get_handle_for_protocol::<ShimImageLoader>().is_ok()
 }
@@ -91,11 +90,9 @@ pub fn shim_load_image(parent: Handle, source: boot::LoadImageSource<'_>) -> Boo
         return Ok(boot::load_image(parent, source)?);
     }
 
-    install_security_override(shim_validate, None);
+    let _guard = SecurityOverrideGuard::new(shim_validate, None);
 
     let handle = boot::load_image(parent, source);
 
-    uninstall_security_override();
-
     Ok(handle?)
-}
+} // override dropped (uninstalled) here

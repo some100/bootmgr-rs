@@ -37,10 +37,11 @@ use ratatui_core::style::Color;
 use uefi::{CStr16, boot, cstr16};
 
 use crate::{
+    BootResult,
     system::{
         fs::{check_file_exists, read_into},
         helper::normalize_path,
-    }, BootResult
+    },
 };
 
 /// The hardcoded configuration path for the [`BootConfig`].

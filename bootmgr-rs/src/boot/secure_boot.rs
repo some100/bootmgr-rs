@@ -12,28 +12,21 @@
 //! This hooks onto `SecurityArch` and `Security2Arch` in order to replace their
 //! authenticators with custom ones using Shim or any other validator.
 //!
-//! These hooks are temporary and should be uninstalled after the image is loaded.
+//! These hooks are temporary and should be uninstalled after the image is loaded. This is done
+//! automatically through the [`SecurityOverrideGuard`] struct.
 
 use core::cell::Cell;
-use core::{ffi::c_void, ptr::NonNull};
+use core::ptr::NonNull;
 
-use log::warn;
 use thiserror::Error;
-use uefi::{
-    Status, cstr16,
-    proto::device_path::{DevicePath, FfiDevicePath},
-    runtime::VariableVendor,
-};
+use uefi::{cstr16, proto::device_path::DevicePath, runtime::VariableVendor};
 
 use crate::{
-    BootResult,
-    boot::secure_boot::security_override::SecurityOverrideInner,
-    system::{
-        protos::{Security2ArchProtocol, SecurityArchProtocol},
-        variable::get_variable,
-    },
+    BootResult, boot::secure_boot::security_override::SecurityOverrideInner,
+    system::variable::get_variable,
 };
 
+pub mod security_hooks;
 pub mod security_override;
 pub mod shim;
 
@@ -47,26 +40,6 @@ pub enum SecureBootError {
     #[error("Validator was not installed")]
     NoValidator,
 }
-
-/// The type alias for the [`SecurityArchProtocol`] `auth_state` function.
-///
-/// Should probably not be used directly.
-type AuthState = unsafe extern "efiapi" fn(
-    this: *const SecurityArchProtocol,
-    auth_status: u32,
-    file: *const FfiDevicePath,
-) -> Status;
-
-/// The type alias for the [`Security2ArchProtocol`] `authentication` function.
-///
-/// Should probably not be used directly.
-type Authentication = unsafe extern "efiapi" fn(
-    this: *const Security2ArchProtocol,
-    device_path: *const FfiDevicePath,
-    file_buffer: *mut c_void,
-    file_size: usize,
-    boot_policy: u8,
-) -> Status;
 
 /// The function signature for a validator.
 pub type Validator = fn(
@@ -103,6 +76,31 @@ impl SecurityOverride {
 // SAFETY: uefi is a single threaded environment there is no notion of thread safety
 unsafe impl Sync for SecurityOverride {}
 
+/// A guard for [`SecurityOverride`]. When created, it will install a validator. When the
+/// override is eventually dropped, the validator will be uninstalled.
+pub struct SecurityOverrideGuard {
+    /// If the validator is installed or not.
+    installed: bool,
+}
+
+impl SecurityOverrideGuard {
+    /// Create a new [`SecurityOverrideGuard`]. Installs a validator and returns the guard.
+    ///
+    /// When the returned guard is dropped, the security override is automatically uninstalled.
+    pub fn new(validator: Validator, validator_ctx: Option<NonNull<u8>>) -> Self {
+        install_security_override(validator, validator_ctx);
+        Self { installed: true }
+    }
+}
+
+impl Drop for SecurityOverrideGuard {
+    fn drop(&mut self) {
+        if self.installed {
+            uninstall_security_override();
+        }
+    }
+}
+
 /// Tests if secure boot is enabled through a UEFI variable.
 #[must_use = "Has no effect if the result is unused"]
 pub fn secure_boot_enabled() -> bool {
@@ -113,6 +111,8 @@ pub fn secure_boot_enabled() -> bool {
 }
 
 /// Installs a security override given a [`Validator`] and optionally a `validator_ctx`.
+///
+/// Alternatively, you can use the [`SecurityOverrideGuard`] to safely ensure the override is dropped.
 pub fn install_security_override(validator: Validator, validator_ctx: Option<NonNull<u8>>) {
     let security_override = &SECURITY_OVERRIDE;
     let mut inner = SecurityOverrideInner::default();
@@ -122,78 +122,11 @@ pub fn install_security_override(validator: Validator, validator_ctx: Option<Non
 }
 
 /// Uninstalls the security override. Should be used after installing the security override.
+///
+/// Alternatively, you can use the [`SecurityOverrideGuard`] to safely ensure the override is dropped.
 pub fn uninstall_security_override() {
     let security_override = &SECURITY_OVERRIDE;
 
     security_override.get().uninstall_validator();
     security_override.inner.take();
-}
-
-/// The override hook for [`SecurityArchProtocol`].
-///
-/// This calls the custom validator to validate the `file` parameter. If the validator fails, then the original hook
-/// will be used to verify the image.
-unsafe extern "efiapi" fn security_hook(
-    this: *const SecurityArchProtocol,
-    auth_status: u32,
-    file: *const FfiDevicePath,
-) -> Status {
-    let security_override = &SECURITY_OVERRIDE;
-
-    match security_override
-        .get()
-        .call_validator(ffi_ptr_to_device_path(file), None)
-    {
-        Err(e) => {
-            warn!("{e}");
-            unsafe {
-                security_override
-                    .get()
-                    .call_original_hook(this, auth_status, file)
-            }
-        }
-        _ => Status::SUCCESS,
-    }
-}
-
-/// The override hook for [`Security2ArchProtocol`].
-///
-/// This calls the custom validator to validate the either the `device_path` or `file_buffer` parameters. If the
-/// validator fails, then the original hook will be used to verify the image.
-unsafe extern "efiapi" fn security2_hook(
-    this: *const Security2ArchProtocol,
-    device_path: *const FfiDevicePath,
-    file_buffer: *mut c_void,
-    file_size: usize,
-    boot_policy: u8,
-) -> Status {
-    let security_override = &SECURITY_OVERRIDE;
-
-    let file_slice =
-        unsafe { core::slice::from_raw_parts_mut(file_buffer.cast::<u8>(), file_size) };
-    match security_override
-        .get()
-        .call_validator(ffi_ptr_to_device_path(device_path), Some(file_slice))
-    {
-        Err(e) => {
-            warn!("{e}");
-            unsafe {
-                security_override.get().call_original_hook2(
-                    this,
-                    device_path,
-                    file_buffer,
-                    file_size,
-                    boot_policy,
-                )
-            }
-        }
-        _ => Status::SUCCESS,
-    }
-}
-
-/// Convert an [`FfiDevicePath`] to a [`DevicePath`].
-///
-/// If [`FfiDevicePath`] is null, then it will return [`None`].
-fn ffi_ptr_to_device_path<'a>(ptr: *const FfiDevicePath) -> Option<&'a DevicePath> {
-    (!ptr.is_null()).then(|| unsafe { DevicePath::from_ffi_ptr(ptr) })
 }

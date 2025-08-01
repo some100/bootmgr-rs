@@ -9,18 +9,35 @@
 use core::{ffi::c_void, ptr::NonNull};
 
 use uefi::{
-    Handle, Status, boot,
+    Handle, Status,
     proto::device_path::{DevicePath, FfiDevicePath},
 };
 
 use crate::{
     BootResult,
-    boot::secure_boot::{
-        AuthState, Authentication, SecureBootError, Validator, secure_boot_enabled, security_hook,
-        security2_hook,
-    },
-    system::protos::{Security2Arch, Security2ArchProtocol, SecurityArch, SecurityArchProtocol},
+    boot::secure_boot::{SecureBootError, Validator, secure_boot_enabled},
+    system::protos::{Security2ArchProtocol, SecurityArchProtocol},
 };
+
+/// The type alias for the [`SecurityArchProtocol`] `auth_state` function.
+///
+/// Should probably not be used directly.
+type AuthState = unsafe extern "efiapi" fn(
+    this: *const SecurityArchProtocol,
+    auth_status: u32,
+    file: *const FfiDevicePath,
+) -> Status;
+
+/// The type alias for the [`Security2ArchProtocol`] `authentication` function.
+///
+/// Should probably not be used directly.
+type Authentication = unsafe extern "efiapi" fn(
+    this: *const Security2ArchProtocol,
+    device_path: *const FfiDevicePath,
+    file_buffer: *mut c_void,
+    file_size: usize,
+    boot_policy: u8,
+) -> Status;
 
 /// The main handler for the security override
 #[derive(Clone, Copy, Default)]
@@ -113,66 +130,6 @@ impl SecurityOverrideInner {
         }
 
         false
-    }
-
-    /// Installs the security hook for [`SecurityArch`].
-    ///
-    /// It will only install the hook if the firmware supports [`SecurityArch`].
-    fn install_security1_hook(&mut self) {
-        if let Ok(handle) = boot::get_handle_for_protocol::<SecurityArch>()
-            && let Ok(mut security) = boot::open_protocol_exclusive::<SecurityArch>(handle)
-        {
-            security.get_inner_mut().auth_state = security_hook;
-            self.original_hook = Some(security.get_inner().auth_state);
-            self.security = Some(handle);
-        }
-    }
-
-    /// Installs the security hook for [`Security2Arch`].
-    ///
-    /// It will only install the hook if the firmware supports [`Security2Arch`].
-    fn install_security2_hook(&mut self) {
-        if let Ok(handle) = boot::get_handle_for_protocol::<Security2Arch>()
-            && let Ok(mut security) = boot::open_protocol_exclusive::<Security2Arch>(handle)
-        {
-            security.get_inner_mut().authentication = security2_hook;
-            self.original_hook2 = Some(security.get_inner().authentication);
-            self.security2 = Some(handle);
-        }
-    }
-
-    /// Uninstalls the security hook for [`SecurityArch`].
-    ///
-    /// Three conditions must be true:
-    /// - Original hook installed in struct
-    /// - [`SecurityArch`] [`Handle`] present in struct
-    /// - Firmware supports [`SecurityArch`].
-    ///
-    /// Otherwise, this method will do nothing.
-    fn uninstall_security1_hook(&self) {
-        if let Some(original_hook) = self.original_hook
-            && let Some(handle) = self.security
-            && let Ok(mut security) = boot::open_protocol_exclusive::<SecurityArch>(handle)
-        {
-            security.get_inner_mut().auth_state = original_hook;
-        }
-    }
-
-    /// Uninstalls the security hook for [`Security2Arch`].
-    ///
-    /// Three conditions must be true:
-    /// - Original hook installed in struct
-    /// - [`Security2Arch`] [`Handle`] present in struct
-    /// - Firmware supports [`Security2Arch`].
-    ///
-    /// Otherwise, this method will do nothing.
-    fn uninstall_security2_hook(&self) {
-        if let Some(original_hook2) = self.original_hook2
-            && let Some(handle) = self.security2
-            && let Ok(mut security) = boot::open_protocol_exclusive::<Security2Arch>(handle)
-        {
-            security.get_inner_mut().authentication = original_hook2;
-        }
     }
 
     /// Calls the validator that was installed onto the security protocols.

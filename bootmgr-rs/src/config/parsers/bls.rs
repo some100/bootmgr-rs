@@ -22,10 +22,12 @@ use uefi::{
 };
 
 use crate::{
-    config::{builder::ConfigBuilder, parsers::ConfigParser, Config}, system::{
+    BootResult,
+    config::{Config, builder::ConfigBuilder, parsers::ConfigParser},
+    system::{
         fs::{read_filtered_dir, read_into, rename},
         helper::{get_path_cstr, str_to_cstr},
-    }, BootResult
+    },
 };
 
 /// The configuration prefix.
@@ -138,8 +140,8 @@ pub struct BlsConfig {
 
 impl BlsConfig {
     /// Creates a new [`BlsConfig`], parsing it from a BLS configuration file formatted string.
-    /// 
-    /// The amount of bytes to parse as UTF-8 should be provided if required, otherwise it will be determined by 
+    ///
+    /// The amount of bytes to parse as UTF-8 should be provided if required, otherwise it will be determined by
     /// the byte slice length.
     ///
     /// If there are multiple key-value pairs of the same type, then the latest one will be used.

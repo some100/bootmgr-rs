@@ -14,7 +14,7 @@ pub fn test_custom_actions() -> BootResult<()> {
             match char {
                 '1' => reboot::reset(),
                 '2' => shutdown::shutdown(),
-                '3' => firmware::reset_to_firmware()?,
+                '3' => firmware::reset_to_firmware(),
                 _ => (),
             }
             if matches!(char, '1' | '2' | '3') {

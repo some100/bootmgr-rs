@@ -47,7 +47,7 @@ pub enum FsError {
 
         /// The amount of bytes that were written.
         bytes: usize,
-    }
+    },
 }
 
 /// Gets the volume label from a `SimpleFileSystem`
@@ -225,20 +225,22 @@ pub fn read_filtered_dir(
 ///
 /// # Errors
 ///
-/// May return an `Error` if the volume couldn't be opened, the path does not point to a valid file, or
-/// the file could not be read for any reason.
-pub fn read_into(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16, buf: &mut [u8]) -> BootResult<usize> {
+/// May return an `Error` if the volume couldn't be opened, the path does not point to a valid file,
+/// the file could not be read for any reason, or the buffer was too small.
+pub fn read_into(
+    fs: &mut ScopedProtocol<SimpleFileSystem>,
+    path: &CStr16,
+    buf: &mut [u8],
+) -> BootResult<usize> {
     let mut file = get_regular_file(fs, path)?;
 
     let info = file.get_boxed_info::<FileInfo>()?;
 
-    // the max file size of a FAT32 file system is less than usize::MAX.
-    // so this should generally be safe for reading from local filesystems
     let size = usize::try_from(info.file_size()).unwrap_or(usize::MAX);
 
     let read = file.read(buf)?;
     if read != size {
-        return Err(FsError::BufTooSmall(size).into())
+        return Err(FsError::BufTooSmall(size).into());
     }
 
     Ok(read)
@@ -257,8 +259,6 @@ pub fn read(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> BootRes
 
     let info = file.get_boxed_info::<FileInfo>()?;
 
-    // the max file size of a FAT32 file system is less than usize::MAX.
-    // so this should generally be safe for reading from local filesystems
     let size = usize::try_from(info.file_size()).unwrap_or(usize::MAX);
 
     let mut buf = vec![0; size];
@@ -288,7 +288,10 @@ pub fn rename(
     let src = get_mut_file(fs, src)?;
     let mut dst = get_mut_file(fs, dst)?;
 
-    dst.write(&src_data).map_err(|e| FsError::WriteErr { status: e.status(), bytes: *e.data() })?;
+    dst.write(&src_data).map_err(|e| FsError::WriteErr {
+        status: e.status(),
+        bytes: *e.data(),
+    })?;
 
     src.delete()?;
 
@@ -322,7 +325,10 @@ pub fn write(
 ) -> BootResult<()> {
     let mut file = get_mut_file(fs, path)?;
 
-    file.write(buffer).map_err(|e| FsError::WriteErr { status: e.status(), bytes: *e.data() })?;
+    file.write(buffer).map_err(|e| FsError::WriteErr {
+        status: e.status(),
+        bytes: *e.data(),
+    })?;
 
     Ok(())
 }
@@ -343,7 +349,10 @@ pub fn append(
     let mut file = get_mut_file(fs, path)?;
     file.set_position(RegularFile::END_OF_FILE)?;
 
-    file.write(buffer).map_err(|e| FsError::WriteErr { status: e.status(), bytes: *e.data() })?;
+    file.write(buffer).map_err(|e| FsError::WriteErr {
+        status: e.status(),
+        bytes: *e.data(),
+    })?;
 
     Ok(())
 }

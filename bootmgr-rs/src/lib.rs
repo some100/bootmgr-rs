@@ -4,7 +4,6 @@
 //! the integration tests, as well as the fuzzers.
 
 #![cfg_attr(not(any(fuzzing, test, doctest)), no_std)]
-#![feature(never_type)]
 
 /// The primary result type that wraps around [`crate::error::BootError`].
 pub type BootResult<T> = Result<T, crate::error::BootError>;
