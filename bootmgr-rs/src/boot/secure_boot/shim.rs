@@ -1,7 +1,7 @@
 //! Shim integration into secure boot.
 //!
 //! For Shim versions earlier than v16, this will allow the usage of the Shim validator in order
-//! to check if an image is valid semi-independently of the firmware.
+//! to check if an image is valid semi-independently of the firmware's validator.
 
 use core::ptr::NonNull;
 

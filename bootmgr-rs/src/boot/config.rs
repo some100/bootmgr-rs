@@ -37,11 +37,10 @@ use ratatui_core::style::Color;
 use uefi::{CStr16, boot, cstr16};
 
 use crate::{
-    BootResult,
     system::{
-        fs::{check_file_exists, read},
+        fs::{check_file_exists, read_into},
         helper::normalize_path,
-    },
+    }, BootResult
 };
 
 /// The hardcoded configuration path for the [`BootConfig`].
@@ -89,15 +88,16 @@ impl BootConfig {
         let mut fs = boot::get_image_file_system(boot::image_handle())?;
 
         if check_file_exists(&mut fs, CONFIG_PATH) {
-            let content = match read(&mut fs, CONFIG_PATH) {
-                Ok(content) => content,
+            let mut buf = [0; 4096]; // a config file over 4096 bytes is very unusual and is not supported
+            let bytes = match read_into(&mut fs, CONFIG_PATH, &mut buf) {
+                Ok(bytes) => bytes,
                 Err(e) => {
                     warn!("{e}");
                     return Ok(Self::default());
                 }
             };
 
-            return Ok(Self::get_boot_config(&content));
+            return Ok(Self::get_boot_config(&buf, Some(bytes)));
         }
 
         Ok(Self::default())
@@ -105,10 +105,11 @@ impl BootConfig {
 
     /// Parses the contents of a [`BootConfig`] format string.
     #[must_use = "Has no effect if the result is unused"]
-    pub fn get_boot_config(content: &[u8]) -> Self {
+    pub fn get_boot_config(content: &[u8], bytes: Option<usize>) -> Self {
         let mut config = Self::default();
+        let slice = &content[0..bytes.unwrap_or(content.len())];
 
-        if let Ok(content) = str::from_utf8(content) {
+        if let Ok(content) = str::from_utf8(slice) {
             for line in content.lines() {
                 let line = line.trim();
                 if line.is_empty() || line.starts_with('#') {
@@ -231,7 +232,7 @@ mod tests {
         "
         .as_bytes();
 
-        let config = BootConfig::get_boot_config(config);
+        let config = BootConfig::get_boot_config(config, None);
         assert_eq!(config.timeout, 100);
         assert_eq!(config.default, Some(2));
         assert_eq!(config.driver_path, "\\efi\\drivers".to_owned());

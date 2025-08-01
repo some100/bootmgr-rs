@@ -1,3 +1,4 @@
+use anyhow::Context;
 use clap::ArgMatches;
 use duct::cmd;
 
@@ -19,7 +20,7 @@ pub fn run_bootmgr(matches: &ArgMatches) -> anyhow::Result<()> {
         run_args.append(&mut vec!["-f", add_file]);
     }
 
-    if matches.contains_id("release") {
+    if *matches.get_one::<bool>("release").context("id release does not exist in args (this should not happen)")? {
         build_args.push("-r");
         run_args.push("target/x86_64-unknown-uefi/release/bootmgr-rs.efi");
     } else {

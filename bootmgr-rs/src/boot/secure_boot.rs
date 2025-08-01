@@ -76,7 +76,7 @@ pub type Validator = fn(
     file_size: usize,
 ) -> BootResult<()>;
 
-/// A once initialized instance of [`SecurityOverrideInner`] that lasts for the lifetime of the program.
+/// An instance of [`SecurityOverrideInner`] that lasts for the lifetime of the program.
 ///
 /// This is required because of how the security hooks that are installed do not have a usable context field,
 /// so we cannot simply supply the inner security override as that context. Instead, we have a static instance

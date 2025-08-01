@@ -13,6 +13,10 @@ pub enum BootError {
     #[error("String Conversion Error")]
     StrError(#[from] crate::system::helper::StrError),
 
+    /// An error occurred while performing filesystem operations.
+    #[error("Filesystem Error")]
+    FsError(#[from] crate::system::fs::FsError),
+
     /// An error occurred while validating an image with Secure Boot.
     #[error("Secure Boot Error")]
     SecureBootError(#[from] crate::boot::secure_boot::SecureBootError),

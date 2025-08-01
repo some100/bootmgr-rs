@@ -69,7 +69,7 @@ pub fn load_drivers(driver_path: &str) -> BootResult<()> {
     let dir = read_filtered_dir(&mut fs, &driver_path, ".efi");
 
     // it should be rare for a devicepath to be greater than 2048 bytes. this is a generous amount that should cover
-    // for all cases
+    // for most cases
     let mut buf = [0; 2048];
     let mut driver_loaded = false;
 

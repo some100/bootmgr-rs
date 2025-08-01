@@ -22,12 +22,10 @@ use uefi::{
 };
 
 use crate::{
-    BootResult,
-    config::{Config, builder::ConfigBuilder, parsers::ConfigParser},
-    system::{
-        fs::{read, read_filtered_dir, rename},
+    config::{builder::ConfigBuilder, parsers::ConfigParser, Config}, system::{
+        fs::{read_filtered_dir, read_into, rename},
         helper::{get_path_cstr, str_to_cstr},
-    },
+    }, BootResult
 };
 
 /// The configuration prefix.
@@ -140,14 +138,18 @@ pub struct BlsConfig {
 
 impl BlsConfig {
     /// Creates a new [`BlsConfig`], parsing it from a BLS configuration file formatted string.
+    /// 
+    /// The amount of bytes to parse as UTF-8 should be provided if required, otherwise it will be determined by 
+    /// the byte slice length.
     ///
     /// If there are multiple key-value pairs of the same type, then the latest one will be used.
     /// This is not for any reason in particular, it is more of a side effect of the way the parser is implemented.
     #[must_use = "Has no effect if the result is unused"]
-    pub fn new(content: &[u8]) -> Self {
+    pub fn new(content: &[u8], bytes: Option<usize>) -> Self {
         let mut config = Self::default();
+        let slice = &content[0..bytes.unwrap_or(content.len())];
 
-        if let Ok(content) = str::from_utf8(content) {
+        if let Ok(content) = str::from_utf8(slice) {
             for line in content.lines() {
                 let line = line.trim();
                 if line.is_empty() || line.starts_with('#') {
@@ -234,9 +236,10 @@ fn get_bls_config(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     handle: Handle,
 ) -> BootResult<Option<Config>> {
-    let content = read(fs, &get_path_cstr(BLS_PREFIX, file.file_name())?)?;
+    let mut buf = [0; 8192]; // extremely generous buffer for larger files
+    let bytes = read_into(fs, &get_path_cstr(BLS_PREFIX, file.file_name())?, &mut buf)?;
 
-    let bls_config = BlsConfig::new(&content);
+    let bls_config = BlsConfig::new(&buf, Some(bytes));
     let options = bls_config.get_options();
 
     let Some(efi) = bls_config.linux.or(bls_config.efi) else {
@@ -321,7 +324,7 @@ mod tests {
             options root=PARTUUID=1234abcd-56ef-78gh-90ij-klmnopqrstuv rw
         "
         .as_bytes();
-        let bls_config = BlsConfig::new(config);
+        let bls_config = BlsConfig::new(config, None);
         assert_eq!(bls_config.title, Some("Linux".to_owned()));
         assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()));
         assert_eq!(bls_config.initrd, Some("/initramfs-linux.img".to_owned()));
@@ -346,7 +349,7 @@ mod tests {
             options root=PARTUUID=dcba4321-fe65-hg87-ji09-vutsrqponmlk ro
         "
         .as_bytes();
-        let bls_config = BlsConfig::new(config);
+        let bls_config = BlsConfig::new(config, None);
         assert_eq!(
             bls_config.initrd,
             Some("/intel-ucode.img /initramfs-linux.img".to_owned())
@@ -362,7 +365,7 @@ mod tests {
             linux /vmlinuz-linux
         "
         .as_bytes();
-        let bls_config = BlsConfig::new(config);
+        let bls_config = BlsConfig::new(config, None);
         assert_eq!(bls_config.title, Some("Linux".to_owned()));
         assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()));
     }
@@ -375,7 +378,7 @@ mod tests {
             linux /vmlinuz-linux
         "
         .as_bytes();
-        let bls_config = BlsConfig::new(config);
+        let bls_config = BlsConfig::new(config, None);
         // the last title in sequence takes priority. not based on any kind of rule or specification but a side effect of the parser implementation
         assert_eq!(bls_config.title, Some("Linux 2".to_owned()));
         assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()));
@@ -389,7 +392,7 @@ mod tests {
             someother invalid
         "
         .as_bytes();
-        let bls_config = BlsConfig::new(config);
+        let bls_config = BlsConfig::new(config, None);
         assert_eq!(bls_config.title, Some("Linux".to_owned())); // valid keys should still be parsed
     }
 

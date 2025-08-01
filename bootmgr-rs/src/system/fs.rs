@@ -12,6 +12,7 @@
 
 use alloc::{borrow::ToOwned, boxed::Box, string::String, vec, vec::Vec};
 use log::error;
+use thiserror::Error;
 use uefi::{
     CStr16, CString16, Char16, Handle, Status,
     boot::{self, ScopedProtocol},
@@ -30,6 +31,24 @@ use crate::{BootResult, error::BootError, system::helper::str_to_cstr};
 
 /// The partition GUID of an `XBOOTLDR` partition.
 const XBOOTLDR_PARTITION: uefi::Guid = guid!("bc13c2ff-59e6-4262-a352-b275fd6f7172");
+
+/// An error that may result from performing filesystem operations
+#[derive(Error, Debug)]
+pub enum FsError {
+    /// The provided buffer was too small.
+    #[error("Buffer too small (require {0} bytes)")]
+    BufTooSmall(usize),
+
+    /// The content could not be written to the file.
+    #[error("Could not write to file: returned status {status} ({bytes} bytes written)")]
+    WriteErr {
+        /// The error status that was returned from the attempted write.
+        status: Status,
+
+        /// The amount of bytes that were written.
+        bytes: usize,
+    }
+}
 
 /// Gets the volume label from a `SimpleFileSystem`
 ///
@@ -199,6 +218,32 @@ pub fn read_filtered_dir(
         .filter(|x| x.file_size() > 0)
 }
 
+/// Attempts to read as much as possible of a file into a byte buffer.
+/// On success it will also return the amount of bytes read.
+///
+/// You may want to use [`core::str::from_utf8`] to convert the content into an &str.
+///
+/// # Errors
+///
+/// May return an `Error` if the volume couldn't be opened, the path does not point to a valid file, or
+/// the file could not be read for any reason.
+pub fn read_into(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16, buf: &mut [u8]) -> BootResult<usize> {
+    let mut file = get_regular_file(fs, path)?;
+
+    let info = file.get_boxed_info::<FileInfo>()?;
+
+    // the max file size of a FAT32 file system is less than usize::MAX.
+    // so this should generally be safe for reading from local filesystems
+    let size = usize::try_from(info.file_size()).unwrap_or(usize::MAX);
+
+    let read = file.read(buf)?;
+    if read != size {
+        return Err(FsError::BufTooSmall(size).into())
+    }
+
+    Ok(read)
+}
+
 /// Reads the entire content of a file into a [`Vec<u8>`].
 ///
 /// You may want to use [`core::str::from_utf8`] to convert the content into an &str.
@@ -214,16 +259,10 @@ pub fn read(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> BootRes
 
     // the max file size of a FAT32 file system is less than usize::MAX.
     // so this should generally be safe for reading from local filesystems
-    let size = match usize::try_from(info.file_size()) {
-        Ok(size) => size,
-        _ => usize::MAX,
-    };
+    let size = usize::try_from(info.file_size()).unwrap_or(usize::MAX);
 
     let mut buf = vec![0; size];
-    let read = file.read(&mut buf)?;
-    if read != size {
-        error!("{}/{} bytes read", read, info.file_size());
-    }
+    file.read(&mut buf)?;
 
     Ok(buf)
 }
@@ -249,9 +288,7 @@ pub fn rename(
     let src = get_mut_file(fs, src)?;
     let mut dst = get_mut_file(fs, dst)?;
 
-    if let Err(e) = dst.write(&src_data) {
-        error!("{}/{} bytes were written", e.data(), src_data.len());
-    }
+    dst.write(&src_data).map_err(|e| FsError::WriteErr { status: e.status(), bytes: *e.data() })?;
 
     src.delete()?;
 
@@ -285,13 +322,7 @@ pub fn write(
 ) -> BootResult<()> {
     let mut file = get_mut_file(fs, path)?;
 
-    if let Err(e) = file.write(buffer) {
-        error!(
-            "Failed to write: {}. Only {} bytes were written",
-            e.status(),
-            e.data()
-        );
-    }
+    file.write(buffer).map_err(|e| FsError::WriteErr { status: e.status(), bytes: *e.data() })?;
 
     Ok(())
 }
@@ -312,9 +343,7 @@ pub fn append(
     let mut file = get_mut_file(fs, path)?;
     file.set_position(RegularFile::END_OF_FILE)?;
 
-    if let Err(e) = file.write(buffer) {
-        error!("Only {} bytes were written", e.data());
-    }
+    file.write(buffer).map_err(|e| FsError::WriteErr { status: e.status(), bytes: *e.data() })?;
 
     Ok(())
 }
