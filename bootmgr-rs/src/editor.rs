@@ -3,6 +3,9 @@
 //! The modifications made by the editor are not persistent. They remain only in memory. Any long term modifications
 //! should be done in an actual operating system environment. It's still useful for editing boot options if the need
 //! ever arises.
+//! 
+//! Due to the diversity of [`Config`]'s that may be supplied to the boot manager, as well as the fact that some of
+//! the [`Config`]'s sources may not be edited or mutable, there are no plans to change this.
 
 use alloc::string::String;
 use ratatui_core::{layout::Position, terminal::Terminal};
@@ -25,18 +28,6 @@ mod ui;
 
 /// Editor widget implementation.
 mod widget;
-
-/// Conditionally applies a builder method if the value is non empty OR there is some value
-/// inside of the [`Config`] struct. This means that if both the value and the config field are
-/// empty, then it will skip having to set those fields and just return the builder directly.
-macro_rules! set_config_field {
-    ($builder:expr, $val:expr, $config:expr, $config_field:ident) => {{
-        if !$val.is_empty() || $config.$config_field.is_some() {
-            $builder = $builder.$config_field($val);
-        }
-        $builder
-    }};
-}
 
 /// The basic editor
 #[derive(Default)]
@@ -218,14 +209,14 @@ impl Editor {
         let mut builder = ConfigBuilder::from(&*config);
         for (key, val) in &self.fields {
             builder = match *key {
-                "title" => set_config_field!(builder, val, config, title),
-                "version" => set_config_field!(builder, val, config, version),
-                "machine_id" => set_config_field!(builder, val, config, machine_id),
-                "sort_key" => set_config_field!(builder, val, config, sort_key),
-                "options" => set_config_field!(builder, val, config, options),
-                "devicetree" => set_config_field!(builder, val, config, devicetree),
-                "architecture" => set_config_field!(builder, val, config, architecture),
-                "efi" => set_config_field!(builder, val, config, efi),
+                "title" => builder.title(val),
+                "version" => builder.version(val),
+                "machine_id" => builder.machine_id(val),
+                "sort_key" => builder.sort_key(val),
+                "options" => builder.options(val),
+                "devicetree" => builder.devicetree(val),
+                "architecture" => builder.architecture(val),
+                "efi" => builder.efi(val),
                 _ => builder,
             };
         }

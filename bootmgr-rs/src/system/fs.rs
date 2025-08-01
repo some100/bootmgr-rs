@@ -226,7 +226,8 @@ pub fn read_filtered_dir(
 /// # Errors
 ///
 /// May return an `Error` if the volume couldn't be opened, the path does not point to a valid file,
-/// the file could not be read for any reason, or the buffer was too small.
+/// the file could not be read for any reason, or the buffer was too small. If the buffer was too small,
+/// the amount of bytes required is returned.
 pub fn read_into(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     path: &CStr16,

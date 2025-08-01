@@ -1,7 +1,13 @@
 //! Shim integration into secure boot.
 //!
-//! For Shim versions earlier than v16, this will allow the usage of the Shim validator in order
-//! to check if an image is valid semi-independently of the firmware's validator.
+//! The main export of this module is [`shim_load_image`], which will optionally verify the image with Shim if required.
+//! To explain the function briefly, if Shim is old enough (lower than version 16) and is present, it will install a custom
+//! [`SecurityOverrideGuard`] to replace the firmware validator with a custom validator using [`ShimLock`] to verify images.
+//!
+//! If Shim v16+ is loaded (indicated using [`ShimImageLoader`]), then the Shim validator is already installed and we can simply
+//! do nothing.
+//!
+//! The same is done for if Shim is not present or secure boot is disabled.
 
 use core::ptr::NonNull;
 

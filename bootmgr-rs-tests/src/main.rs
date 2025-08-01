@@ -5,7 +5,8 @@
 
 // DISCLAIMER: This code extensively uses unwrap and expect, as any errors in testing should be treated as fatal.
 
-use bootmgr_rs::{BootResult, boot::action::reboot, system::log_backend::UefiLogger};
+use anyhow::anyhow;
+use bootmgr_rs::{boot::action::reboot, system::log_backend::UefiLogger};
 use uefi::{
     prelude::*,
     println,
@@ -24,11 +25,13 @@ mod fs;
 mod load;
 mod variables;
 
-fn main_func() -> BootResult<()> {
+fn main_func() -> anyhow::Result<()> {
     uefi::helpers::init()?;
     log::set_logger(UefiLogger::static_new())
         .map(|()| log::set_max_level(log::LevelFilter::Info))
-        .expect("Failed to set logger"); // set up logger so that errors produced by the library will get caught as well
+        .or(Err(anyhow!(
+            "Failed to initialize logger, since it was already initialized"
+        )))?;
 
     check_loaded()?;
     check_variable()?;
@@ -46,9 +49,9 @@ fn main_func() -> BootResult<()> {
             let char = char::from(char);
             return match char {
                 '1' => test_custom_actions(),
-                '2' => test_variables(),
-                '3' => test_filesystem(),
-                '4' => test_loading(),
+                '2' => Ok(test_variables()?),
+                '3' => Ok(test_filesystem()?),
+                '4' => Ok(test_loading()?),
                 _ => Ok(()),
             };
         }
@@ -66,12 +69,14 @@ fn press_for_reboot() -> ! {
     reboot::reset();
 }
 
-fn read_key() -> BootResult<Key> {
+fn read_key() -> anyhow::Result<Key> {
     let handle = boot::get_handle_for_protocol::<Input>()?;
     let mut input = boot::open_protocol_exclusive::<Input>(handle)?;
-    let mut events = [input
+    let key_event = input
         .wait_for_key_event()
-        .expect("Input device not present")];
+        .ok_or(anyhow!("Input device not present"))?;
+    let mut events = [key_event];
     boot::wait_for_event(&mut events).discard_errdata()?;
-    Ok(input.read_key()?.expect("Input device not present"))
+    let key = input.read_key()?;
+    key.ok_or(anyhow!("Input device not present"))
 }

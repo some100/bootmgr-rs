@@ -231,44 +231,33 @@ mod tests {
     }
 
     #[test]
-    fn test_str_to_cstr() {
-        let cstr = str_to_cstr("foo bar").expect("Basic string failed to be converted");
+    fn test_str_to_cstr() -> Result<(), StrError> {
+        let cstr = str_to_cstr("foo bar")?;
         let str = String::from(&cstr);
         assert_eq!(str, "foo bar".to_owned());
+        Ok(())
     }
 
     #[test]
-    fn test_get_path_cstr() {
+    fn test_get_path_cstr() -> Result<(), StrError> {
         const PREFIX: &CStr16 = cstr16!("\\root");
         const FILE: &CStr16 = cstr16!("somefilename");
-        let path =
-            get_path_cstr(PREFIX, FILE).expect("Could not convert string \\root and somefilename");
+        let path = get_path_cstr(PREFIX, FILE)?;
         let str = String::from(&path);
         assert_eq!(str, "\\root\\somefilename".to_owned());
+        Ok(())
     }
 
     #[test]
     fn test_get_arch() {
         if cfg!(target_arch = "x86") {
-            assert_eq!(
-                *get_arch().expect("get_arch returns None for x86"),
-                "x86".to_owned()
-            );
+            assert_eq!(get_arch().as_deref().map(String::as_str), Some("x86"));
         } else if cfg!(target_arch = "x86_64") {
-            assert_eq!(
-                *get_arch().expect("get_arch returns None for x64"),
-                "x64".to_owned()
-            );
+            assert_eq!(get_arch().as_deref().map(String::as_str), Some("x64"));
         } else if cfg!(target_arch = "arm") {
-            assert_eq!(
-                *get_arch().expect("get_arch returns None for arm"),
-                "arm".to_owned()
-            );
+            assert_eq!(get_arch().as_deref().map(String::as_str), Some("arm"));
         } else if cfg!(target_arch = "aarch64") {
-            assert_eq!(
-                *get_arch().expect("get_arch returns None for aa64"),
-                "aa64".to_owned()
-            );
+            assert_eq!(get_arch().as_deref().map(String::as_str), Some("aa64"));
         } else {
             assert_eq!(get_arch(), None);
         }

@@ -128,11 +128,9 @@ fn setup_image(
 ) -> BootResult<Handle> {
     let load_options = &LOAD_OPTIONS;
 
-    let _ = config
-        .devicetree
-        .as_ref()
-        .map(|x| install_devicetree(x, fs))
-        .transpose()?;
+    if let Some(devicetree) = &config.devicetree {
+        install_devicetree(devicetree, fs)?;
+    }
 
     let options = config.options.as_deref().unwrap_or_default();
     let mut image = boot::open_protocol_exclusive::<LoadedImage>(handle)?;

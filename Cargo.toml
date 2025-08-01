@@ -14,8 +14,13 @@ resolver = "3"
 [profile.release]
 strip = true
 opt-level = "z"
-lto = true
 panic = "abort"
+
+# fuzzing breaks completely when lto is enabled. so create a separate profile
+# for non fuzzing release builds. this should be used by xtask build -r
+[profile.release-lto]
+inherits = "release"
+lto = true
 
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(fuzzing)'] }

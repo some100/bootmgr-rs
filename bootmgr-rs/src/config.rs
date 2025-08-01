@@ -196,7 +196,6 @@ impl Config {
     /// May return an `Error` if the paths do not exist in the filesystem when they are in the [`Config`].
     fn validate_paths(&self) -> Result<(), ConfigError> {
         if let Some(handle) = self.handle {
-            // this should not panic, as handle is FsHandle and must always support SimpleFileSystem
             let Ok(mut fs) = boot::open_protocol_exclusive(*handle) else {
                 return Err(ConfigError::FsUnsupported(self.filename.clone())); // this should not happen.
             };

@@ -42,16 +42,16 @@ type Authentication = unsafe extern "efiapi" fn(
 /// The main handler for the security override
 #[derive(Clone, Copy, Default)]
 pub struct SecurityOverrideInner {
-    /// The [`Handle`] that supports [`SecurityArch`].
+    /// The [`Handle`] that supports [`SecurityArchProtocol`].
     pub security: Option<Handle>,
 
-    /// The [`Handle`] that supports [`Security2Arch`].
+    /// The [`Handle`] that supports [`Security2ArchProtocol`].
     pub security2: Option<Handle>,
 
-    /// The original method for [`SecurityArch`] that was used in `LoadImage` before the override.
+    /// The original method for [`SecurityArchProtocol`] that was used in `LoadImage` before the override.
     pub original_hook: Option<AuthState>,
 
-    /// The original method for [`Security2Arch`] that was used in `LoadImage` before the override.
+    /// The original method for [`Security2ArchProtocol`] that was used in `LoadImage` before the override.
     pub original_hook2: Option<Authentication>,
 
     /// The custom validator installed.
@@ -100,7 +100,8 @@ impl SecurityOverrideInner {
     /// Uninstalls the custom validator.
     ///
     /// Note that this method takes `&self`, which means that it does not modify any of the inner members.
-    /// It is up to the caller to zero out the struct from that point on.
+    /// It only uninstalls the security hooks from the [`SecurityArchProtocol`] and [`Security2ArchProtocol`]
+    /// handles, which should be enough.
     pub fn uninstall_validator(&self) {
         self.uninstall_security1_hook();
         self.uninstall_security2_hook();
@@ -156,7 +157,7 @@ impl SecurityOverrideInner {
         }
     }
 
-    /// Calls the original hook for [`SecurityArch`] that was there previously before the custom validator was installed.
+    /// Calls the original hook for [`SecurityArchProtocol`] that was there previously before the custom validator was installed.
     ///
     /// This should only be called in the security hook function. You should never have to use this directly.
     ///
@@ -178,7 +179,7 @@ impl SecurityOverrideInner {
         }
     }
 
-    /// Calls the original hook for [`Security2Arch`] that was there previously before the custom validator was installed.
+    /// Calls the original hook for [`Security2ArchProtocol`] that was there previously before the custom validator was installed.
     ///
     /// This should only be called in the security hook function. You should never have to use this directly.
     ///

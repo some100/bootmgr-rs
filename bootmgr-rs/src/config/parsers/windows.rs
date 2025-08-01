@@ -59,7 +59,8 @@ impl WinConfig {
         let mut config = Self::default();
         let hive = Hive::new(content)?;
         // may cause a panic due to unchecked subtraction with some malformed inputs
-        // this seems to be a bug with nt hive
+        // this seems to be a bug with nt hive, nothing can really be done from here without using
+        // a new crate or a custom implementation
         let root_key_node = hive.root_key_node()?;
         let displayorder =
             Self::get_values_of_key(DISPLAYORDER_PATH, "displayorder", &root_key_node)?;

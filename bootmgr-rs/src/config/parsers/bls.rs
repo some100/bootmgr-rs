@@ -24,8 +24,9 @@ use uefi::{
 use crate::{
     BootResult,
     config::{Config, builder::ConfigBuilder, parsers::ConfigParser},
+    error::BootError,
     system::{
-        fs::{read_filtered_dir, read_into, rename},
+        fs::{FsError, read, read_filtered_dir, read_into, rename},
         helper::{get_path_cstr, str_to_cstr},
     },
 };
@@ -238,10 +239,19 @@ fn get_bls_config(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     handle: Handle,
 ) -> BootResult<Option<Config>> {
-    let mut buf = [0; 8192]; // extremely generous buffer for larger files
-    let bytes = read_into(fs, &get_path_cstr(BLS_PREFIX, file.file_name())?, &mut buf)?;
+    let mut buf = [0; 4096]; // preallocated buffer big enough for most config files
+    let path = get_path_cstr(BLS_PREFIX, file.file_name())?;
+    let read_result = read_into(fs, &path, &mut buf);
 
-    let bls_config = BlsConfig::new(&buf, Some(bytes));
+    // if the file was too big for the buffer, it will use read instead, which allocates on the heap
+    // the size of the file.
+    let (bytes, buf) = match read_result {
+        Ok(bytes) => (bytes, &buf[..]),
+        Err(BootError::FsError(FsError::BufTooSmall(bytes))) => (bytes, &read(fs, &path)?[..]),
+        Err(e) => return Err(e),
+    };
+
+    let bls_config = BlsConfig::new(buf, Some(bytes));
     let options = bls_config.get_options();
 
     let Some(efi) = bls_config.linux.or(bls_config.efi) else {
@@ -401,29 +411,22 @@ mod tests {
     #[test]
     fn test_boot_counter() {
         let filename = "somelinuxconf+3.conf";
-        // we do not care about expects since its a test
         let mut ctr = BootCounter::new(filename)
-            .expect("Failed to create a boot counter from filename in test");
+            .expect("Failed to create a boot counter from valid filename in test");
         ctr.decrement();
         assert_eq!(
-            ctr.to_filename()
-                .expect("Failed to convert simple string to a filename"),
-            CString16::try_from("somelinuxconf+2-1.conf")
-                .expect("Failed to convert simple string to CString16")
+            ctr.to_filename().ok(),
+            CString16::try_from("somelinuxconf+2-1.conf").ok()
         );
         ctr.decrement();
         assert_eq!(
-            ctr.to_filename()
-                .expect("Failed to convert simple string to a filename"),
-            CString16::try_from("somelinuxconf+1-2.conf")
-                .expect("Failed to convert simple string to CString16")
+            ctr.to_filename().ok(),
+            CString16::try_from("somelinuxconf+1-2.conf").ok()
         );
         ctr.decrement();
         assert_eq!(
-            ctr.to_filename()
-                .expect("Failed to convert simple string to a filename"),
-            CString16::try_from("somelinuxconf+0-3.conf")
-                .expect("Failed to convert simple string to CString16")
+            ctr.to_filename().ok(),
+            CString16::try_from("somelinuxconf+0-3.conf").ok()
         );
         assert!(ctr.is_bad());
     }

@@ -182,27 +182,31 @@ impl App {
     ///
     /// May return an `Error` if the terminal could not be cleared.
     fn maybe_boot(&mut self, terminal: &mut Terminal<UefiBackend>) -> BootResult<Option<Handle>> {
-        if matches!(self.state, AppState::Booting)
-            && let Some(option) = self.boot_list.state.selected()
-        {
-            if self.set_default {
-                self.boot_mgr.set_default(option);
-            }
-            match self.boot_mgr.load(option) {
-                Ok(handle) => return Ok(Some(handle)),
-                Err(e) => {
-                    terminal.backend_mut().reset_color();
-                    error!("{e}");
-                    boot::stall(ERROR_DELAY); // wait for 5 seconds so the error is visible
-                    self.timeout = -1;
-                    self.state = AppState::Running;
-                    terminal.clear()?; // clear screen so we dont have a messed up terminal
-                    self.boot_list = BootList::new(&self.boot_mgr);
-                }
-            }
+        if !matches!(self.state, AppState::Booting) {
+            return Ok(None);
         }
 
-        Ok(None)
+        let Some(option) = self.boot_list.state.selected() else {
+            return Ok(None);
+        };
+
+        if self.set_default {
+            self.boot_mgr.set_default(option);
+        }
+
+        match self.boot_mgr.load(option) {
+            Ok(handle) => Ok(Some(handle)),
+            Err(e) => {
+                terminal.backend_mut().reset_color();
+                error!("{e}");
+                boot::stall(ERROR_DELAY); // wait for 5 seconds so the error is visible
+                self.timeout = -1;
+                self.state = AppState::Running;
+                terminal.clear()?; // clear screen so we dont have a messed up terminal
+                self.boot_list = BootList::new(&self.boot_mgr);
+                Ok(None)
+            }
+        }
     }
 
     /// Might launch the editor, probably.

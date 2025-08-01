@@ -1,9 +1,9 @@
-use bootmgr_rs::{BootResult, boot::action::*};
+use bootmgr_rs::boot::action::*;
 use uefi::{println, proto::console::text::Key};
 
 use crate::read_key;
 
-pub fn test_custom_actions() -> BootResult<()> {
+pub fn test_custom_actions() -> anyhow::Result<()> {
     println!("Select the boot option that you want to test:");
     println!("1. Reboot");
     println!("2. Shutdown");

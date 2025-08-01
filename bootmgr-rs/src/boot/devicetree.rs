@@ -75,6 +75,10 @@ impl Devicetree {
     }
 
     /// Apply fixups to the devicetree blob with the [`DevicetreeFixup`] protocol.
+    ///
+    /// We simply pass the devicetree blob as well as size as is to the firmware's fixup
+    /// protocol. From this point, it is up to the firmware to interpret and fixup the
+    /// devicetree.
     fn fixup(&mut self, fixup: &mut ScopedProtocol<DevicetreeFixup>) -> BootResult<()> {
         Ok(fixup
             .fixup(
@@ -221,7 +225,7 @@ pub fn install_devicetree(
 ) -> BootResult<()> {
     if matches!(
         get_arch().as_deref().map(alloc::string::String::as_str),
-        Some("arm" | "aa64")
+        Some("arm" | "aa64") // these are the only archs requiring devicetree supported by both uefi and rust
     ) {
         let path = str_to_cstr(&normalize_path(devicetree))?;
         let f = read(fs, &path)?;

@@ -10,7 +10,7 @@ pub fn build_all_crates(matches: &ArgMatches) -> anyhow::Result<()> {
     }
 
     if matches.contains_id("release") {
-        build_args.push("-r");
+        build_args.extend(["--profile", "release-lto"]);
     }
 
     cmd("cargo", build_args).run()?;
