@@ -156,6 +156,7 @@ impl App {
 
     /// Drops the [`Terminal`], and consumes `self`.
     pub fn close(self, terminal: Terminal<UefiBackend>) {
+        let _ = self;
         drop(terminal);
     }
 

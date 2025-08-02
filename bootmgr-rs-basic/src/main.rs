@@ -12,13 +12,14 @@ use bootmgr_rs_core::{boot::BootMgr, error::BootError, system::log_backend::Uefi
 use uefi::{
     prelude::*,
     println,
-    proto::console::text::{Input, Key},
+    proto::console::text::{Input, Key, Output},
     system::with_stdout,
 };
 
+/// The actual main function of the program, which returns an [`anyhow::Result`].
 fn main_func() -> anyhow::Result<Handle> {
     uefi::helpers::init().map_err(BootError::Uefi)?;
-    with_stdout(|f| f.clear())?;
+    with_stdout(Output::clear)?;
     log::set_logger(UefiLogger::static_new())
         .map(|()| log::set_max_level(log::LevelFilter::Warn))
         .unwrap();
@@ -37,16 +38,13 @@ fn main_func() -> anyhow::Result<Handle> {
     loop {
         boot::wait_for_event(&mut events)?;
 
-        match input.read_key()? {
-            Some(Key::Printable(key)) => {
-                let key = char::from(key);
-                if let Some(key) = key.to_digit(10) {
-                    if key < boot_mgr.configs.len() as u32 {
-                        return Ok(boot_mgr.load(key as usize)?);
-                    }
-                }
+        if let Some(Key::Printable(key)) = input.read_key()? {
+            let key = char::from(key);
+            if let Some(key) = key.to_digit(10)
+                && (key as usize) < boot_mgr.configs.len()
+            {
+                return Ok(boot_mgr.load(key as usize)?);
             }
-            _ => (),
         }
     }
 }
