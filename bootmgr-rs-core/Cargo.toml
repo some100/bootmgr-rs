@@ -2,6 +2,11 @@
 name = "bootmgr-rs-core"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+keywords = ["efi", "uefi", "boot"]
+categories = ["embedded", "no-std"]
+description = "A framework for easily creating boot managers in Rust"
+repository = "https://github.com/some100/bootmgr-rs"
 
 [dependencies]
 log = "0.4.27"

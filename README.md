@@ -27,5 +27,3 @@ If the main program needs to be tested, then it can be run using `cargo xtask ru
 ## License
 
 Licensed under the MIT License.
-
-<img width="718" height="754" alt="image" src="https://github.com/user-attachments/assets/f36b905e-aee5-4a81-862d-d990ae464b35" />
