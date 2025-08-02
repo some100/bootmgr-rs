@@ -5,7 +5,12 @@
 use alloc::{format, vec::Vec};
 use bootmgr_rs_core::BootResult;
 use ratatui_core::{
-    buffer::Buffer, layout::{Alignment, Rect}, style::Style, terminal::Terminal, text::{Line, Span, Text}, widgets::Widget
+    buffer::Buffer,
+    layout::{Alignment, Rect},
+    style::Style,
+    terminal::Terminal,
+    text::{Line, Span, Text},
+    widgets::Widget,
 };
 use ratatui_widgets::{block::Block, borders::Borders, paragraph::Paragraph};
 

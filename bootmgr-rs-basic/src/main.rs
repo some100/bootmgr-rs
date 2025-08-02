@@ -1,5 +1,5 @@
 //! Extremely basic skeletion for a boot loader.
-//! 
+//!
 //! This mostly serves as an example basic frontend for the bootmgr-rs-core crate, and is probably more similar
 //! to ELILO than anything systemd-boot or bootmgr.
 //! This should probably not be used over the reference application using ratatui if possible, unless for some
@@ -9,7 +9,12 @@
 #![no_std]
 
 use bootmgr_rs_core::{boot::BootMgr, error::BootError, system::log_backend::UefiLogger};
-use uefi::{prelude::*, println, proto::console::text::{Input, Key}, system::with_stdout};
+use uefi::{
+    prelude::*,
+    println,
+    proto::console::text::{Input, Key},
+    system::with_stdout,
+};
 
 fn main_func() -> anyhow::Result<Handle> {
     uefi::helpers::init().map_err(BootError::Uefi)?;
@@ -27,8 +32,8 @@ fn main_func() -> anyhow::Result<Handle> {
 
     let handle = boot::get_handle_for_protocol::<Input>()?;
     let mut input = boot::open_protocol_exclusive::<Input>(handle)?;
-    
-    let mut events = [ input.wait_for_key_event().unwrap() ];
+
+    let mut events = [input.wait_for_key_event().unwrap()];
     loop {
         boot::wait_for_event(&mut events)?;
 

@@ -70,7 +70,11 @@ fn main() -> anyhow::Result<()> {
     match args.command {
         Commands::Build { release, target } => build::build_all_crates(release, &target)?,
         Commands::Doc { private, open, lib } => doc::doc_crate(private, open, lib)?,
-        Commands::Run { ovmf_code, release, add_file } => run::run_bootmgr(ovmf_code.as_deref(), release, add_file.as_deref())?,
+        Commands::Run {
+            ovmf_code,
+            release,
+            add_file,
+        } => run::run_bootmgr(ovmf_code.as_deref(), release, add_file.as_deref())?,
         Commands::Test { command } => test::test_crate(command)?,
     }
     Ok(())

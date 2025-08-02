@@ -5,9 +5,9 @@
 //!
 //! This "library" aspect of it also allows for external frontends to be provided beyond that of ratatui, like GUI
 //! frontends or an even more minimal user interface.
-//! 
+//!
 //! # Example
-//! 
+//!
 //! ```no_run
 //! #![no_main]
 //! #![no_std]

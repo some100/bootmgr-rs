@@ -14,7 +14,7 @@ pub enum Test {
     Fuzz {
         #[arg(short, long)]
         fuzz: String,
-    }
+    },
 }
 
 pub fn test_crate(command: Option<Test>) -> anyhow::Result<()> {

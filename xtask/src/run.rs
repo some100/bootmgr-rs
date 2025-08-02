@@ -1,6 +1,10 @@
 use duct::cmd;
 
-pub fn run_bootmgr(ovmf_code: Option<&str>, release: bool, add_file: Option<&str>) -> anyhow::Result<()> {
+pub fn run_bootmgr(
+    ovmf_code: Option<&str>,
+    release: bool,
+    add_file: Option<&str>,
+) -> anyhow::Result<()> {
     let mut run_args = vec!["-d"];
     let mut build_args = vec![
         "build",
