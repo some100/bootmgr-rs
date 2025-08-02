@@ -1,16 +1,16 @@
 [workspace]
 members = [
-    "bootmgr-rs",
     "bootmgr-rs-basic",
     "bootmgr-rs-core",
+    "bootmgr-rs-ratatui",
     "bootmgr-rs-tests",
     "fuzz",
     "xtask",
 ]
 default-members = [
-    "bootmgr-rs",
     "bootmgr-rs-basic",
     "bootmgr-rs-core",
+    "bootmgr-rs-ratatui",
     "bootmgr-rs-tests",
 ]
 resolver = "3"

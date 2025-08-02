@@ -5,7 +5,7 @@ pub fn run_bootmgr(ovmf_code: Option<&str>, release: bool, add_file: Option<&str
     let mut build_args = vec![
         "build",
         "--bin",
-        "bootmgr-rs",
+        "bootmgr-rs-ratatui",
         "--target",
         "x86_64-unknown-uefi",
     ];
@@ -20,9 +20,9 @@ pub fn run_bootmgr(ovmf_code: Option<&str>, release: bool, add_file: Option<&str
 
     if release {
         build_args.extend(["--profile", "release-lto"]);
-        run_args.push("target/x86_64-unknown-uefi/release-lto/bootmgr-rs.efi");
+        run_args.push("target/x86_64-unknown-uefi/release-lto/bootmgr-rs-ratatui.efi");
     } else {
-        run_args.push("target/x86_64-unknown-uefi/debug/bootmgr-rs.efi");
+        run_args.push("target/x86_64-unknown-uefi/debug/bootmgr-rs-ratatui.efi");
     }
 
     cmd!("cargo", "install", "uefi-run").run()?; // will not install if its already installed
