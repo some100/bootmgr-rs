@@ -32,16 +32,12 @@ impl log::Log for UefiLogger {
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
             let time = runtime::get_time().unwrap_or(runtime::Time::invalid());
-            let msg = format_args!(
-                "[{} {} {}:{}] - {}\n",
-                time,
-                record.level(),
-                record.file().unwrap_or_default(),
-                record.line().unwrap_or_default(),
-                record.args()
-            );
+            let level = record.level();
+            let file = record.file().unwrap_or_default();
+            let line = record.line().unwrap_or_default();
+            let args = record.args();
             with_stdout(|stdout| {
-                let _ = stdout.write_fmt(msg);
+                let _ = stdout.write_fmt(format_args!("[{time} {level} {file}:{line}] - {args}\n"));
             });
         }
     }
