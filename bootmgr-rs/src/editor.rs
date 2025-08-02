@@ -1,11 +1,10 @@
 //! The optional basic editor for modifying [`Config`]s.
 //!
-//! The modifications made by the editor are not persistent. They remain only in memory. Any long term modifications
-//! should be done in an actual operating system environment. It's still useful for editing boot options if the need
-//! ever arises.
-//! 
+//! This can be used for editing Linux EFISTUB cmdline options as an example. The options field can be edited to change the
+//! necessary parameters.
+//!
 //! Due to the diversity of [`Config`]'s that may be supplied to the boot manager, as well as the fact that some of
-//! the [`Config`]'s sources may not be edited or mutable, there are no plans to change this.
+//! the [`Config`]'s sources may not be edited or mutable, there are no plans to add persistent boot editing.
 
 use alloc::string::String;
 use ratatui_core::{layout::Position, terminal::Terminal};
@@ -16,11 +15,14 @@ use uefi::{
     proto::console::text::{Input, Key, ScanCode},
 };
 
-use crate::{
+use bootmgr_rs_core::{
     BootResult,
-    app::AppError,
     config::{Config, builder::ConfigBuilder},
     system::helper::truncate_usize_to_u16,
+};
+
+use crate::{
+    app::AppError,
     ui::{ratatui_backend::UefiBackend, theme::Theme},
 };
 
@@ -58,7 +60,7 @@ impl Editor {
     ///
     /// May return an `Error` if the [`Input`] protocol was already closed before the [`Editor`]
     /// was initialized.
-    pub fn new(input: &ScopedProtocol<Input>, theme: Theme) -> BootResult<Self> {
+    pub fn new(input: &ScopedProtocol<Input>, theme: Theme) -> Result<Self, AppError> {
         Ok(Self {
             events: Some([input.wait_for_key_event().ok_or(AppError::InputClosed)?]),
             theme,
@@ -90,8 +92,7 @@ impl Editor {
         self.init_state(config);
 
         loop {
-            terminal.draw(|f| f.render_widget(&mut *self, f.area()))?;
-            terminal.show_cursor()?;
+            self.draw(terminal)?;
 
             let cursor_pos = truncate_usize_to_u16(self.cursor_pos);
             terminal.set_cursor_position(Position::new(cursor_pos, 3))?; // top bar is ALWAYS 3 length
@@ -221,22 +222,5 @@ impl Editor {
             };
         }
         *config = builder.build();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_saving() {
-        let mut config = Config::default();
-        let editor = Editor {
-            fields: vec![("title", "Linux".into()), ("options", "ro".into())].into(),
-            ..Default::default()
-        };
-        editor.save_to_config(&mut config);
-        assert_eq!(config.title, Some("Linux".to_owned()));
-        assert_eq!(config.options, Some("ro".to_owned()));
     }
 }

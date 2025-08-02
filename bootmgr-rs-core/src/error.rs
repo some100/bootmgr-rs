@@ -37,10 +37,6 @@ pub enum BootError {
     #[error("Devicetree Error")]
     DevicetreeError(#[from] crate::boot::devicetree::DevicetreeError),
 
-    /// An error occurred while running the App.
-    #[error("App Error")]
-    AppError(#[from] crate::app::AppError),
-
     /// The UKI executable could not be parsed for any reason.
     #[cfg(feature = "uki")]
     #[error("Uki Parse Error")]

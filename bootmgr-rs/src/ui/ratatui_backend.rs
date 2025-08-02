@@ -2,6 +2,7 @@
 
 use core::fmt::Write;
 
+use bootmgr_rs_core::{BootResult, error::BootError, system::helper::truncate_usize_to_u16};
 use ratatui_core::{
     backend::{Backend, ClearType, WindowSize},
     buffer::Cell,
@@ -13,8 +14,6 @@ use uefi::{
     boot::{self, ScopedProtocol},
     proto::console::text::{Color as UefiColor, Output},
 };
-
-use crate::{BootResult, error::BootError, system::helper::truncate_usize_to_u16};
 
 /// Convert ANSI colors [`RatatuiColor`] to UEFI foreground colors [`UefiColor`].
 ///

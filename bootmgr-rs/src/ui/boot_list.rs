@@ -7,9 +7,8 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use bootmgr_rs_core::{boot::BootMgr, config::Config};
 use ratatui_widgets::list::ListState;
-
-use crate::{boot::BootMgr, config::Config};
 
 /// The UI frontend for the [`Config`]s.
 pub struct BootList {

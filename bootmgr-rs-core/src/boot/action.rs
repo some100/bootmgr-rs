@@ -18,7 +18,7 @@ pub mod shutdown;
 ///
 /// This also handles the special cases of rebooting, shutting down, and resetting to firmware.
 #[non_exhaustive]
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum BootAction {
     /// Boot using the EFI boot loader.
     #[default]

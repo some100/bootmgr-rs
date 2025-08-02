@@ -8,23 +8,35 @@
 #![no_main]
 #![no_std]
 
-use bootmgr_rs::{
-    app::App, error::BootError, system::log_backend::UefiLogger, ui::ratatui_backend::UefiBackend,
-};
+extern crate alloc;
+
+use bootmgr_rs_core::{error::BootError, system::log_backend::UefiLogger};
 
 use ratatui_core::terminal::Terminal;
 use thiserror::Error;
 use uefi::{boot::start_image, prelude::*};
 
+use crate::{app::App, ui::ratatui_backend::UefiBackend};
+
+mod app;
+mod features;
+mod ui;
+
+#[cfg(feature = "editor")]
+mod editor;
+
 /// An error that may occur when running the application.
 #[derive(Error, Debug)]
-enum MainError {
+pub enum MainError {
     /// An error occurred with the boot manager.
     #[error("Boot Error")]
-    BootError(#[from] bootmgr_rs::error::BootError),
+    BootError(#[from] bootmgr_rs_core::error::BootError),
     /// This should not happen. Set logger is called once at the start of the program.
     #[error("Set logger was already previously called")]
     SetLogger(log::SetLoggerError),
+    /// An error occurred while running the App.
+    #[error("App Error")]
+    AppError(#[from] crate::app::AppError),
 }
 
 fn main_func() -> Result<Option<Handle>, MainError> {

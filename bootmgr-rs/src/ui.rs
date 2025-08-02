@@ -12,6 +12,7 @@ use ratatui_core::{
     buffer::Buffer,
     layout::{Alignment, Rect},
     style::Style,
+    terminal::Terminal,
     text::{Line, Span, Text},
     widgets::{StatefulWidget, Widget},
 };
@@ -23,7 +24,7 @@ use ratatui_widgets::{
 };
 use smallvec::{SmallVec, smallvec};
 
-use crate::app::App;
+use crate::{MainError, app::App, ui::ratatui_backend::UefiBackend};
 
 /// App widget implementation.
 mod widget;
@@ -33,6 +34,11 @@ pub mod ratatui_backend;
 pub mod theme;
 
 impl App {
+    /// Draw a frame to the screen.
+    pub fn draw(&mut self, terminal: &mut Terminal<UefiBackend>) -> Result<(), MainError> {
+        terminal.draw(|f| f.render_widget(self, f.area()))?;
+        Ok(())
+    }
     /// Renders a `BootList`.
     pub fn render_list(&mut self, area: Rect, buf: &mut Buffer) {
         let list = List::new(self.boot_list.items.iter().map(|x| ListItem::new(&**x)))
@@ -78,9 +84,12 @@ impl App {
             ("ESC", "Exit"),
             ("+/=", "Toggle Default"),
         ];
-        if cfg!(feature = "editor") && self.boot_mgr.boot_config.editor {
+
+        #[cfg(feature = "editor")]
+        if self.boot_mgr.boot_config.editor {
             keys.push(("E", "Editor"));
         }
+
         let spans: Vec<_> = keys
             .iter()
             .flat_map(|(key, desc)| {

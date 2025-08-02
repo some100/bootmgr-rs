@@ -6,7 +6,7 @@
 // DISCLAIMER: This code extensively uses unwrap and expect, as any errors in testing should be treated as fatal.
 
 use anyhow::anyhow;
-use bootmgr_rs::{boot::action::reboot, system::log_backend::UefiLogger};
+use bootmgr_rs_core::{boot::action::reboot, system::log_backend::UefiLogger};
 use uefi::{
     prelude::*,
     println,

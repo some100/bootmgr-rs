@@ -38,6 +38,15 @@ const BLS_PREFIX: &CStr16 = cstr16!("\\loader\\entries");
 const BLS_SUFFIX: &str = ".conf";
 
 /// An implementation of the `BootLoaderSpec` boot counting feature.
+///
+/// A general overview of the BLS boot counting is as follows:
+/// 1. The OS provides a configuration file with a boot counter annotated at the end of it (such as +3 or +3-0)
+/// 2. The bootloader sees this filename and changes the boot counter to be one attempt less (+3 -> +2-1)
+/// 3. If the OS is able to be booted, then it will see this boot counter on the next boot and remove the boot counter.
+/// 4. Otherwise, if the boot counter is not removed, the boot loader will see this boot counter again, and rename it (+2-1 -> +1-2).
+/// 5. Once the counter reaches 0 (+1-2 -> +0-3), the boot loader will mark this entry as "bad" and derank it.
+///
+/// This implementation will check for the boot counter, then decrement it, or if the boot counter is 0, then it will mark the entry as bad.
 pub struct BootCounter {
     /// The base name of the configuration name (without .conf, or boot counting)
     base_name: String,

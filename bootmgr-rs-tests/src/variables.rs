@@ -1,4 +1,4 @@
-use bootmgr_rs::{
+use bootmgr_rs_core::{
     BootResult,
     system::variable::{get_variable, set_variable},
 };

@@ -1,15 +1,9 @@
-use clap::ArgMatches;
 use duct::cmd;
 
-pub fn build_all_crates(matches: &ArgMatches) -> anyhow::Result<()> {
-    let mut build_args = vec!["build", "--target"];
+pub fn build_all_crates(release: bool, target: &str) -> anyhow::Result<()> {
+    let mut build_args = vec!["build", "--target", target];
 
-    match matches.get_one::<String>("target") {
-        Some(target) => build_args.push(target),
-        None => build_args.push("x86_64-unknown-uefi"),
-    }
-
-    if matches.contains_id("release") {
+    if release {
         build_args.extend(["--profile", "release-lto"]);
     }
 

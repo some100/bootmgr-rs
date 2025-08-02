@@ -1,4 +1,4 @@
-use bootmgr_rs::{
+use bootmgr_rs_core::{
     BootResult,
     boot::loader::load_boot_option,
     config::builder::ConfigBuilder,

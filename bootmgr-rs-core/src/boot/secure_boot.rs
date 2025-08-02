@@ -9,6 +9,9 @@
 //! verifying images. These methods can also be replaced with our own custom made ones, mainly
 //! also using Shim.
 //!
+//! Even though Shim is the main consumer of this type of module, the overall architecture is
+//! very pluggable and custom validators not simply delegating to Shim can be used as well.
+//!
 //! This hooks onto `SecurityArch` and `Security2Arch` in order to replace their
 //! authenticators with custom ones using Shim or any other validator.
 //!

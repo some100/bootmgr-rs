@@ -209,7 +209,7 @@ impl Config {
             {
                 return Err(ConfigError::NotExist("Devicetree", (**devicetree).clone()));
             }
-        } else if matches!(self.action, BootAction::BootEfi) {
+        } else if self.action == BootAction::BootEfi {
             return Err(ConfigError::ConfigMissingHandle(self.filename.clone()));
         }
         Ok(())
@@ -229,7 +229,7 @@ pub fn get_configs() -> BootResult<Vec<Config>> {
         boot::locate_handle_buffer(SearchType::from_proto::<SimpleFileSystem>())?.to_vec();
 
     for handle in handles {
-        if !is_target_partition(&handle) {
+        if !is_target_partition(handle) {
             continue;
         }
 

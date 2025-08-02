@@ -1,4 +1,4 @@
-use bootmgr_rs::boot::action::*;
+use bootmgr_rs_core::boot::action::*;
 use uefi::{println, proto::console::text::Key};
 
 use crate::read_key;

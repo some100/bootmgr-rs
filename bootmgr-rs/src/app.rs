@@ -3,6 +3,7 @@
 //! This is where the main loop of the whole application is located, and is where terminal, boot manager,
 //! and editor interact.
 
+use bootmgr_rs_core::{boot::BootMgr, error::BootError};
 use log::error;
 use ratatui_core::terminal::Terminal;
 use thiserror::Error;
@@ -13,8 +14,7 @@ use uefi::{
 };
 
 use crate::{
-    BootResult,
-    boot::BootMgr,
+    MainError,
     ui::{boot_list::BootList, ratatui_backend::UefiBackend, theme::Theme},
 };
 
@@ -39,6 +39,7 @@ pub enum AppError {
 }
 
 /// The current status of the [`App`].
+#[derive(PartialEq, Eq)]
 pub enum AppState {
     /// The app is currently booting an image.
     Booting,
@@ -89,7 +90,7 @@ impl App {
     ///
     /// May return an `Error` if the [`BootMgr`] could not be created, or there is no [`Handle`] supporting
     /// [`Input`]
-    pub fn new() -> BootResult<Self> {
+    pub fn new() -> Result<Self, MainError> {
         let boot_mgr = BootMgr::new()?;
         let boot_list = BootList::new(&boot_mgr);
 
@@ -101,8 +102,8 @@ impl App {
 
         let timeout = boot_mgr.boot_config.timeout;
 
-        let handle = boot::get_handle_for_protocol::<Input>()?;
-        let input = boot::open_protocol_exclusive::<Input>(handle)?;
+        let handle = boot::get_handle_for_protocol::<Input>().map_err(BootError::Uefi)?;
+        let input = boot::open_protocol_exclusive::<Input>(handle).map_err(BootError::Uefi)?;
 
         let editor = Editor::new(&input, theme)?;
         Ok(Self {
@@ -128,13 +129,14 @@ impl App {
     ///
     /// May return an `Error` if a frame could not be drawn, the input was closed,
     /// or the editor failed to run if enabled.
-    pub fn run(&mut self, terminal: &mut Terminal<UefiBackend>) -> BootResult<Option<Handle>> {
+    pub fn run(
+        &mut self,
+        terminal: &mut Terminal<UefiBackend>,
+    ) -> Result<Option<Handle>, MainError> {
         self.init_state(terminal)?;
 
         let handle = loop {
-            terminal.draw(|f| f.render_widget(&mut *self, f.area()))?;
-
-            self.wait_for_events()?;
+            self.draw(terminal)?;
 
             self.handle_key()?;
 
@@ -142,7 +144,7 @@ impl App {
                 break handle;
             }
 
-            if matches!(self.state, AppState::Exiting) {
+            if self.state == AppState::Exiting {
                 return Ok(None);
             }
 
@@ -162,7 +164,7 @@ impl App {
     /// # Errors
     ///
     /// May return an `Error` if the terminal could not be cleared, or the events could not be created.
-    fn init_state(&mut self, terminal: &mut Terminal<UefiBackend>) -> BootResult<()> {
+    fn init_state(&mut self, terminal: &mut Terminal<UefiBackend>) -> Result<(), MainError> {
         if let Some(fg) = self.theme.base.fg
             && let Some(bg) = self.theme.base.bg
         {
@@ -181,8 +183,11 @@ impl App {
     /// # Errors
     ///
     /// May return an `Error` if the terminal could not be cleared.
-    fn maybe_boot(&mut self, terminal: &mut Terminal<UefiBackend>) -> BootResult<Option<Handle>> {
-        if !matches!(self.state, AppState::Booting) {
+    fn maybe_boot(
+        &mut self,
+        terminal: &mut Terminal<UefiBackend>,
+    ) -> Result<Option<Handle>, MainError> {
+        if self.state != AppState::Booting {
             return Ok(None);
         }
 
@@ -214,7 +219,10 @@ impl App {
     /// # Errors
     ///
     /// May return an `Error` if there was some sort of error or failure in the interactive editor.
-    fn maybe_launch_editor(&mut self, terminal: &mut Terminal<UefiBackend>) -> BootResult<()> {
+    fn maybe_launch_editor(
+        &mut self,
+        terminal: &mut Terminal<UefiBackend>,
+    ) -> Result<(), MainError> {
         if self.editor.editing
             && self.boot_mgr.boot_config.editor
             && let Some(option) = self.boot_list.state.selected()
@@ -234,7 +242,7 @@ impl App {
     /// # Errors
     ///
     /// May return an `Error` if the events could not be created.
-    fn wait_for_events(&mut self) -> BootResult<()> {
+    fn wait_for_events(&mut self) -> Result<(), MainError> {
         let Some(events) = &mut self.events else {
             return Ok(()); // if there are somehow no events, dont wait
         };
@@ -262,7 +270,7 @@ impl App {
     /// # Errors
     ///
     /// May return an `Error` if the input is closed, or the timer event could not be opened.
-    fn create_events(&mut self) -> BootResult<()> {
+    fn create_events(&mut self) -> Result<(), MainError> {
         self.events = Some([
             self.input
                 .wait_for_key_event()
@@ -272,13 +280,14 @@ impl App {
         Ok(())
     }
 
-    /// Handle a key that was pressed.
+    /// Wait for a key press, then handle it.
     ///
     /// # Errors
     ///
     /// May return an `Error` if there was some sort of device error with the [`Input`].
-    fn handle_key(&mut self) -> BootResult<()> {
-        match self.input.read_key()? {
+    fn handle_key(&mut self) -> Result<(), MainError> {
+        self.wait_for_events()?;
+        match self.input.read_key().map_err(BootError::Uefi)? {
             Some(Key::Special(key)) => self.handle_special_key(key),
             Some(Key::Printable(key)) => self.handle_printable_key(key.into()),
             _ => (),
@@ -332,12 +341,14 @@ impl App {
     /// # Errors
     ///
     /// May return an `Error` if there was not enough memory for the timer to be allocated.
-    fn get_timer_event() -> BootResult<Event> {
+    fn get_timer_event() -> Result<Event, MainError> {
         // there are no callbacks, so this is safe
         let timer_event = unsafe {
-            boot::create_event(boot::EventType::TIMER, boot::Tpl::APPLICATION, None, None)?
+            boot::create_event(boot::EventType::TIMER, boot::Tpl::APPLICATION, None, None)
+                .map_err(BootError::Uefi)?
         };
-        boot::set_timer(&timer_event, boot::TimerTrigger::Periodic(TIMER_INTERVAL))?;
+        boot::set_timer(&timer_event, boot::TimerTrigger::Periodic(TIMER_INTERVAL))
+            .map_err(BootError::Uefi)?;
         Ok(timer_event)
     }
 }

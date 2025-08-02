@@ -1,17 +1,17 @@
-use clap::ArgMatches;
 use duct::cmd;
 
-pub fn doc_crate(matches: &ArgMatches) -> anyhow::Result<()> {
+pub fn doc_crate(private: bool, open: bool, lib: bool) -> anyhow::Result<()> {
     let mut build_args = vec!["doc"];
-    if let Some(private) = matches.get_one::<bool>("private")
-        && *private
-    {
+    if private {
         build_args.push("--document-private-items");
     }
-    if let Some(open) = matches.get_one::<bool>("open")
-        && *open
-    {
+
+    if open {
         build_args.push("--open");
+    }
+
+    if lib {
+        build_args.push("--lib")
     }
 
     cmd("cargo", build_args).run()?;

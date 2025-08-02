@@ -12,11 +12,9 @@ pub mod editor {
     use ratatui_core::terminal::Terminal;
     use uefi::{boot::ScopedProtocol, proto::console::text::Input};
 
-    use crate::{
-        BootResult,
-        config::Config,
-        ui::{ratatui_backend::UefiBackend, theme::Theme},
-    };
+    use bootmgr_rs_core::{BootResult, config::Config};
+
+    use crate::ui::{ratatui_backend::UefiBackend, theme::Theme};
 
     /// A disabled editor. Has only one field, which does nothing.
     #[derive(Default)]

@@ -17,7 +17,7 @@ use crate::{
 /// # Example
 ///
 /// ```
-/// use bootmgr_rs::config::builder::ConfigBuilder;
+/// use bootmgr_rs_core::config::builder::ConfigBuilder;
 ///
 /// let config = ConfigBuilder::new("\\EFI\\BOOT\\BOOTx64.efi", "foo.conf", ".conf")
 ///     .title("foo")

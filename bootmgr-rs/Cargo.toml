@@ -1,12 +1,11 @@
 [package]
 name = "bootmgr-rs"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2024"
 
 [dependencies]
+bootmgr-rs-core = { version = "0.1.0", path = "../bootmgr-rs-core" }
 log = "0.4.27"
-nt-hive = { version = "0.3.0", default-features = false, features = ["alloc"], optional = true }
-object = { version = "0.37.1", default-features = false, features = ["pe", "read_core"], optional = true }
 ratatui-core = "0.1.0-alpha.6"
 ratatui-widgets = "0.3.0-alpha.5"
 smallvec = "1.15.1"
@@ -14,14 +13,7 @@ thiserror = { version = "2.0.12", default-features = false }
 uefi = { version = "0.35.0", features = ["alloc"] }
 
 [features]
-default = ["bls", "fallback", "osx", "pxe", "shell", "uki", "windows", "editor"]
-bls = []
-fallback = []
-osx = []
-pxe = []
-shell = []
-uki = ["dep:object"]
-windows = ["dep:nt-hive"]
+default = ["editor"]
 editor = []
 
 [lints]

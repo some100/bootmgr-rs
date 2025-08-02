@@ -5,5 +5,5 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.98"
-clap = { version = "4.5.42", features = ["cargo"] }
+clap = { version = "4.5.42", features = ["cargo", "derive"] }
 duct = "1.0.0"

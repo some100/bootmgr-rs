@@ -1,4 +1,4 @@
-use bootmgr_rs::{
+use bootmgr_rs_core::{
     BootResult,
     system::fs::{check_file_exists, create, delete, read, rename, write},
 };

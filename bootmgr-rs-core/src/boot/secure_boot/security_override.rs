@@ -78,8 +78,8 @@ impl SecurityOverrideInner {
     ///     Ok(()) // a validator that accepts every image
     /// }
     ///
-    /// use bootmgr_rs::BootResult;
-    /// use bootmgr_rs::boot::secure_boot::security_override::SecurityOverrideInner;
+    /// use bootmgr_rs_core::BootResult;
+    /// use bootmgr_rs_core::boot::secure_boot::security_override::SecurityOverrideInner;
     ///
     /// let security_override = SecurityOverrideInner::default();
     ///

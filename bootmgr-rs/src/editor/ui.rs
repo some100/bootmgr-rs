@@ -3,18 +3,21 @@
 //! This is a highly simplistic user interface that only features a title, an editor area, and a help bar at the bottom.
 
 use alloc::{format, vec::Vec};
+use bootmgr_rs_core::BootResult;
 use ratatui_core::{
-    buffer::Buffer,
-    layout::{Alignment, Rect},
-    style::Style,
-    text::{Line, Span, Text},
-    widgets::Widget,
+    buffer::Buffer, layout::{Alignment, Rect}, style::Style, terminal::Terminal, text::{Line, Span, Text}, widgets::Widget
 };
 use ratatui_widgets::{block::Block, borders::Borders, paragraph::Paragraph};
 
-use crate::editor::Editor;
+use crate::{editor::Editor, ui::ratatui_backend::UefiBackend};
 
 impl Editor {
+    pub fn draw(&mut self, terminal: &mut Terminal<UefiBackend>) -> BootResult<()> {
+        terminal.draw(|f| f.render_widget(self, f.area()))?;
+        terminal.show_cursor()?;
+        Ok(())
+    }
+
     /// Displays the currently edited field of the `Config`.
     pub fn render_title(&self, area: Rect, buf: &mut Buffer) {
         let title_block = Block::default()

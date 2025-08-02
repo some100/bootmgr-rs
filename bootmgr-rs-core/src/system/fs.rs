@@ -6,7 +6,8 @@
 //! This is mainly intended for FAT filesystems (hence the assumption in `helper.rs` that the max path is 256 chars in length).
 //! However, [`SimpleFileSystem`] is also abstractable over filesystems of other types. This is only possible with UEFI drivers,
 //! so if a filesystem other than FAT needs to be supported, then the appropriate driver implementing [`SimpleFileSystem`] should
-//! be put in the drivers directory.
+//! be put in the drivers directory. Examples of such drivers include those found in [efifs](https://efi.akeo.ie), which are built
+//! off of GRUB's drivers.
 //!
 //! This module also provides filesystem-related testing functions, like [`check_file_exists`].
 
@@ -66,9 +67,9 @@ pub fn get_volume_label(fs: &mut ScopedProtocol<SimpleFileSystem>) -> BootResult
 /// This will only work if the handle supports [`PartitionInfo`], else it will return
 /// [`true`] for every partition.
 #[must_use = "Has no effect if the result is unused"]
-pub fn is_target_partition(handle: &Handle) -> bool {
+pub fn is_target_partition(handle: Handle) -> bool {
     // for filesystems that support partitioninfo, filter partitions by guid
-    if let Ok(info) = boot::open_protocol_exclusive::<PartitionInfo>(*handle) {
+    if let Ok(info) = boot::open_protocol_exclusive::<PartitionInfo>(handle) {
         let Some(entry) = info.gpt_partition_entry() else {
             return false;
         };

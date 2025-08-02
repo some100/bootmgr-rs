@@ -1,8 +1,6 @@
-use anyhow::Context;
-use clap::ArgMatches;
 use duct::cmd;
 
-pub fn run_bootmgr(matches: &ArgMatches) -> anyhow::Result<()> {
+pub fn run_bootmgr(ovmf_code: Option<&str>, release: bool, add_file: Option<&str>) -> anyhow::Result<()> {
     let mut run_args = vec!["-d"];
     let mut build_args = vec![
         "build",
@@ -12,20 +10,17 @@ pub fn run_bootmgr(matches: &ArgMatches) -> anyhow::Result<()> {
         "x86_64-unknown-uefi",
     ];
 
-    if let Some(ovmf_code) = matches.get_one::<String>("ovmf-code") {
-        run_args.append(&mut vec!["-b", ovmf_code]);
+    if let Some(ovmf_code) = ovmf_code {
+        run_args.append(&mut vec!["-b", &ovmf_code]);
     }
 
-    if let Some(add_file) = matches.get_one::<String>("add-file") {
-        run_args.append(&mut vec!["-f", add_file]);
+    if let Some(add_file) = add_file {
+        run_args.append(&mut vec!["-f", &add_file]);
     }
 
-    if *matches
-        .get_one::<bool>("release")
-        .context("id release does not exist in args (this should not happen)")?
-    {
-        build_args.push("-r");
-        run_args.push("target/x86_64-unknown-uefi/release/bootmgr-rs.efi");
+    if release {
+        build_args.extend(["--profile", "release-lto"]);
+        run_args.push("target/x86_64-unknown-uefi/release-lto/bootmgr-rs.efi");
     } else {
         run_args.push("target/x86_64-unknown-uefi/debug/bootmgr-rs.efi");
     }

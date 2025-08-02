@@ -18,7 +18,7 @@
 //! # Change the path where drivers are searched
 //! driver_path /EFI/Drivers
 //!
-//! # Enable or disable the builtin editor
+//! # Enable or disable the builtin editor provided with the default frontend
 //! editor true
 //!
 //! # Enable or disable PXE boot discovery
@@ -33,8 +33,7 @@
 
 use alloc::{borrow::ToOwned, string::String};
 use log::warn;
-use ratatui_core::style::Color;
-use uefi::{CStr16, boot, cstr16};
+use uefi::{CStr16, boot, cstr16, proto::console::text::Color};
 
 use crate::{
     BootResult,
@@ -58,7 +57,7 @@ pub struct BootConfig {
     /// The path to the drivers in the same filesystem as the bootloader.
     pub driver_path: String,
 
-    /// Allows for the editor to be enabled.
+    /// Allows for the editor to be enabled, if there is one.
     pub editor: bool,
 
     /// Allows for the basic PXE/TFTP loader to be enabled.
@@ -168,7 +167,7 @@ impl Default for BootConfig {
             pxe: false,
             bg: Color::Black,
             fg: Color::White,
-            highlight_bg: Color::Gray,
+            highlight_bg: Color::LightGray,
             highlight_fg: Color::Black,
         }
     }
@@ -185,11 +184,10 @@ fn match_str_color_fg(color: &str) -> Color {
         "blue" => Color::Blue,
         "magenta" => Color::Magenta,
         "cyan" => Color::Cyan,
-        "gray" => Color::Gray,
+        "gray" => Color::LightGray,
         "dark_gray" => Color::DarkGray,
         "light_red" => Color::LightRed,
         "light_green" => Color::LightGreen,
-        "light_yellow" => Color::LightYellow,
         "light_blue" => Color::LightBlue,
         "light_magenta" => Color::LightMagenta,
         "light_cyan" => Color::LightCyan,
@@ -209,7 +207,7 @@ fn match_str_color_bg(color: &str) -> Color {
         "cyan" => Color::Cyan,
         "red" => Color::Red,
         "magenta" => Color::Magenta,
-        "gray" | "white" => Color::Gray, // close enough
+        "gray" | "white" => Color::LightGray, // close enough
         _ => Color::Black,
     }
 }
@@ -239,9 +237,9 @@ mod tests {
         assert_eq!(config.driver_path, "\\efi\\drivers".to_owned());
         assert!(config.editor);
         assert!(!config.pxe);
-        assert_eq!(config.bg, Color::Gray);
-        assert_eq!(config.fg, Color::White);
-        assert_eq!(config.highlight_bg, Color::Black);
-        assert_eq!(config.highlight_fg, Color::White);
+        assert!(matches!(config.bg, Color::LightGray));
+        assert!(matches!(config.fg, Color::White));
+        assert!(matches!(config.highlight_bg, Color::Black));
+        assert!(matches!(config.highlight_fg, Color::White));
     }
 }
