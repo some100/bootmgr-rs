@@ -1,15 +1,15 @@
 [workspace]
 members = [
-    "bootmgr-rs-basic",
     "bootmgr-rs-core",
     "bootmgr-rs-ratatui",
+    "bootmgr-rs-minimal",
     "bootmgr-rs-tests",
     "fuzz",
     "xtask",
 ]
 default-members = [
-    "bootmgr-rs-basic",
     "bootmgr-rs-core",
+    "bootmgr-rs-minimal",
     "bootmgr-rs-ratatui",
     "bootmgr-rs-tests",
 ]
