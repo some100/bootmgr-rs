@@ -64,7 +64,7 @@ pub enum LoadError {
 ///     boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path).unwrap()
 /// }; // so that the handle will be able to be opened for loading the boot option
 ///
-/// let config = ConfigBuilder::new("foo.bar", ".bar").efi("/efi/boot/bootx64.efi").handle(handle).build();
+/// let config = ConfigBuilder::new("foo.bar", ".bar").efi_path("/efi/boot/bootx64.efi").fs_handle(handle).build();
 ///
 /// let image = load_boot_option(&config).unwrap();
 ///

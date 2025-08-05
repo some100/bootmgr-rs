@@ -31,7 +31,7 @@ use crate::{
 ///
 /// let config = ConfigBuilder::new("foo.conf", ".conf")
 ///     .title("foo")
-///     .handle(handle)
+///     .fs_handle(handle)
 ///     .build();
 /// ```
 #[must_use = "Has no effect if the result is unused"]
