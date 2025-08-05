@@ -161,12 +161,12 @@ fn get_win_config(fs: &mut ScopedProtocol<SimpleFileSystem>, handle: Handle) -> 
 
     let win_config = WinConfig::new(&content)?;
 
-    let efi = format!("{WIN_PREFIX}\\bootmgfw.efi");
+    let efi_path = format!("{WIN_PREFIX}\\bootmgfw.efi");
     let config = ConfigBuilder::new("bootmgfw.efi", WIN_SUFFIX)
-        .efi(efi)
+        .efi_path(efi_path)
         .title(win_config.title)
         .sort_key("windows")
-        .handle(handle)
+        .fs_handle(handle)
         .origin(Parsers::Windows);
 
     Ok(config.build())

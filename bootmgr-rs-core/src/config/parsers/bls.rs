@@ -266,21 +266,21 @@ fn get_bls_config(
     let bls_config = BlsConfig::new(buf, Some(bytes));
     let options = bls_config.get_options();
 
-    let Some(efi) = bls_config.linux.or(bls_config.efi) else {
+    let Some(efi_path) = bls_config.linux.or(bls_config.efi) else {
         return Ok(None);
     };
 
     let config = ConfigBuilder::new(file.file_name(), BLS_SUFFIX)
-        .efi(efi)
+        .efi_path(efi_path)
         .options(options)
         .set_bad(check_bad(file, fs))
-        .handle(handle)
+        .fs_handle(handle)
         .origin(Parsers::Bls)
         .assign_if_some(bls_config.title, ConfigBuilder::title)
         .assign_if_some(bls_config.version, ConfigBuilder::version)
         .assign_if_some(bls_config.machine_id, ConfigBuilder::machine_id)
         .assign_if_some(bls_config.sort_key, ConfigBuilder::sort_key)
-        .assign_if_some(bls_config.devicetree, ConfigBuilder::devicetree)
+        .assign_if_some(bls_config.devicetree, ConfigBuilder::devicetree_path)
         .assign_if_some(bls_config.architecture, ConfigBuilder::architecture);
 
     Ok(Some(config.build()))

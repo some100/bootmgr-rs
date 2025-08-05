@@ -31,12 +31,12 @@ impl ConfigParser for ShellConfig {
             return;
         };
         if check_file_exists(fs, &path) {
-            let efi = format!("{SHELL_PREFIX}\\shellx64.efi");
+            let efi_path = format!("{SHELL_PREFIX}\\shellx64.efi");
             let config = ConfigBuilder::new("shellx64.efi", SHELL_SUFFIX)
-                .efi(efi)
+                .efi_path(efi_path)
                 .title("UEFI Shell")
                 .sort_key("shell")
-                .handle(handle)
+                .fs_handle(handle)
                 .origin(Parsers::Shell);
 
             configs.push(config.build());

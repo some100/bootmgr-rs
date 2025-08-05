@@ -19,8 +19,8 @@ pub struct BootList {
     pub state: ListState,
 }
 
-impl FromIterator<Config> for BootList {
-    fn from_iter<I: IntoIterator<Item = Config>>(iter: I) -> Self {
+impl<'a> FromIterator<&'a Config> for BootList {
+    fn from_iter<I: IntoIterator<Item = &'a Config>>(iter: I) -> Self {
         let items = iter
             .into_iter()
             .enumerate()
@@ -38,7 +38,7 @@ impl BootList {
     /// then selects the default option given from the [`BootMgr`].
     #[must_use = "Has no effect if the result is unused"]
     pub fn new(boot_mgr: &BootMgr) -> Self {
-        let mut boot_list = Self::from_iter(boot_mgr.list().clone());
+        let mut boot_list = Self::from_iter(boot_mgr.list());
         boot_list.state.select(Some(boot_mgr.get_default()));
         boot_list
     }
@@ -52,12 +52,12 @@ impl BootList {
 /// still indicate the source of a particular boot option or its origin.
 /// If the filename is empty, then the index of the boot option is used. This is because at least some way of differentiating
 /// the boot option from other boot options is required.
-fn choose_title(config: Config, i: usize) -> String {
-    config.title.unwrap_or_else(|| {
+fn choose_title(config: &Config, i: usize) -> String {
+    config.title.clone().unwrap_or_else(|| {
         if config.filename.is_empty() {
             i.to_string()
         } else {
-            config.filename
+            config.filename.clone()
         }
     })
 }

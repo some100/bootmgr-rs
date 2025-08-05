@@ -32,12 +32,12 @@ impl ConfigParser for OsxConfig {
         };
 
         if check_file_exists(fs, &path) {
-            let efi = format!("{BOOTEFI_PREFIX}\\boot.efi");
+            let efi_path = format!("{BOOTEFI_PREFIX}\\boot.efi");
             let config = ConfigBuilder::new("boot.efi", BOOTEFI_SUFFIX)
-                .efi(efi)
+                .efi_path(efi_path)
                 .title("macOS")
                 .sort_key("macos")
-                .handle(handle)
+                .fs_handle(handle)
                 .origin(Parsers::Osx);
 
             configs.push(config.build());

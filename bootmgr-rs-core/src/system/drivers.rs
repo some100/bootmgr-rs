@@ -13,11 +13,10 @@ use uefi::{
 };
 
 use crate::{
-    BootResult,
     system::{
         fs::read_filtered_dir,
-        helper::{get_device_path, get_path_cstr, str_to_cstr},
-    },
+        helper::{get_path_cstr, join_to_device_path, str_to_cstr},
+    }, BootResult
 };
 
 /// An `Error` that may result from loading drivers.
@@ -38,7 +37,7 @@ fn load_driver(driver_path: &CStr16, file: &FileInfo, buf: &mut [u8]) -> BootRes
     let handle_path = boot::open_protocol_exclusive::<DevicePath>(boot::image_handle())?;
     let path_cstr = get_path_cstr(driver_path, file.file_name())?;
 
-    let path = get_device_path(&handle_path, &path_cstr, buf)?;
+    let path = join_to_device_path(&handle_path, &path_cstr, buf)?;
 
     let src = boot::LoadImageSource::FromDevicePath {
         device_path: &path,

@@ -7,7 +7,7 @@ use uefi::{Handle, cstr16};
 use crate::{
     BootResult,
     boot::{action::add_special_boot, config::BootConfig, loader::load_boot_option},
-    config::{Config, get_configs},
+    config::{Config, scan_configs},
     system::{
         drivers::load_drivers,
         variable::{get_variable, set_variable},
@@ -43,7 +43,7 @@ impl BootMgr {
     pub fn new() -> BootResult<Self> {
         let boot_config = BootConfig::new()?;
         load_drivers(boot_config.drivers, &boot_config.driver_path)?; // load drivers before configs from other fs are parsed
-        let mut configs = get_configs()?;
+        let mut configs = scan_configs()?;
         add_special_boot(&mut configs, &boot_config);
 
         Ok(Self {

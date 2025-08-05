@@ -182,12 +182,12 @@ fn get_uki_config(
 
     let uki_config = UkiConfig::new(&content)?;
 
-    let efi = format!("{UKI_PREFIX}\\{}", file.file_name());
+    let efi_path = format!("{UKI_PREFIX}\\{}", file.file_name());
     let config = ConfigBuilder::new(file.file_name(), UKI_SUFFIX)
-        .efi(efi)
+        .efi_path(efi_path)
         .title(uki_config.title)
         .sort_key(uki_config.sort_key)
-        .handle(handle)
+        .fs_handle(handle)
         .origin(Parsers::Uki)
         .assign_if_some(uki_config.version, ConfigBuilder::version);
 

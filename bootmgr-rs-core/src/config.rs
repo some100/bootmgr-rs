@@ -67,13 +67,13 @@ pub struct Config {
     pub options: Option<String>,
 
     /// The path to a devicetree, if one is required.
-    pub devicetree: Option<DevicetreePath>,
+    pub devicetree_path: Option<DevicetreePath>,
 
     /// The architecture of the entry for filtering.
     pub architecture: Option<Architecture>,
 
     /// The path to an EFI executable, if one is required.
-    pub efi: Option<EfiPath>,
+    pub efi_path: Option<EfiPath>,
 
     /// The [`BootAction`] of the entry, for deciding which loader to use.
     pub action: BootAction,
@@ -82,7 +82,7 @@ pub struct Config {
     pub bad: bool,
 
     /// The [`FsHandle`] of the entry, if one is required.
-    pub handle: Option<FsHandle>,
+    pub fs_handle: Option<FsHandle>,
 
     /// The parser from which the entry originated from, if there was one.
     pub origin: Option<Parsers>,
@@ -104,9 +104,9 @@ impl Config {
             ("machine_id", self.machine_id.as_deref()),
             ("sort_key", self.sort_key.as_deref()),
             ("options", self.options.as_ref()),
-            ("devicetree", self.devicetree.as_deref()),
+            ("devicetree", self.devicetree_path.as_deref()),
             ("architecture", self.architecture.as_deref()),
-            ("efi", self.efi.as_deref()),
+            ("efi", self.efi_path.as_deref()),
         ];
         vec.into_iter()
     }
@@ -172,7 +172,7 @@ impl Config {
     /// May return an `Error` if there is no EFI path, and the action field is one of [`BootAction::BootEfi`] or
     /// [`BootAction::BootTftp`].
     fn validate_efi(&self) -> Result<(), ConfigError> {
-        if matches!(self.action, BootAction::BootEfi | BootAction::BootTftp) && self.efi.is_none() {
+        if matches!(self.action, BootAction::BootEfi | BootAction::BootTftp) && self.efi_path.is_none() {
             return Err(ConfigError::ConfigMissingEfi(self.filename.clone()));
         }
         Ok(())
@@ -184,19 +184,19 @@ impl Config {
     ///
     /// May return an `Error` if the paths do not exist in the filesystem when they are in the [`Config`].
     fn validate_paths(&self) -> Result<(), ConfigError> {
-        if let Some(handle) = self.handle {
+        if let Some(handle) = self.fs_handle {
             let mut fs = boot::open_protocol_exclusive(*handle).unwrap_or_else(|_| {
                 unreachable!("FsHandle should always support SimpleFileSystem")
             });
-            if let Some(efi) = &self.efi
-                && !check_file_exists_str(&mut fs, efi).unwrap_or(false)
+            if let Some(efi_path) = &self.efi_path
+                && !check_file_exists_str(&mut fs, efi_path).unwrap_or(false)
             {
-                return Err(ConfigError::NotExist("EFI", (**efi).clone()));
+                return Err(ConfigError::NotExist("EFI", (**efi_path).clone()));
             }
-            if let Some(devicetree) = &self.devicetree
-                && !check_file_exists_str(&mut fs, devicetree).unwrap_or(false)
+            if let Some(devicetree_path) = &self.devicetree_path
+                && !check_file_exists_str(&mut fs, devicetree_path).unwrap_or(false)
             {
-                return Err(ConfigError::NotExist("Devicetree", (**devicetree).clone()));
+                return Err(ConfigError::NotExist("Devicetree", (**devicetree_path).clone()));
             }
         } else if self.action == BootAction::BootEfi {
             return Err(ConfigError::ConfigMissingHandle(self.filename.clone()));
@@ -212,7 +212,7 @@ impl Config {
 /// # Errors
 ///
 /// May return an `Error` if there are no handles in the system that support [`SimpleFileSystem`].
-pub fn get_configs() -> BootResult<Vec<Config>> {
+pub fn scan_configs() -> BootResult<Vec<Config>> {
     let mut configs = Vec::with_capacity(4); // a system is likely to have up to 4 configs
     let handles =
         boot::locate_handle_buffer(SearchType::from_proto::<SimpleFileSystem>())?.to_vec();
@@ -258,14 +258,14 @@ mod tests {
     fn test_non_efi_config() -> Result<(), TypeError> {
         let machine_id = MachineId::new("1234567890abcdef1234567890abcdef")?;
         let sort_key = SortKey::new("linux")?;
-        let efi = EfiPath::new("\\vmlinuz-linux")?;
+        let efi_path = EfiPath::new("\\vmlinuz-linux")?;
         let mut config = Config {
             title: Some("Linux".to_owned()),
             version: Some("6.10.0".to_owned()),
             machine_id: Some(machine_id),
             sort_key: Some(sort_key),
             options: Some("root=PARTUUID=1234abcd-56ef-78gh-90ij-klmnopqrstuv ro".to_owned()),
-            efi: Some(efi),
+            efi_path: Some(efi_path),
             filename: "linux.conf".to_owned(),
             suffix: ".conf".to_owned(),
             action: BootAction::BootTftp,

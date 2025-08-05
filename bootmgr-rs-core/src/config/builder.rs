@@ -52,12 +52,12 @@ impl ConfigBuilder {
                 machine_id: None,
                 sort_key: None,
                 options: None,
-                devicetree: None,
+                devicetree_path: None,
                 architecture: None,
-                efi: None,
+                efi_path: None,
                 bad: false,
                 action: BootAction::BootEfi,
-                handle: None,
+                fs_handle: None,
                 origin: None,
                 filename,
                 suffix,
@@ -116,9 +116,9 @@ impl ConfigBuilder {
     }
 
     /// Sets the devicetree of a [`Config`]
-    pub fn devicetree(mut self, devicetree: impl Into<String>) -> Self {
-        self.config.devicetree = match DevicetreePath::new(&devicetree.into()) {
-            Ok(devicetree) => Some(devicetree),
+    pub fn devicetree_path(mut self, devicetree_path: impl Into<String>) -> Self {
+        self.config.devicetree_path = match DevicetreePath::new(&devicetree_path.into()) {
+            Ok(devicetree_path) => Some(devicetree_path),
             Err(e) => {
                 warn!("{e}");
                 None
@@ -160,9 +160,9 @@ impl ConfigBuilder {
     ///
     /// This is used for filesystem operations, so it is required to be set to
     /// indicate which filesystem a [`Config`] comes from
-    pub fn handle(mut self, handle: Handle) -> Self {
-        self.config.handle = match FsHandle::new(handle) {
-            Ok(handle) => Some(handle),
+    pub fn fs_handle(mut self, fs_handle: Handle) -> Self {
+        self.config.fs_handle = match FsHandle::new(fs_handle) {
+            Ok(fs_handle) => Some(fs_handle),
             Err(e) => {
                 warn!("{e}");
                 None
@@ -180,9 +180,9 @@ impl ConfigBuilder {
     }
 
     /// Sets the EFI executable path of a [`Config`].
-    pub fn efi(mut self, efi: impl Into<String>) -> Self {
-        self.config.efi = match EfiPath::new(&efi.into()) {
-            Ok(efi) => Some(efi),
+    pub fn efi_path(mut self, efi_path: impl Into<String>) -> Self {
+        self.config.efi_path = match EfiPath::new(&efi_path.into()) {
+            Ok(efi_path) => Some(efi_path),
             Err(e) => {
                 warn!("{e}");
                 None
@@ -212,16 +212,17 @@ impl ConfigBuilder {
 
 impl From<&Config> for ConfigBuilder {
     fn from(value: &Config) -> Self {
-        ConfigBuilder::new(value.filename.clone(), value.suffix.clone())
+        ConfigBuilder::new(&value.filename, &value.suffix)
             .set_bad(value.bad)
             .assign_if_some(value.title.as_ref(), ConfigBuilder::title)
             .assign_if_some(value.version.as_ref(), ConfigBuilder::version)
             .assign_if_some(value.machine_id.as_deref(), ConfigBuilder::machine_id)
             .assign_if_some(value.sort_key.as_deref(), ConfigBuilder::sort_key)
             .assign_if_some(value.options.as_ref(), ConfigBuilder::options)
+            .assign_if_some(value.devicetree_path.as_deref(), ConfigBuilder::devicetree_path)
             .assign_if_some(value.architecture.as_deref(), ConfigBuilder::architecture)
-            .assign_if_some(value.efi.as_deref(), ConfigBuilder::efi)
-            .assign_if_some(value.handle.as_deref().copied(), ConfigBuilder::handle)
+            .assign_if_some(value.efi_path.as_deref(), ConfigBuilder::efi_path)
+            .assign_if_some(value.fs_handle.as_deref().copied(), ConfigBuilder::fs_handle)
             .assign_if_some(value.origin, ConfigBuilder::origin)
     }
 }
@@ -234,14 +235,14 @@ mod tests {
     #[test]
     fn test_basic_config() {
         let config = ConfigBuilder::new("foo.bar", ".bar")
-            .efi("\\foo\\foo.bar")
+            .efi_path("\\foo\\foo.bar")
             .title("Some title")
             .version("some.version")
             .sort_key("some-sort-key")
             .options("Some options")
             .build();
 
-        assert_eq!(config.efi.as_deref(), Some(&"\\foo\\foo.bar".to_owned()));
+        assert_eq!(config.efi_path.as_deref(), Some(&"\\foo\\foo.bar".to_owned()));
         assert_eq!(config.filename, "foo.bar".to_owned());
         assert_eq!(config.suffix, ".bar".to_owned());
         assert_eq!(config.title, Some("Some title".to_owned()));
@@ -256,13 +257,13 @@ mod tests {
     #[test]
     fn test_path_replacement() {
         let config = ConfigBuilder::new("foo.bar", ".bar")
-            .efi("/foo/foo.bar")
-            .devicetree("/baz/baz.qux")
+            .efi_path("/foo/foo.bar")
+            .devicetree_path("/baz/baz.qux")
             .build();
 
-        assert_eq!(config.efi.as_deref(), Some(&"\\foo\\foo.bar".to_owned()));
+        assert_eq!(config.efi_path.as_deref(), Some(&"\\foo\\foo.bar".to_owned()));
         assert_eq!(
-            config.devicetree.as_deref(),
+            config.devicetree_path.as_deref(),
             Some(&"\\baz\\baz.qux".to_owned())
         );
     }

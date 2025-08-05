@@ -53,7 +53,7 @@ pub fn get_pxe_offer() -> BootResult<Option<Config>> {
             let title = format!("PXE Boot: {file}");
 
             let config = ConfigBuilder::new(addr, "")
-                .efi(file)
+                .efi_path(file)
                 .title(title)
                 .action(BootAction::BootTftp)
                 .origin(Parsers::Special)

@@ -49,17 +49,17 @@ impl ConfigParser for FallbackConfig {
         if check_file_exists(fs, &path)
             && let Ok(volume_label) = get_volume_label(fs)
         {
-            let efi = format!("{FALLBACK_PREFIX}\\{filename}");
+            let efi_path = format!("{FALLBACK_PREFIX}\\{filename}");
             let title = if volume_label.is_empty() {
                 &filename
             } else {
                 &volume_label // prefer the volume label if it exists, so we can tell the difference between fallbacks
             };
             let config = ConfigBuilder::new(&filename, FALLBACK_SUFFIX)
-                .efi(efi)
+                .efi_path(efi_path)
                 .title(title)
                 .sort_key("fallback")
-                .handle(handle)
+                .fs_handle(handle)
                 .origin(Parsers::Fallback);
 
             configs.push(config.build());

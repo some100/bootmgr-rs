@@ -234,9 +234,9 @@ impl Editor {
                             "machine_id" => builder.machine_id(val),
                             "sort_key" => builder.sort_key(val),
                             "options" => builder.options(val),
-                            "devicetree" => builder.devicetree(val),
+                            "devicetree" => builder.devicetree_path(val),
                             "architecture" => builder.architecture(val),
-                            "efi" => builder.efi(val),
+                            "efi" => builder.efi_path(val),
                             _ => builder,
                         }
                     }

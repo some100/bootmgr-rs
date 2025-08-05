@@ -31,13 +31,13 @@ struct SerializableConfig {
     options: Option<String>,
 
     /// The devicetree path of the configuration.
-    devicetree: Option<String>,
+    devicetree_path: Option<String>,
 
     /// The architecture of the configuration.
     architecture: Option<String>,
 
     /// The efi path of the configuration.
-    efi: Option<String>,
+    efi_path: Option<String>,
 
     /// The origin of the configuration (should not be changed).
     origin: Option<String>,
@@ -51,9 +51,9 @@ impl From<Config> for SerializableConfig {
             machine_id: value.machine_id.as_deref().cloned(),
             sort_key: value.sort_key.as_deref().cloned(),
             options: value.options,
-            devicetree: value.devicetree.as_deref().cloned(),
+            devicetree_path: value.devicetree_path.as_deref().cloned(),
             architecture: value.architecture.as_deref().cloned(),
-            efi: value.efi.as_deref().cloned(),
+            efi_path: value.efi_path.as_deref().cloned(),
             origin: value.origin.map(|x| x.as_str().into()),
         }
     }
@@ -120,14 +120,14 @@ impl PersistentConfig {
                 .assign_if_some(persist_config.sort_key.as_deref(), ConfigBuilder::sort_key)
                 .assign_if_some(persist_config.options.as_ref(), ConfigBuilder::options)
                 .assign_if_some(
-                    persist_config.devicetree.as_deref(),
-                    ConfigBuilder::devicetree,
+                    persist_config.devicetree_path.as_deref(),
+                    ConfigBuilder::devicetree_path,
                 )
                 .assign_if_some(
                     persist_config.architecture.as_deref(),
                     ConfigBuilder::architecture,
                 )
-                .assign_if_some(persist_config.efi.as_deref(), ConfigBuilder::efi)
+                .assign_if_some(persist_config.efi_path.as_deref(), ConfigBuilder::efi_path)
                 .build();
         }
     }

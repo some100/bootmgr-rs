@@ -19,6 +19,7 @@ resolver = "3"
 strip = true
 opt-level = "z"
 panic = "abort"
+codegen-units = 1
 
 # fuzzing breaks completely when lto is enabled. so create a separate profile
 # for non fuzzing release builds. this should be used by xtask build -r

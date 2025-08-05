@@ -5,14 +5,11 @@
 use core::cell::RefCell;
 
 use crate::{
-    BootResult,
     boot::{
         devicetree::install_devicetree,
-        loader::{LoadError, get_efi},
+        loader::{get_efi, LoadError},
         secure_boot::shim::shim_load_image,
-    },
-    config::Config,
-    system::helper::{get_device_path, str_to_cstr},
+    }, config::Config, system::helper::{join_to_device_path, str_to_cstr}, BootResult
 };
 
 use uefi::{
@@ -84,7 +81,7 @@ unsafe impl Sync for LoadOptions {}
 /// May return an `Error` for many reasons, see [`boot::load_image`] and [`boot::open_protocol_exclusive`]
 pub(crate) fn load_boot_option(config: &Config) -> BootResult<Handle> {
     let handle = *config
-        .handle
+        .fs_handle
         .ok_or_else(|| LoadError::ConfigMissingHandle(config.filename.clone()))?;
 
     let mut fs = boot::open_protocol_exclusive(handle)?;
@@ -106,7 +103,7 @@ pub(crate) fn load_boot_option(config: &Config) -> BootResult<Handle> {
 fn load_image_from_path(handle: Handle, path: &CStr16) -> BootResult<Handle> {
     let dev_path = boot::open_protocol_exclusive::<DevicePath>(handle)?;
     let mut buf = [0; 2048]; // it should be rare for a devicepath to exceed 2048 bytes
-    let path = get_device_path(&dev_path, path, &mut buf)?;
+    let path = join_to_device_path(&dev_path, path, &mut buf)?;
 
     let src = boot::LoadImageSource::FromDevicePath {
         device_path: &path,
@@ -128,7 +125,7 @@ fn setup_image(
 ) -> BootResult<Handle> {
     let load_options = &LOAD_OPTIONS;
 
-    if let Some(devicetree) = &config.devicetree {
+    if let Some(devicetree) = &config.devicetree_path {
         install_devicetree(devicetree, fs)?;
     }
 

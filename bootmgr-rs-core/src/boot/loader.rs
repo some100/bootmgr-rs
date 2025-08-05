@@ -81,7 +81,7 @@ pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
 /// May return an `Error` if the [`Config`] does not contain an EFI path.
 fn get_efi(config: &Config) -> Result<&String, LoadError> {
     config
-        .efi
+        .efi_path
         .as_deref()
         .ok_or_else(|| LoadError::ConfigMissingEfi(config.filename.clone()))
 }
@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn test_missing_handle() {
         let config = Config {
-            handle: None,
+            fs_handle: None,
             action: BootAction::BootEfi,
             ..Default::default()
         };

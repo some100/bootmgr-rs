@@ -163,7 +163,7 @@ pub fn get_arch() -> Option<Architecture> {
 ///
 /// May return an `Error` if the device path is finalized before the file's [`DevicePath`] could be pushed.
 /// Though, this should be quite unlikely.
-pub(crate) fn get_device_path(
+pub(crate) fn join_to_device_path(
     dev_path: &DevicePath,
     path: &CStr16,
     buf: &mut [u8],
