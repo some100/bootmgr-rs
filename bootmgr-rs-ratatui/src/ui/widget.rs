@@ -1,3 +1,5 @@
+//! App widget implementation.
+
 use ratatui_core::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},

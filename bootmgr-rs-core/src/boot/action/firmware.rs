@@ -12,12 +12,12 @@ use crate::{
 };
 
 /// The bit that indicates to the firmware if booting into firmware setup should be done.
-pub const EFI_OS_INDICATIONS_BOOT_TO_FW_UI: u64 = 1;
+const EFI_OS_INDICATIONS_BOOT_TO_FW_UI: u64 = 1;
 
 /// Reboots to firmware setup using the `OsIndications` variable
 ///
 /// Gets the `OsIndications` variable, optionally creates it if it does not already exists, then
-/// sets the [`EFI_OS_INDICATIONS_BOOT_TO_FW_UI`] bit indicating to the firmware to reboot into the
+/// sets the `EFI_OS_INDICATIONS_BOOT_TO_FW_UI` bit indicating to the firmware to reboot into the
 /// setup.
 ///
 /// If the `OsIndications` could not be set for some reason, the error will be displayed on screen for 5
@@ -28,7 +28,7 @@ pub fn reset_to_firmware() -> ! {
         error!("Failed to set OsIndications: {e}");
         boot::stall(5_000_000);
     }
-    runtime::reset(ResetType::WARM, Status::SUCCESS, None); // never returns, ever, and cannot fail
+    runtime::reset(ResetType::WARM, Status::SUCCESS, None)
 }
 
 /// Sets the [`EFI_OS_INDICATIONS_BOOT_TO_FW_UI`] bit.

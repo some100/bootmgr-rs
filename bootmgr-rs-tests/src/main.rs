@@ -27,11 +27,8 @@ mod variables;
 
 fn main_func() -> anyhow::Result<()> {
     uefi::helpers::init()?;
-    log::set_logger(UefiLogger::static_new())
-        .map(|()| log::set_max_level(log::LevelFilter::Info))
-        .or(Err(anyhow!(
-            "Failed to initialize logger, since it was already initialized"
-        )))?;
+    let _ = log::set_logger(UefiLogger::static_new())
+        .map(|()| log::set_max_level(log::LevelFilter::Info));
 
     check_loaded()?;
     check_variable()?;

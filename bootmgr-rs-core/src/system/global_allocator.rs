@@ -1,8 +1,9 @@
 //! Simple stub to use UEFI allocator as the global allocator.
 //!
-//! This is disabled when fuzzing or testing, to avoid conflicts with std.
+//! This is enabled when the `global_allocator` feature is enabled, in case the user wanted to roll their
+//! own custom allocator or for fuzzing/testing.
 
-#![cfg(not(any(fuzzing, test, doctest)))] // if fuzzing or testing on host, disable global alloc and use host alloc
+#![cfg(feature = "global_allocator")]
 use uefi::allocator::Allocator;
 
 /// The UEFI global allocator.

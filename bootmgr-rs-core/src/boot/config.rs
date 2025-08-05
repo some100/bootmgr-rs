@@ -30,6 +30,13 @@
 //! highlight_bg gray
 //! highlight_fg black
 //! ```
+//!
+//! Frontends are not strictly obligated to honor the theming, default, and timeout settings.
+//! They exist as a way to signal user settings to the frontend, and the frontend can choose
+//! to implement those settings if needed or possible.
+//!
+//! Note that colors are stored as UEFI [`Color`]. Therefore, a frontend may need to convert
+//! from this color type.
 
 use alloc::{borrow::ToOwned, string::String};
 use log::warn;
@@ -53,6 +60,9 @@ pub struct BootConfig {
 
     /// The default boot option as the index of the entry.
     pub default: Option<usize>,
+
+    /// Whether loading drivers is enabled or not.
+    pub drivers: bool,
 
     /// The path to the drivers in the same filesystem as the bootloader.
     pub driver_path: String,
@@ -84,7 +94,7 @@ impl BootConfig {
     /// May return an `Error` if the image handle from which this program was loaded from
     /// does not support [`uefi::proto::media::fs::SimpleFileSystem`]. Otherwise, it will
     /// return an empty [`BootConfig`].
-    pub fn new() -> BootResult<Self> {
+    pub(super) fn new() -> BootResult<Self> {
         let mut fs = boot::get_image_file_system(boot::image_handle())?;
 
         if check_file_exists(&mut fs, CONFIG_PATH) {
@@ -107,7 +117,7 @@ impl BootConfig {
     #[must_use = "Has no effect if the result is unused"]
     pub fn get_boot_config(content: &[u8], bytes: Option<usize>) -> Self {
         let mut config = Self::default();
-        let slice = &content[0..bytes.unwrap_or(content.len())];
+        let slice = &content[0..bytes.unwrap_or(content.len()).min(content.len())];
 
         if let Ok(content) = str::from_utf8(slice) {
             for line in content.lines() {
@@ -127,6 +137,11 @@ impl BootConfig {
                         "default" => {
                             if let Ok(value) = value.parse() {
                                 config.default = Some(value);
+                            }
+                        }
+                        "drivers" => {
+                            if let Ok(value) = value.parse() {
+                                config.drivers = value;
                             }
                         }
                         "driver_path" => {
@@ -162,6 +177,7 @@ impl Default for BootConfig {
         Self {
             timeout: 5,
             default: None,
+            drivers: false,
             driver_path: "\\EFI\\BOOT\\drivers".to_owned(),
             editor: false,
             pxe: false,
@@ -215,6 +231,7 @@ fn match_str_color_bg(color: &str) -> Color {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     #[test]
     fn test_full_config() {
@@ -241,5 +258,12 @@ mod tests {
         assert!(matches!(config.fg, Color::White));
         assert!(matches!(config.highlight_bg, Color::Black));
         assert!(matches!(config.highlight_fg, Color::White));
+    }
+
+    proptest! {
+        #[test]
+        fn doesnt_panic(x in any::<Vec<u8>>(), y in any::<usize>()) {
+            let _ = BootConfig::get_boot_config(&x, Some(y));
+        }
     }
 }

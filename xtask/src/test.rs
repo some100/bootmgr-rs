@@ -9,28 +9,30 @@ pub enum Test {
         #[arg(long)]
         ovmf_code: Option<String>,
     },
-
-    /// Fuzz boot configuration parsers on host
-    Fuzz {
-        #[arg(short, long)]
-        fuzz: String,
-    },
 }
 
 pub fn test_crate(command: Option<Test>) -> anyhow::Result<()> {
     if let Some(command) = command {
-        match command {
-            Test::Run { ovmf_code } => test_on_vm(ovmf_code.as_deref()),
-            Test::Fuzz { fuzz } => fuzz_on_host(&fuzz),
-        }
+        let Test::Run { ovmf_code } = command;
+        test_on_vm(ovmf_code.as_deref())
     } else {
         test_on_host()
     }
 }
 
 pub fn test_on_host() -> anyhow::Result<()> {
-    cmd!("cargo", "clippy", "--", "-C", "panic=abort").run()?;
+    cmd!(
+        "cargo",
+        "clippy",
+        "--features",
+        "global_allocator,panic_handler",
+        "--",
+        "-C",
+        "panic=abort"
+    )
+    .run()?;
     cmd!("cargo", "test", "--lib").run()?;
+    cmd!("cargo", "test", "--doc").run()?;
     Ok(())
 }
 
@@ -49,7 +51,9 @@ pub fn test_on_vm(ovmf_code: Option<&str>) -> anyhow::Result<()> {
         "--bin",
         "bootmgr-rs-tests",
         "--target",
-        "x86_64-unknown-uefi"
+        "x86_64-unknown-uefi",
+        "--features",
+        "global_allocator,panic_handler",
     )
     .run()?;
     if let Err(e) = cmd("uefi-run", run_args).run() {
@@ -58,19 +62,5 @@ pub fn test_on_vm(ovmf_code: Option<&str>) -> anyhow::Result<()> {
         );
         return Err(e.into());
     }
-    Ok(())
-}
-
-pub fn fuzz_on_host(fuzz: &str) -> anyhow::Result<()> {
-    let mut run_args = vec!["fuzz", "run"];
-    match fuzz {
-        "bls" => run_args.push("fuzz_bls_parser"),
-        "boot" => run_args.push("fuzz_boot_parser"),
-        "uki" => run_args.push("fuzz_uki_parser"),
-        "win" => run_args.push("fuzz_win_parser"),
-        _ => unreachable!(),
-    }
-
-    cmd("cargo", run_args).run()?;
     Ok(())
 }

@@ -1,5 +1,4 @@
 //! A parser for the Windows BCD and Windows boot manager.
-#![cfg(feature = "windows")]
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use log::warn;
@@ -9,7 +8,11 @@ use uefi::{CStr16, Handle, boot::ScopedProtocol, cstr16, proto::media::fs::Simpl
 
 use crate::{
     BootResult,
-    config::{Config, builder::ConfigBuilder, parsers::ConfigParser},
+    config::{
+        Config,
+        builder::ConfigBuilder,
+        parsers::{ConfigParser, Parsers},
+    },
     system::{
         fs::{check_file_exists, read},
         helper::get_path_cstr,
@@ -141,7 +144,7 @@ impl ConfigParser for WinConfig {
         configs: &mut Vec<Config>,
     ) {
         let Ok(path) = get_path_cstr(WIN_PREFIX, cstr16!("BCD")) else {
-            return; // this should not happen, this path is hardcoded and valid
+            return;
         };
         if check_file_exists(fs, &path) {
             match get_win_config(fs, handle) {
@@ -163,7 +166,21 @@ fn get_win_config(fs: &mut ScopedProtocol<SimpleFileSystem>, handle: Handle) -> 
         .efi(efi)
         .title(win_config.title)
         .sort_key("windows")
-        .handle(handle);
+        .handle(handle)
+        .origin(Parsers::Windows);
 
     Ok(config.build())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn doesnt_panic(x in any::<Vec<u8>>()) {
+            let _ = WinConfig::new(&x);
+        }
+    }
 }

@@ -13,7 +13,7 @@
 use alloc::vec::Vec;
 use uefi::{Handle, boot::ScopedProtocol, proto::media::fs::SimpleFileSystem};
 
-use crate::config::Config;
+use crate::{config::Config, features};
 
 /// The BLS (BLS type 1) parser.
 pub mod bls;
@@ -33,6 +33,47 @@ pub mod uki;
 /// The Windows BCD parser.
 pub mod windows;
 
+/// The parsers that exist.
+#[derive(Clone, Copy, Debug)]
+pub enum Parsers {
+    /// The BLS Type #1 parser.
+    Bls,
+
+    /// The fallback bootloader autodetection.
+    Fallback,
+
+    /// The `boot.efi` macOS autodetection.
+    Osx,
+
+    /// The UEFI shell autodetection.
+    Shell,
+
+    /// The BLS Type #2 (UKI) parser.
+    Uki,
+
+    /// The Windows BCD parser.
+    Windows,
+
+    /// A special boot option (such as reboot, shutdown).
+    Special,
+}
+
+impl Parsers {
+    /// Convert a [`Parsers`] type into an [`&str`].
+    #[must_use = "Has no effect if the result is unused"]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Parsers::Bls => "bls",
+            Parsers::Fallback => "fallback",
+            Parsers::Osx => "osx",
+            Parsers::Shell => "shell",
+            Parsers::Uki => "uki",
+            Parsers::Windows => "windows",
+            Parsers::Special => "special",
+        }
+    }
+}
+
 /// Parses configs.
 pub trait ConfigParser {
     /// Pushes configs into a mutable reference to a vector, given a filesystem and handle to that filesystem.
@@ -44,26 +85,15 @@ pub trait ConfigParser {
 }
 
 /// Parses every config file that has an implementation in parsers.
-pub fn parse_all_configs(
+pub(super) fn parse_all_configs(
     fs: &mut ScopedProtocol<SimpleFileSystem>,
     handle: Handle,
     configs: &mut Vec<Config>,
 ) {
-    #[cfg(feature = "bls")]
-    bls::BlsConfig::parse_configs(fs, handle, configs);
-
-    #[cfg(feature = "fallback")]
-    fallback::FallbackConfig::parse_configs(fs, handle, configs);
-
-    #[cfg(feature = "osx")]
-    osx::OsxConfig::parse_configs(fs, handle, configs);
-
-    #[cfg(feature = "shell")]
-    shell::ShellConfig::parse_configs(fs, handle, configs);
-
-    #[cfg(feature = "uki")]
-    uki::UkiConfig::parse_configs(fs, handle, configs);
-
-    #[cfg(feature = "windows")]
-    windows::WinConfig::parse_configs(fs, handle, configs);
+    features::bls::BlsConfig::parse_configs(fs, handle, configs);
+    features::fallback::FallbackConfig::parse_configs(fs, handle, configs);
+    features::osx::OsxConfig::parse_configs(fs, handle, configs);
+    features::shell::ShellConfig::parse_configs(fs, handle, configs);
+    features::uki::UkiConfig::parse_configs(fs, handle, configs);
+    features::windows::WinConfig::parse_configs(fs, handle, configs);
 }

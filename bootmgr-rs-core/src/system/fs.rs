@@ -137,51 +137,6 @@ pub fn delete(fs: &mut ScopedProtocol<SimpleFileSystem>, path: &CStr16) -> BootR
     Ok(())
 }
 
-/// Gets a handle to a [`RegularFile`] in the filesystem.
-///
-/// # Errors
-///
-/// May return an `Error` if the volume couldn't be opened, or the path does not point to a file.
-pub fn get_regular_file(
-    fs: &mut ScopedProtocol<SimpleFileSystem>,
-    path: &CStr16,
-) -> BootResult<RegularFile> {
-    let mut root = fs.open_volume()?;
-    root.open(path, FileMode::Read, FileAttribute::empty())?
-        .into_regular_file()
-        .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
-}
-
-/// Gets a handle to a [`RegularFile`] that is writable in the filesystem.
-///
-/// # Errors
-///
-/// May return an `Error` if the volume couldn't be opened, or the path does not point to a file.
-pub fn get_mut_file(
-    fs: &mut ScopedProtocol<SimpleFileSystem>,
-    path: &CStr16,
-) -> BootResult<RegularFile> {
-    let mut root = fs.open_volume()?;
-    root.open(path, FileMode::ReadWrite, FileAttribute::empty())?
-        .into_regular_file()
-        .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
-}
-
-/// Gets a handle to a [`Directory`] in the filesystem.
-///
-/// # Errors
-///
-/// May return an `Error` if the volume couldn't be opened, or the path does not point to a folder.
-pub fn get_directory(
-    fs: &mut ScopedProtocol<SimpleFileSystem>,
-    path: &CStr16,
-) -> BootResult<Directory> {
-    let mut root = fs.open_volume()?;
-    root.open(path, FileMode::Read, FileAttribute::empty())?
-        .into_directory()
-        .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
-}
-
 /// Returns a [`UefiDirectoryIter`] of files in the path from a handle to a partition.
 ///
 /// # Errors
@@ -357,4 +312,49 @@ pub fn append(
     })?;
 
     Ok(())
+}
+
+/// Gets a handle to a [`RegularFile`] in the filesystem.
+///
+/// # Errors
+///
+/// May return an `Error` if the volume couldn't be opened, or the path does not point to a file.
+fn get_regular_file(
+    fs: &mut ScopedProtocol<SimpleFileSystem>,
+    path: &CStr16,
+) -> BootResult<RegularFile> {
+    let mut root = fs.open_volume()?;
+    root.open(path, FileMode::Read, FileAttribute::empty())?
+        .into_regular_file()
+        .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
+}
+
+/// Gets a handle to a [`RegularFile`] that is writable in the filesystem.
+///
+/// # Errors
+///
+/// May return an `Error` if the volume couldn't be opened, or the path does not point to a file.
+fn get_mut_file(
+    fs: &mut ScopedProtocol<SimpleFileSystem>,
+    path: &CStr16,
+) -> BootResult<RegularFile> {
+    let mut root = fs.open_volume()?;
+    root.open(path, FileMode::ReadWrite, FileAttribute::empty())?
+        .into_regular_file()
+        .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
+}
+
+/// Gets a handle to a [`Directory`] in the filesystem.
+///
+/// # Errors
+///
+/// May return an `Error` if the volume couldn't be opened, or the path does not point to a folder.
+fn get_directory(
+    fs: &mut ScopedProtocol<SimpleFileSystem>,
+    path: &CStr16,
+) -> BootResult<Directory> {
+    let mut root = fs.open_volume()?;
+    root.open(path, FileMode::Read, FileAttribute::empty())?
+        .into_directory()
+        .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
 }

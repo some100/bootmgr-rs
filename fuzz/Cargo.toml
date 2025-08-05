@@ -14,29 +14,29 @@ libfuzzer-sys = "0.4"
 path = "../bootmgr-rs-core"
 
 [[bin]]
-name = "fuzz_bls_parser"
-path = "fuzz_targets/fuzz_bls_parser.rs"
+name = "bls"
+path = "fuzz_targets/bls.rs"
 test = false
 doc = false
 bench = false
 
 [[bin]]
-name = "fuzz_uki_parser"
-path = "fuzz_targets/fuzz_uki_parser.rs"
+name = "uki"
+path = "fuzz_targets/uki.rs"
 test = false
 doc = false
 bench = false
 
 [[bin]]
-name = "fuzz_win_parser"
-path = "fuzz_targets/fuzz_win_parser.rs"
+name = "win"
+path = "fuzz_targets/win.rs"
 test = false
 doc = false
 bench = false
 
 [[bin]]
-name = "fuzz_boot_parser"
-path = "fuzz_targets/fuzz_boot_parser.rs"
+name = "boot"
+path = "fuzz_targets/boot.rs"
 test = false
 doc = false
 bench = false

@@ -15,6 +15,7 @@ use uefi::{
 
 use crate::{
     MainError,
+    editor::persist::PersistentConfig,
     ui::{boot_list::BootList, ratatui_backend::UefiBackend, theme::Theme},
 };
 
@@ -91,7 +92,13 @@ impl App {
     /// May return an `Error` if the [`BootMgr`] could not be created, or there is no [`Handle`] supporting
     /// [`Input`]
     pub fn new() -> Result<Self, MainError> {
-        let boot_mgr = BootMgr::new()?;
+        let mut boot_mgr = BootMgr::new()?;
+
+        let persist = PersistentConfig::new()?;
+        for config in boot_mgr.list_mut() {
+            persist.swap_config_in_persist(config);
+        }
+
         let boot_list = BootList::new(&boot_mgr);
 
         if boot_list.items.is_empty() {
@@ -105,7 +112,7 @@ impl App {
         let handle = boot::get_handle_for_protocol::<Input>().map_err(BootError::Uefi)?;
         let input = boot::open_protocol_exclusive::<Input>(handle).map_err(BootError::Uefi)?;
 
-        let editor = Editor::new(&input, theme)?;
+        let editor = Editor::new(&input, theme, persist)?;
         Ok(Self {
             boot_mgr,
             boot_list,
@@ -166,9 +173,7 @@ impl App {
     ///
     /// May return an `Error` if the terminal could not be cleared, or the events could not be created.
     fn init_state(&mut self, terminal: &mut Terminal<UefiBackend>) -> Result<(), MainError> {
-        if let Some(fg) = self.theme.base.fg
-            && let Some(bg) = self.theme.base.bg
-        {
+        if let (Some(fg), Some(bg)) = (self.theme.base.fg, self.theme.base.bg) {
             terminal.backend_mut().set_color(fg, bg);
         }
         terminal.clear()?;
@@ -343,7 +348,7 @@ impl App {
     ///
     /// May return an `Error` if there was not enough memory for the timer to be allocated.
     fn get_timer_event() -> Result<Event, MainError> {
-        // there are no callbacks, so this is safe
+        // SAFETY: this is completely safe as callbacks are not used
         let timer_event = unsafe {
             boot::create_event(boot::EventType::TIMER, boot::Tpl::APPLICATION, None, None)
                 .map_err(BootError::Uefi)?

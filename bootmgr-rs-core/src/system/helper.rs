@@ -5,7 +5,6 @@ use core::mem::MaybeUninit;
 use alloc::ffi::CString;
 
 use alloc::string::String;
-use log::warn;
 use smallvec::SmallVec;
 use thiserror::Error;
 use uefi::CStr8;
@@ -46,7 +45,7 @@ pub enum StrError {
 /// An `Error` that may result from building a [`DevicePath`]
 #[derive(Error, Debug)]
 pub enum DevicePathError {
-    /// A Device Path could not be built. This probably should not happen.
+    /// A Device Path could not be built. This can if the buffer was too small.
     #[error("Could not build DevicePath")]
     Build(#[from] uefi::proto::device_path::build::BuildError),
 
@@ -60,7 +59,7 @@ pub enum DevicePathError {
 /// Returns true if every character is ASCII alphanumeric, or a `.`, or an `_`, or a `-`. Otherwise,
 /// will return false.
 #[must_use = "Has no effect if the result is unused"]
-pub fn check_sort_key_valid(sort_key: &str) -> bool {
+pub(crate) fn check_sort_key_valid(sort_key: &str) -> bool {
     sort_key
         .chars()
         .all(|x| x.is_ascii_alphanumeric() || x == '.' || x == '_' || x == '-')
@@ -71,7 +70,7 @@ pub fn check_sort_key_valid(sort_key: &str) -> bool {
 /// Returns true if the character count is exactly 32 characters in length, and every character is a hex
 /// digit. Otherwise, will return false.
 #[must_use = "Has no effect if the result is unused"]
-pub fn check_machine_id_valid(machine_id: &str) -> bool {
+pub(crate) fn check_machine_id_valid(machine_id: &str) -> bool {
     machine_id.chars().count() == MACHINE_ID_LEN
         && machine_id.chars().all(|x| x.is_ascii_hexdigit())
 }
@@ -81,7 +80,7 @@ pub fn check_machine_id_valid(machine_id: &str) -> bool {
 /// # Errors
 ///
 /// May return an `Error` if the system does not support [`DevicePathToText`], or there is not enough memory.
-pub fn device_path_to_text(device_path: &DevicePath) -> BootResult<PoolString> {
+pub(crate) fn device_path_to_text(device_path: &DevicePath) -> BootResult<PoolString> {
     let handle = boot::get_handle_for_protocol::<DevicePathToText>()?;
     let device_path_to_text = boot::open_protocol_exclusive::<DevicePathToText>(handle)?;
     Ok(device_path_to_text.convert_device_path_to_text(
@@ -97,7 +96,7 @@ pub fn device_path_to_text(device_path: &DevicePath) -> BootResult<PoolString> {
 ///
 /// May return an `Error` if the string could not be converted into a [`CString16`], either due to unsupported
 /// characters or an invalid nul character.
-pub fn str_to_cstr(str: &str) -> Result<CString16, StrError> {
+pub(crate) fn str_to_cstr(str: &str) -> Result<CString16, StrError> {
     Ok(CString16::try_from(str)?)
 }
 
@@ -107,7 +106,7 @@ pub fn str_to_cstr(str: &str) -> Result<CString16, StrError> {
 ///
 /// May return an `Error` if the finalized string could not be converted into a [`CString16`]. This should be
 /// impossible because of the fact that validation is already done through the parameters being [`CStr16`].
-pub fn get_path_cstr(prefix: &CStr16, filename: &CStr16) -> Result<CString16, StrError> {
+pub(crate) fn get_path_cstr(prefix: &CStr16, filename: &CStr16) -> Result<CString16, StrError> {
     let mut path_buf: SmallVec<[_; MAX_PATH]> =
         SmallVec::with_capacity(prefix.as_slice().len() + 1 + filename.as_slice().len());
 
@@ -126,7 +125,7 @@ pub fn get_path_cstr(prefix: &CStr16, filename: &CStr16) -> Result<CString16, St
 ///
 /// May return an `Error` if the string could not be converted into a [`CString`] because an interior
 /// nul character was found.
-pub fn str_to_cstring(str: &str) -> Result<CString, StrError> {
+pub(crate) fn str_to_cstring(str: &str) -> Result<CString, StrError> {
     Ok(CString::new(str)?)
 }
 
@@ -136,7 +135,7 @@ pub fn str_to_cstring(str: &str) -> Result<CString, StrError> {
 ///
 /// May return an `Error` if the bytes could not be converted into a [`CStr8`] because an interior nul
 /// character was found, or there was an invalid character.
-pub fn bytes_to_cstr8(bytes: &[u8]) -> Result<&CStr8, StrError> {
+pub(crate) fn bytes_to_cstr8(bytes: &[u8]) -> Result<&CStr8, StrError> {
     Ok(CStr8::from_bytes_with_nul(bytes)?)
 }
 
@@ -164,7 +163,7 @@ pub fn get_arch() -> Option<Architecture> {
 ///
 /// May return an `Error` if the device path is finalized before the file's [`DevicePath`] could be pushed.
 /// Though, this should be quite unlikely.
-pub fn get_device_path(
+pub(crate) fn get_device_path(
     dev_path: &DevicePath,
     path: &CStr16,
     buf: &mut [u8],
@@ -180,28 +179,14 @@ pub fn get_device_path(
 ///
 /// Currently this means replacing all forward slashes with backslashes.
 #[must_use = "Has no effect if the result is unused"]
-pub fn normalize_path(path: &str) -> String {
+pub(crate) fn normalize_path(path: &str) -> String {
     path.replace('/', "\\")
 }
 
-/// Performs a truncating cast from usize to u16.
-#[must_use = "Has no effect if the result is unused"]
-pub fn truncate_usize_to_u16(num: usize) -> u16 {
-    if let Ok(num) = u16::try_from(num) {
-        num
-    } else {
-        // even though explicit truncation is the preferred behavior, this should still be unusual
-        // may be indicative of a bad value being passed in
-        warn!(
-            "Got number {num} that was larger than the u16 limit, setting to {}",
-            u16::MAX
-        );
-        u16::MAX
-    }
-}
-
 /// Converts a byte slice into an `&mut [MaybeUninit<u8>]`.
-pub fn slice_to_maybe_uninit(slice: &mut [u8]) -> &mut [MaybeUninit<u8>] {
+pub(crate) fn slice_to_maybe_uninit(slice: &mut [u8]) -> &mut [MaybeUninit<u8>] {
+    // SAFETY: this is essentially equivalent to reconstructing an &mut [MaybeUninit<u8>] from a mutable slice.
+    // because slices are always valid as pointers, and the length of the two slices are the same, this is safe.
     unsafe {
         core::slice::from_raw_parts_mut(slice.as_mut_ptr().cast::<MaybeUninit<u8>>(), slice.len())
     }
@@ -269,13 +254,5 @@ mod tests {
         assert_eq!(normalize_path(path), "\\some\\path\\from\\linux\\fs");
         let path = "\\a\\completely\\normal\\path";
         assert_eq!(normalize_path(path), path);
-    }
-
-    #[test]
-    fn test_truncate_usize_to_u16() {
-        let num = usize::MAX;
-        assert_eq!(truncate_usize_to_u16(num), u16::MAX);
-        let num = 50;
-        assert_eq!(truncate_usize_to_u16(num), 50);
     }
 }

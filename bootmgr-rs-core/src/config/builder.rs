@@ -8,6 +8,7 @@ use crate::{
     boot::action::BootAction,
     config::{
         Config,
+        parsers::Parsers,
         types::{Architecture, DevicetreePath, EfiPath, FsHandle, MachineId, SortKey},
     },
 };
@@ -16,18 +17,27 @@ use crate::{
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use bootmgr_rs_core::config::builder::ConfigBuilder;
+/// use uefi::{boot, proto::{device_path::DevicePath, loaded_image::LoadedImage, media::fs::SimpleFileSystem}};
 ///
-/// let config = ConfigBuilder::new("\\EFI\\BOOT\\BOOTx64.efi", "foo.conf", ".conf")
+/// let handle = {
+///     let loaded_image =
+///         boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle()).unwrap();
+///     let device_handle = loaded_image.device().expect("Image was not loaded from a filesystem");
+///     let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle).unwrap();
+///     boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path).unwrap()
+/// };
+///
+/// let config = ConfigBuilder::new("foo.conf", ".conf")
 ///     .title("foo")
-///     .handle(uefi::boot::image_handle())
+///     .handle(handle)
 ///     .build();
 /// ```
 #[must_use = "Has no effect if the result is unused"]
 pub struct ConfigBuilder {
     /// The inner [`Config`] that the builder operates on.
-    pub config: Config,
+    pub(super) config: Config,
 }
 
 impl ConfigBuilder {
@@ -48,6 +58,7 @@ impl ConfigBuilder {
                 bad: false,
                 action: BootAction::BootEfi,
                 handle: None,
+                origin: None,
                 filename,
                 suffix,
             },
@@ -131,7 +142,7 @@ impl ConfigBuilder {
     }
 
     /// Sets if a [`Config`] is bad, so it may be deranked
-    pub const fn bad(mut self, bad: bool) -> Self {
+    pub const fn set_bad(mut self, bad: bool) -> Self {
         self.config.bad = bad;
         self
     }
@@ -160,6 +171,14 @@ impl ConfigBuilder {
         self
     }
 
+    /// Sets the origin of a [`Config`].
+    ///
+    /// This is one of the parsers that generate [`Config`]s.
+    pub fn origin(mut self, origin: Parsers) -> Self {
+        self.config.origin = Some(origin);
+        self
+    }
+
     /// Sets the EFI executable path of a [`Config`].
     pub fn efi(mut self, efi: impl Into<String>) -> Self {
         self.config.efi = match EfiPath::new(&efi.into()) {
@@ -177,33 +196,33 @@ impl ConfigBuilder {
     pub fn build(self) -> Config {
         self.config
     }
-}
 
-impl From<Config> for ConfigBuilder {
-    fn from(config: Config) -> Self {
-        Self { config }
+    /// Assigns a value to a field in a [`Config`] if it is [`Some`].
+    pub fn assign_if_some<F, T>(self, value: Option<T>, assign: F) -> Self
+    where
+        F: FnOnce(Self, T) -> Self,
+    {
+        if let Some(value) = value {
+            assign(self, value)
+        } else {
+            self
+        }
     }
 }
 
 impl From<&Config> for ConfigBuilder {
-    fn from(config: &Config) -> Self {
-        Self {
-            config: Config {
-                title: config.title.clone(),
-                version: config.version.clone(),
-                machine_id: config.machine_id.clone(),
-                sort_key: config.sort_key.clone(),
-                options: config.options.clone(),
-                devicetree: config.devicetree.clone(),
-                architecture: config.architecture.clone(),
-                efi: config.efi.clone(),
-                action: config.action,
-                bad: config.bad,
-                handle: config.handle,
-                filename: config.filename.clone(),
-                suffix: config.suffix.clone(),
-            },
-        }
+    fn from(value: &Config) -> Self {
+        ConfigBuilder::new(value.filename.clone(), value.suffix.clone())
+            .set_bad(value.bad)
+            .assign_if_some(value.title.as_ref(), ConfigBuilder::title)
+            .assign_if_some(value.version.as_ref(), ConfigBuilder::version)
+            .assign_if_some(value.machine_id.as_deref(), ConfigBuilder::machine_id)
+            .assign_if_some(value.sort_key.as_deref(), ConfigBuilder::sort_key)
+            .assign_if_some(value.options.as_ref(), ConfigBuilder::options)
+            .assign_if_some(value.architecture.as_deref(), ConfigBuilder::architecture)
+            .assign_if_some(value.efi.as_deref(), ConfigBuilder::efi)
+            .assign_if_some(value.handle.as_deref().copied(), ConfigBuilder::handle)
+            .assign_if_some(value.origin, ConfigBuilder::origin)
     }
 }
 

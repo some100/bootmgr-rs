@@ -33,7 +33,7 @@ use crate::{
 /// May return an `Error` if the firmware does not support [`BaseCode`], or the
 /// EFI executable is not a valid Latin-1 string, or the filename is not a valid
 /// IP address, or [`boot::load_image`] fails.
-pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
+pub(crate) fn load_boot_option(config: &Config) -> BootResult<Handle> {
     let handle = boot::get_handle_for_protocol::<BaseCode>()?;
     let mut base_code = boot::open_protocol_exclusive::<BaseCode>(handle)?;
 

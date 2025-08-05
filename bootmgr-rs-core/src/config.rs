@@ -15,7 +15,7 @@ use crate::{
     BootResult,
     boot::action::BootAction,
     config::{
-        parsers::parse_all_configs,
+        parsers::{Parsers, parse_all_configs},
         types::{Architecture, DevicetreePath, EfiPath, FsHandle, MachineId, SortKey},
     },
     system::{
@@ -46,12 +46,6 @@ pub enum ConfigError {
     /// The path specified by the [`Config`] does not exist.
     #[error("\"{0}\" does not exist at path \"{1}\"")]
     NotExist(&'static str, String),
-
-    /// The [`Config`]'s [`FsHandle`] does not support [`SimpleFileSystem`].
-    /// This should technically be impossible, as [`FsHandle`] will always support
-    /// [`SimpleFileSystem`].
-    #[error("Config \"{0}\" does not support SimpleFileSystem")]
-    FsUnsupported(String),
 }
 
 /// The standard [`Config`]
@@ -90,6 +84,9 @@ pub struct Config {
     /// The [`FsHandle`] of the entry, if one is required.
     pub handle: Option<FsHandle>,
 
+    /// The parser from which the entry originated from, if there was one.
+    pub origin: Option<Parsers>,
+
     /// The filename of the entry.
     pub filename: String,
 
@@ -98,10 +95,10 @@ pub struct Config {
 }
 
 impl Config {
-    /// Returns a [`Vec`] over every [`String`] struct field that should be edited
+    /// Returns an iterator over every [`String`] struct field that should be edited
     #[must_use = "Has no effect if the result is unused"]
-    pub fn get_str_fields(&self) -> SmallVec<[(&'static str, Option<&String>); 8]> {
-        smallvec![
+    pub fn get_str_fields(&self) -> impl Iterator<Item = (&'static str, Option<&String>)> {
+        let vec: SmallVec<[_; 8]> = smallvec![
             ("title", self.title.as_ref()),
             ("version", self.version.as_ref()),
             ("machine_id", self.machine_id.as_deref()),
@@ -110,28 +107,20 @@ impl Config {
             ("devicetree", self.devicetree.as_deref()),
             ("architecture", self.architecture.as_deref()),
             ("efi", self.efi.as_deref()),
-        ]
+        ];
+        vec.into_iter()
     }
 
     /// Verifies if a [`Config`] is good. If the [`Config`] is good, then
     /// it will return true. Otherwise, it will return `false`.
     pub fn is_good(&mut self) -> bool {
         self.lint();
-        if let Err(e) = self.validate() {
-            error!("{e}");
-            return false;
-        }
-        true
+        self.validate().map_err(|e| error!("{e}")).is_ok()
     }
 
     /// Validates a [`Config`], returning an `Error` if any of the "fail" criteria
     /// are met. This ensures that any of the [`Config`]s will be guaranteed to
     /// at least start.
-    ///
-    /// # Panics
-    ///
-    /// May panic if the [`FsHandle`] somehow does not support [`SimpleFileSystem`]. However, this cannot happen
-    /// as the constructor for [`FsHandle`] requires a valid handle that supports [`SimpleFileSystem`].
     ///
     /// # Errors
     ///
@@ -196,9 +185,9 @@ impl Config {
     /// May return an `Error` if the paths do not exist in the filesystem when they are in the [`Config`].
     fn validate_paths(&self) -> Result<(), ConfigError> {
         if let Some(handle) = self.handle {
-            let Ok(mut fs) = boot::open_protocol_exclusive(*handle) else {
-                return Err(ConfigError::FsUnsupported(self.filename.clone())); // this should not happen.
-            };
+            let mut fs = boot::open_protocol_exclusive(*handle).unwrap_or_else(|_| {
+                unreachable!("FsHandle should always support SimpleFileSystem")
+            });
             if let Some(efi) = &self.efi
                 && !check_file_exists_str(&mut fs, efi).unwrap_or(false)
             {

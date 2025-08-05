@@ -63,7 +63,10 @@ fn load_driver(driver_path: &CStr16, file: &FileInfo, buf: &mut [u8]) -> BootRes
 ///
 /// May return an `Error` if either the image handle doesn't support `SimpleFileSystem` or
 /// there are literally no handles present on the system, both of which are quite unlikely
-pub fn load_drivers(driver_path: &str) -> BootResult<()> {
+pub(crate) fn load_drivers(drivers: bool, driver_path: &str) -> BootResult<()> {
+    if !drivers {
+        return Ok(());
+    }
     let driver_path = str_to_cstr(driver_path)?;
     let mut fs = boot::get_image_file_system(boot::image_handle())?;
     let dir = read_filtered_dir(&mut fs, &driver_path, ".efi");
@@ -90,8 +93,7 @@ pub fn load_drivers(driver_path: &str) -> BootResult<()> {
 ///
 /// # Errors
 ///
-/// This can't actually return an `Error`, as that would mean there are literally no handles on the system which would be
-/// impossible.
+/// May return an `Error` if there is literally no handle on the system, of literally any kind.
 fn reconnect_drivers() -> BootResult<()> {
     let handles = boot::locate_handle_buffer(boot::SearchType::AllHandles)?;
     for handle in handles.iter() {

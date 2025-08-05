@@ -38,7 +38,7 @@ impl BootList {
     /// then selects the default option given from the [`BootMgr`].
     #[must_use = "Has no effect if the result is unused"]
     pub fn new(boot_mgr: &BootMgr) -> Self {
-        let mut boot_list = Self::from_iter(boot_mgr.list());
+        let mut boot_list = Self::from_iter(boot_mgr.list().clone());
         boot_list.state.select(Some(boot_mgr.get_default()));
         boot_list
     }

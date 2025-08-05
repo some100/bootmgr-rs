@@ -43,7 +43,7 @@ pub enum LoadError {
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// // this example starts the fallback boot loader on the same partition as the image handle.
 ///
 /// use bootmgr_rs_core::{boot::loader::load_boot_option, config::builder::ConfigBuilder};
@@ -56,21 +56,19 @@ pub enum LoadError {
 ///     }
 /// };
 ///
-/// // assume this function returns BootResult
-///
 /// let handle = {
 ///     let loaded_image =
-///         boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle())?;
+///         boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle()).unwrap();
 ///     let device_handle = loaded_image.device().expect("Image was not loaded from a filesystem");
-///     let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle)?;
-///     boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path)?
+///     let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle).unwrap();
+///     boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path).unwrap()
 /// }; // so that the handle will be able to be opened for loading the boot option
 ///
 /// let config = ConfigBuilder::new("foo.bar", ".bar").efi("/efi/boot/bootx64.efi").handle(handle).build();
 ///
-/// let image = load_boot_option(&config)?;
+/// let image = load_boot_option(&config).unwrap();
 ///
-/// boot::start_image(image)?;
+/// boot::start_image(image).unwrap();
 /// ```
 pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
     config.action.run(config)

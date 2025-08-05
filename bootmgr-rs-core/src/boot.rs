@@ -26,7 +26,7 @@ pub struct BootMgr {
     pub boot_config: BootConfig,
 
     /// The boot options.
-    pub configs: Vec<Config>,
+    configs: Vec<Config>,
 }
 
 impl BootMgr {
@@ -42,7 +42,7 @@ impl BootMgr {
     /// supporting `SimpleFileSystem`) or when parsing the [`Config`]s.
     pub fn new() -> BootResult<Self> {
         let boot_config = BootConfig::new()?;
-        load_drivers(&boot_config.driver_path)?; // load drivers before configs from other fs are parsed
+        load_drivers(boot_config.drivers, &boot_config.driver_path)?; // load drivers before configs from other fs are parsed
         let mut configs = get_configs()?;
         add_special_boot(&mut configs, &boot_config);
 
@@ -68,10 +68,16 @@ impl BootMgr {
         }
     }
 
-    /// Returns a clone of the inner [`Vec<Config>`].
+    /// Returns a reference to the inner [`Vec<Config>`].
     #[must_use = "Has no effect if the result is unused"]
-    pub fn list(&self) -> Vec<Config> {
-        self.configs.clone()
+    pub fn list(&self) -> &Vec<Config> {
+        &self.configs
+    }
+
+    /// Returns a mutable reference to the inner [`Vec<Config>`].
+    #[must_use = "Has no effect if the result is unused"]
+    pub fn list_mut(&mut self) -> &mut Vec<Config> {
+        &mut self.configs
     }
 
     /// Returns a mutable reference to an inner [`Config`].
@@ -88,19 +94,14 @@ impl BootMgr {
     /// If the default boot option is set in neither, then 0 is returned
     #[must_use = "Has no effect if the result is unused"]
     pub fn get_default(&self) -> usize {
-        if let Ok(idx) = get_variable::<usize>(cstr16!("BootDefault"), None)
-            && idx < self.configs.len()
-        {
-            return idx;
-        }
-
-        if let Some(idx) = self.boot_config.default
-            && idx < self.configs.len()
-        {
-            return idx;
-        }
-
-        0
+        [
+            get_variable::<usize>(cstr16!("BootDefault"), None).ok(),
+            self.boot_config.default,
+        ]
+        .into_iter()
+        .flatten()
+        .find(|&idx| idx < self.configs.len())
+        .unwrap_or(0)
     }
 
     /// Sets the default boot option by index.

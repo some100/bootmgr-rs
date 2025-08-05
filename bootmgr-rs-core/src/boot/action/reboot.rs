@@ -9,5 +9,5 @@ use uefi::{
 ///
 /// This function wraps around [`runtime::reset`] and provides a slightly more straightforward way to reboot the system.
 pub fn reset() -> ! {
-    runtime::reset(ResetType::WARM, Status::SUCCESS, None) // never returns, ever, and cannot fail
+    runtime::reset(ResetType::WARM, Status::SUCCESS, None)
 }

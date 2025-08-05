@@ -1,11 +1,14 @@
 //! An auto detector for the macOS boot loader.
-#![cfg(feature = "osx")]
 
 use alloc::{format, vec::Vec};
 use uefi::{CStr16, Handle, boot::ScopedProtocol, cstr16, proto::media::fs::SimpleFileSystem};
 
 use crate::{
-    config::{Config, builder::ConfigBuilder, parsers::ConfigParser},
+    config::{
+        Config,
+        builder::ConfigBuilder,
+        parsers::{ConfigParser, Parsers},
+    },
     system::{fs::check_file_exists, helper::get_path_cstr},
 };
 
@@ -25,7 +28,7 @@ impl ConfigParser for OsxConfig {
         configs: &mut Vec<Config>,
     ) {
         let Ok(path) = get_path_cstr(BOOTEFI_PREFIX, cstr16!("boot.efi")) else {
-            return; // this should not happen, the path is hardcoded and valid
+            return;
         };
 
         if check_file_exists(fs, &path) {
@@ -34,7 +37,8 @@ impl ConfigParser for OsxConfig {
                 .efi(efi)
                 .title("macOS")
                 .sort_key("macos")
-                .handle(handle);
+                .handle(handle)
+                .origin(Parsers::Osx);
 
             configs.push(config.build());
         }

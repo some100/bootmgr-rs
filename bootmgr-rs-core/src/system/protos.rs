@@ -24,12 +24,12 @@ type Bool = u8;
 /// A raw binding for `EFI_DT_FIXUP_PROTOCOL`. Provides only one function, which is to fixup DTB blobs.
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
-struct DevicetreeFixupProtocol {
+pub struct DevicetreeFixupProtocol {
     /// The version of the protocol.
     revision: u64,
 
     /// Applies firmware fixups to a buffer.
-    fixup: unsafe extern "efiapi" fn(
+    pub(crate) fixup: unsafe extern "efiapi" fn(
         this: *mut Self,
         fdt: *mut c_void,
         buffer_size: *mut usize,
@@ -56,6 +56,7 @@ impl DevicetreeFixup {
     /// Apply fixups to a devicetree buffer.
     pub fn fixup(&mut self, fdt: NonNull<u8>, buffer_size: &mut usize, flags: u32) -> Status {
         let fdt = fdt.as_ptr().cast::<c_void>();
+        // SAFETY: fdt is verified non null and valid, as it is wrapped around NonNull, so this is safe.
         unsafe { (self.0.fixup)(&raw mut self.0, fdt, buffer_size, flags) }
     }
 }
@@ -70,7 +71,7 @@ pub struct SecurityArchProtocol {
     ///
     /// Very rarely should you ever need to use this directly, unless you are hijacking it and replacing it with a
     /// custom validator.
-    pub auth_state: unsafe extern "efiapi" fn(
+    pub(crate) auth_state: unsafe extern "efiapi" fn(
         this: *const Self,
         auth_status: u32,
         file: *const FfiDevicePath,
@@ -99,17 +100,19 @@ impl SecurityArch {
     /// You should never need to use this, `LoadImage` will call it automatically whenever UEFI Secure Boot is enabled.
     pub fn auth_state(&self, auth_status: u32, file: &DevicePath) -> Status {
         let file = file.as_ffi_ptr();
+
+        // SAFETY: file is derived from the safe DevicePath, so this is safe.
         unsafe { (self.0.auth_state)(&raw const self.0, auth_status, file) }
     }
 
     /// Get a clone of the inner raw [`SecurityArchProtocol`].
     #[must_use = "Has no effect if the result is unused"]
-    pub fn get_inner(&self) -> &SecurityArchProtocol {
+    pub(crate) fn get_inner(&self) -> &SecurityArchProtocol {
         &self.0
     }
 
     /// Get a mutable reference to the inner raw [`SecurityArchProtocol`].
-    pub const fn get_inner_mut(&mut self) -> &mut SecurityArchProtocol {
+    pub(crate) const fn get_inner_mut(&mut self) -> &mut SecurityArchProtocol {
         &mut self.0
     }
 }
@@ -125,7 +128,7 @@ pub struct Security2ArchProtocol {
     ///
     /// Very rarely should you ever need to use this directly, unless you are hijacking it and replacing it with a
     /// custom validator.
-    pub authentication: unsafe extern "efiapi" fn(
+    pub(crate) authentication: unsafe extern "efiapi" fn(
         this: *const Self,
         device_path: *const FfiDevicePath,
         file_buffer: *mut c_void,
@@ -164,6 +167,9 @@ impl Security2Arch {
         let device_path = device_path.map_or(core::ptr::null(), DevicePath::as_ffi_ptr);
         let file_size = file_buffer.len();
         let file_buffer = file_buffer.as_mut_ptr().cast::<c_void>();
+        // SAFETY: device_path and file_buffer are derived from their safe equivalents, a DevicePath and mutable slice.
+        // also, file_size is guaranteed to be the exact size of the file buffer, as it is the length of the slice, so this is
+        // safe.
         unsafe {
             (self.0.authentication)(
                 &raw const self.0,
@@ -177,12 +183,12 @@ impl Security2Arch {
 
     /// Get a shared reference to the inner raw [`Security2ArchProtocol`].
     #[must_use = "Has no effect if the result is unused"]
-    pub fn get_inner(&self) -> &Security2ArchProtocol {
+    pub(crate) fn get_inner(&self) -> &Security2ArchProtocol {
         &self.0
     }
 
     /// Get a mutable reference to the inner raw [`Security2ArchProtocol`].
-    pub const fn get_inner_mut(&mut self) -> &mut Security2ArchProtocol {
+    pub(crate) const fn get_inner_mut(&mut self) -> &mut Security2ArchProtocol {
         &mut self.0
     }
 }
@@ -195,7 +201,7 @@ impl Security2Arch {
 #[repr(C)]
 pub struct ShimImageLoaderProtocol {
     /// Load an image. The parameters are identical to the `uefi-raw` `LoadImage` implementation.
-    pub load_image: unsafe extern "efiapi" fn(
+    pub(crate) load_image: unsafe extern "efiapi" fn(
         boot_policy: Bool,
         parent: *mut c_void,
         device_path: *mut FfiDevicePath,
@@ -204,13 +210,13 @@ pub struct ShimImageLoaderProtocol {
         image: *mut c_void,
     ),
     /// Start an image. The parameters are identical to the `uefi-raw` `StartImage` implementation.
-    pub start_image: unsafe extern "efiapi" fn(
+    pub(crate) start_image: unsafe extern "efiapi" fn(
         image: *mut c_void,
         exit_data_size: *mut usize,
         exit_data: *mut u16,
     ),
     /// Exit the image. The parameters are identical to the `uefi-raw` `Exit` implementation.
-    pub exit: unsafe extern "efiapi" fn(
+    pub(crate) exit: unsafe extern "efiapi" fn(
         image: *mut c_void,
         status: Status,
         exit_data_size: usize,
@@ -218,7 +224,7 @@ pub struct ShimImageLoaderProtocol {
     ),
 
     /// Unload an image. The parameters are identical to the `uefi-raw` `UnloadImage` implementation.
-    pub unload_image: unsafe extern "efiapi" fn(image: *mut c_void),
+    pub(crate) unload_image: unsafe extern "efiapi" fn(image: *mut c_void),
 }
 
 impl ShimImageLoaderProtocol {

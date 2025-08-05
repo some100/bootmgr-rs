@@ -18,9 +18,8 @@ use uefi::{
 fn main_func() -> anyhow::Result<Handle> {
     uefi::helpers::init().map_err(BootError::Uefi)?;
     with_stdout(Output::clear)?; // clear screen first before we do anything
-    log::set_logger(UefiLogger::static_new())
-        .map(|()| log::set_max_level(log::LevelFilter::Warn))
-        .unwrap(); // Initialize logger for errors from core crate to show up
+    let _ = log::set_logger(UefiLogger::static_new())
+        .map(|()| log::set_max_level(log::LevelFilter::Warn));
 
     let mut boot_mgr = BootMgr::new()?;
 
@@ -29,11 +28,10 @@ fn main_func() -> anyhow::Result<Handle> {
     }
     println!("Enter the preferred boot option here:");
 
-    // get input
     let handle = boot::get_handle_for_protocol::<Input>()?;
     let mut input = boot::open_protocol_exclusive::<Input>(handle)?;
 
-    let mut events = [input.wait_for_key_event().unwrap()];
+    let mut events = [input.wait_for_key_event().expect("Failed to create key event")];
     loop {
         boot::wait_for_event(&mut events)?;
 

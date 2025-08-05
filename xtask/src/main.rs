@@ -1,9 +1,10 @@
 use clap::{Parser, Subcommand};
 
-use crate::test::Test;
+use crate::{fuzz::Fuzz, test::Test};
 
 mod build;
 mod doc;
+mod fuzz;
 mod run;
 mod test;
 
@@ -25,6 +26,14 @@ pub enum Commands {
         /// Build with target architecture
         #[arg(short, long, default_value = "x86_64-unknown-uefi")]
         target: String,
+
+        /// Space separated list of features
+        #[arg(short, long)]
+        features: Option<Vec<String>>,
+
+        /// Build with no default features (except global allocator and panic handler)
+        #[arg(long, default_value_t = false)]
+        no_default_features: bool,
     },
 
     /// Build docs for bootmgr-rs crate
@@ -62,13 +71,23 @@ pub enum Commands {
         #[command(subcommand)]
         command: Option<Test>,
     },
+
+    Fuzz {
+        #[command(subcommand)]
+        command: Fuzz,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     match args.command {
-        Commands::Build { release, target } => build::build_all_crates(release, &target)?,
+        Commands::Build {
+            release,
+            target,
+            features,
+            no_default_features,
+        } => build::build_all_crates(release, &target, features, no_default_features)?,
         Commands::Doc { private, open, lib } => doc::doc_crate(private, open, lib)?,
         Commands::Run {
             ovmf_code,
@@ -76,6 +95,7 @@ fn main() -> anyhow::Result<()> {
             add_file,
         } => run::run_bootmgr(ovmf_code.as_deref(), release, add_file.as_deref())?,
         Commands::Test { command } => test::test_crate(command)?,
+        Commands::Fuzz { command } => fuzz::fuzz_parsers(command)?,
     }
     Ok(())
 }

@@ -3,8 +3,9 @@
 //! This can be used for editing Linux EFISTUB cmdline options as an example. The options field can be edited to change the
 //! necessary parameters.
 //!
-//! Due to the diversity of [`Config`]'s that may be supplied to the boot manager, as well as the fact that some of
-//! the [`Config`]'s sources may not be edited or mutable, there are no plans to add persistent boot editing.
+//! The [`Config`] may also be persistently saved to the filesystem as well. This creates an overlay where the options
+//! specified in the overlay will be applied to the [`Config`] if it exists the next time it is booted. Generally, this
+//! will be done according to the filename of the [`Config`].
 
 use alloc::string::String;
 use ratatui_core::{layout::Position, terminal::Terminal};
@@ -18,17 +19,17 @@ use uefi::{
 use bootmgr_rs_core::{
     BootResult,
     config::{Config, builder::ConfigBuilder},
-    system::helper::truncate_usize_to_u16,
 };
 
 use crate::{
     app::AppError,
+    editor::persist::PersistentConfig,
     ui::{ratatui_backend::UefiBackend, theme::Theme},
 };
 
-mod ui;
+pub mod persist;
 
-/// Editor widget implementation.
+mod ui;
 mod widget;
 
 /// The basic editor
@@ -36,6 +37,9 @@ mod widget;
 pub struct Editor {
     /// Checks if the editor is currently editing.
     pub editing: bool,
+
+    /// Checks if the editor wants to persist the current [`Config`].
+    pub persisting: bool,
 
     /// Stores the `wait_for_key` event.
     pub events: Option<[Event; 1]>,
@@ -49,6 +53,9 @@ pub struct Editor {
     /// Stores which field is currently being edited.
     pub idx: usize,
 
+    /// Stores the collection of persistently saved [`Config`]s.
+    pub persist: PersistentConfig,
+
     /// Stores the [`Theme`] of the UI.
     pub theme: Theme,
 }
@@ -60,9 +67,14 @@ impl Editor {
     ///
     /// May return an `Error` if the [`Input`] protocol was already closed before the [`Editor`]
     /// was initialized.
-    pub fn new(input: &ScopedProtocol<Input>, theme: Theme) -> Result<Self, AppError> {
+    pub fn new(
+        input: &ScopedProtocol<Input>,
+        theme: Theme,
+        persist: PersistentConfig,
+    ) -> Result<Self, AppError> {
         Ok(Self {
             events: Some([input.wait_for_key_event().ok_or(AppError::InputClosed)?]),
+            persist,
             theme,
             ..Self::default()
         })
@@ -81,9 +93,7 @@ impl Editor {
         input: &mut ScopedProtocol<Input>,
         terminal: &mut Terminal<UefiBackend>,
     ) -> BootResult<()> {
-        if let Some(fg) = self.theme.base.fg
-            && let Some(bg) = self.theme.base.bg
-        {
+        if let (Some(fg), Some(bg)) = (self.theme.base.fg, self.theme.base.bg) {
             terminal.backend_mut().set_color(fg, bg);
         }
 
@@ -91,21 +101,25 @@ impl Editor {
 
         self.init_state(config);
 
-        loop {
+        while self.editing {
             self.draw(terminal)?;
 
-            let cursor_pos = truncate_usize_to_u16(self.cursor_pos);
+            let cursor_pos = u16::try_from(self.cursor_pos).unwrap_or(u16::MAX);
             terminal.set_cursor_position(Position::new(cursor_pos, 3))?; // top bar is ALWAYS 3 length
 
             self.wait_for_events();
             self.handle_key(input)?;
-
-            if !self.editing {
-                break;
-            }
         }
 
         self.save_to_config(config);
+
+        if self.persisting {
+            if !self.persist.contains(config) {
+                self.persist.add_config_to_persist(config);
+            }
+            let _ = self.persist.save_to_fs();
+            self.persisting = false;
+        }
 
         terminal.hide_cursor()?;
 
@@ -117,8 +131,7 @@ impl Editor {
         self.fields.extend(
             config
                 .get_str_fields()
-                .iter()
-                .map(|(k, v)| (*k, v.cloned().unwrap_or_default())),
+                .map(|(k, v)| (k, v.cloned().unwrap_or_default())),
         );
 
         self.cursor_pos = self.fields[0].1.chars().count();
@@ -153,10 +166,15 @@ impl Editor {
     /// If the key is an escape, then the values are saved into the config field and the editor exits.
     /// If the key is up or down, then the current field will be saved and a new field will be loaded.
     /// If the key is left or right, then the cursor position is moved.
+    /// If the key is F1, then the values will be saved to the filesystem persistently and the editor exits.
     fn handle_special_key(&mut self, key: ScanCode) {
         let value = &self.fields[self.idx].1;
         match key {
             ScanCode::ESCAPE => {
+                self.editing = false;
+            }
+            ScanCode::FUNCTION_1 => {
+                self.persisting = true;
                 self.editing = false;
             }
             ScanCode::UP => {
@@ -202,25 +220,27 @@ impl Editor {
     }
 
     /// Parse the fields of the editor back into the [`Config`].
-    ///
-    /// This only makes in memory changes to the [`Config`], because it is impossible at this stage to determine
-    /// the origin of the [`Config`]. If the [`Config`] originated from a Windows BCD, or a UKI executable, it would
-    /// not be possible to change the configuration options permanently (without significantly more complicated logic).
     fn save_to_config(&self, config: &mut Config) {
-        let mut builder = ConfigBuilder::from(&*config);
-        for (key, val) in &self.fields {
-            builder = match *key {
-                "title" => builder.title(val),
-                "version" => builder.version(val),
-                "machine_id" => builder.machine_id(val),
-                "sort_key" => builder.sort_key(val),
-                "options" => builder.options(val),
-                "devicetree" => builder.devicetree(val),
-                "architecture" => builder.architecture(val),
-                "efi" => builder.efi(val),
-                _ => builder,
-            };
-        }
+        let builder =
+            self.fields
+                .iter()
+                .fold(ConfigBuilder::from(&*config), |builder, (key, val)| {
+                    if val.trim().is_empty() {
+                        builder
+                    } else {
+                        match *key {
+                            "title" => builder.title(val),
+                            "version" => builder.version(val),
+                            "machine_id" => builder.machine_id(val),
+                            "sort_key" => builder.sort_key(val),
+                            "options" => builder.options(val),
+                            "devicetree" => builder.devicetree(val),
+                            "architecture" => builder.architecture(val),
+                            "efi" => builder.efi(val),
+                            _ => builder,
+                        }
+                    }
+                });
         *config = builder.build();
     }
 }

@@ -2,7 +2,7 @@
 
 use core::fmt::Write;
 
-use bootmgr_rs_core::{BootResult, error::BootError, system::helper::truncate_usize_to_u16};
+use bootmgr_rs_core::{BootResult, error::BootError};
 use ratatui_core::{
     backend::{Backend, ClearType, WindowSize},
     buffer::Cell,
@@ -76,7 +76,7 @@ impl UefiBackend {
     /// May return an `Error` if the system does not support an [`Output`].
     pub fn new() -> BootResult<Self> {
         let handle = boot::get_handle_for_protocol::<Output>()?;
-        let output = boot::open_protocol_exclusive::<Output>(handle)?;
+        let output = boot::open_protocol_exclusive(handle)?;
         Ok(Self {
             output,
             fg: UefiColor::White,
@@ -143,8 +143,8 @@ impl Backend for UefiBackend {
 
         // as long as your screen has less than 65536 rows and columns,
         // truncation should be generally safe here
-        let x = truncate_usize_to_u16(x);
-        let y = truncate_usize_to_u16(y);
+        let x = u16::try_from(x).unwrap_or(u16::MAX);
+        let y = u16::try_from(y).unwrap_or(u16::MAX);
         Ok((x, y).into())
     }
 
@@ -171,8 +171,8 @@ impl Backend for UefiBackend {
             .output
             .current_mode()?
             .ok_or_else(|| BootError::Uefi(Status::UNSUPPORTED.into()))?;
-        let columns = truncate_usize_to_u16(mode.columns());
-        let rows = truncate_usize_to_u16(mode.rows());
+        let columns = u16::try_from(mode.columns()).unwrap_or(u16::MAX);
+        let rows = u16::try_from(mode.rows()).unwrap_or(u16::MAX);
         Ok(Size::new(columns, rows))
     }
 

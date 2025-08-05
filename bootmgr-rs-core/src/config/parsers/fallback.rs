@@ -1,11 +1,14 @@
 //! An auto detector for the fallback boot loader (BOOTx64.efi, etc.)
-#![cfg(feature = "fallback")]
 
 use alloc::{format, vec::Vec};
 use uefi::{CStr16, Handle, boot::ScopedProtocol, cstr16, proto::media::fs::SimpleFileSystem};
 
 use crate::{
-    config::{Config, builder::ConfigBuilder, parsers::ConfigParser},
+    config::{
+        Config,
+        builder::ConfigBuilder,
+        parsers::{ConfigParser, Parsers},
+    },
     system::{
         fs::{check_file_exists, get_volume_label},
         helper::{get_arch, get_path_cstr, str_to_cstr},
@@ -56,7 +59,8 @@ impl ConfigParser for FallbackConfig {
                 .efi(efi)
                 .title(title)
                 .sort_key("fallback")
-                .handle(handle);
+                .handle(handle)
+                .origin(Parsers::Fallback);
 
             configs.push(config.build());
         }

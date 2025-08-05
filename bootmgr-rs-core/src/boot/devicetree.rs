@@ -22,9 +22,6 @@ use crate::system::protos::DevicetreeFixup;
 /// GUID for the configuration table for devicetree blobs.
 const DTB_CONF_TABLE: uefi::Guid = guid!("b1b621d5-f19c-41a5-830b-d9152c69aae0");
 
-/// GUID for the configuration table for devicetree fixups.
-const DTB_FIXUP_TABLE: uefi::Guid = guid!("e617d64c-fe08-46da-f4dc-bbd5870c7300");
-
 /// Flag indicating that fixups should be applied to the devicetree blob.
 const EFI_DT_APPLY_FIXUPS: u32 = 0x0000_0001;
 
@@ -62,14 +59,18 @@ impl Devicetree {
     /// Get a new [`Devicetree`] given a byte slice of a devicetree blob, and optionally its size which is
     /// determined from the content length if excluded.
     fn new(content: &[u8], size: Option<usize>) -> BootResult<Self> {
-        let size = size.unwrap_or(content.len());
+        let size = size.unwrap_or(content.len()).min(content.len());
 
         // ptr must be an allocation of type ACPI_RECLAIM, because dtb data must be ACPI_RECLAIM
         let ptr = boot::allocate_pool(boot::MemoryType::ACPI_RECLAIM, size)?;
+
+        // SAFETY: ptr is at least the same length as size, so this is safe
         unsafe {
-            // SAFETY: ptr is exactly the same length as size, so this is safe
             copy_nonoverlapping(content.as_ptr(), ptr.as_ptr(), content.len());
         }
+
+        // SAFETY: size should be at most the size of the actual content. ptr is valid for at least
+        // the length of size, as we have allocated that many bytes, so this is safe.
         let slice = unsafe { core::slice::from_raw_parts(ptr.as_ptr(), size) }; // store the slice in the struct
         Ok(Self { size, ptr, slice })
     }
@@ -91,8 +92,9 @@ impl Devicetree {
 
     /// Install the devicetree blob into the configuration table.
     fn install(&self) -> BootResult<()> {
+        // SAFETY: the ptr is not modified or freed afterwards, especially when using DevicetreeGuard, so this is
+        // safe.
         unsafe {
-            // SAFETY: the ptr is not modified or freed afterwards, especially when using DevicetreeGuard
             Ok(boot::install_configuration_table(
                 &DTB_CONF_TABLE,
                 self.ptr.as_ptr() as *const c_void,
@@ -103,9 +105,9 @@ impl Devicetree {
 
 impl Drop for Devicetree {
     fn drop(&mut self) {
+        // SAFETY: if the devicetree is out of scope, it will not be used again, so this is safe
+        // this will only error if the ptr is invalid (such as if it wasn't allocated by allocate_pool)
         unsafe {
-            // SAFETY: if the devicetree is out of scope, it will not be used again, so this is safe
-            // this will only error if the ptr is invalid (such as if it wasn't allocated by allocate_pool)
             let _ = boot::free_pool(self.ptr);
         }
     }
@@ -184,16 +186,8 @@ impl Drop for DevicetreeGuard {
 /// May return an `Error` if the firmware does not support [`DevicetreeFixup`], or the devicetree could not be converted into a slice,
 /// or the devicetree failed to fixup after resizing the buffer.
 fn fixup_devicetree(devicetree: &mut DevicetreeGuard) -> BootResult<()> {
-    let Ok(fixup) = boot::locate_handle_buffer(boot::SearchType::ByProtocol(&DTB_FIXUP_TABLE))
-    else {
-        return Ok(()); // do nothing if the firmware does not offer fixups
-    };
-
-    let Some(fixup) = fixup.first() else {
-        return Err(BootError::Uefi(uefi::Status::NOT_FOUND.into())); // this shouldnt happen in any case
-    };
-
-    let mut fixup = boot::open_protocol_exclusive::<DevicetreeFixup>(*fixup)?;
+    let fixup = boot::get_handle_for_protocol::<DevicetreeFixup>()?;
+    let mut fixup = boot::open_protocol_exclusive(fixup)?;
 
     let slice = devicetree.slice()?.to_vec();
 
@@ -219,7 +213,7 @@ fn fixup_devicetree(devicetree: &mut DevicetreeGuard) -> BootResult<()> {
 /// May return an `Error` if the devicetree path is not valid, the handle does not
 /// support [`SimpleFileSystem`], or memory allocation fails. If there is failure
 /// anywhere after memory is allocated, then the data is freed.
-pub fn install_devicetree(
+pub(super) fn install_devicetree(
     devicetree: &str,
     fs: &mut ScopedProtocol<SimpleFileSystem>,
 ) -> BootResult<()> {

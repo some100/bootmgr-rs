@@ -11,7 +11,7 @@ use uefi::{
 use crate::{
     BootResult,
     boot::action::BootAction,
-    config::{Config, builder::ConfigBuilder},
+    config::{Config, builder::ConfigBuilder, parsers::Parsers},
 };
 
 /// Attempts to obtain a response through PXE DHCP. If one is obtained, create a [`Config`] for it.
@@ -56,6 +56,7 @@ pub fn get_pxe_offer() -> BootResult<Option<Config>> {
                 .efi(file)
                 .title(title)
                 .action(BootAction::BootTftp)
+                .origin(Parsers::Special)
                 .build();
 
             return Ok(Some(config));

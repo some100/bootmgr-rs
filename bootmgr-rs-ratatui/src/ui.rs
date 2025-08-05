@@ -26,7 +26,6 @@ use smallvec::{SmallVec, smallvec};
 
 use crate::{MainError, app::App, ui::ratatui_backend::UefiBackend};
 
-/// App widget implementation.
 mod widget;
 
 pub mod boot_list;

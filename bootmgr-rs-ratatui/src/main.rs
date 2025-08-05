@@ -31,9 +31,6 @@ pub enum MainError {
     /// An error occurred with the boot manager.
     #[error("Boot Error")]
     BootError(#[from] bootmgr_rs_core::error::BootError),
-    /// This should not happen. Set logger is called once at the start of the program.
-    #[error("Set logger was already previously called")]
-    SetLogger(log::SetLoggerError),
     /// An error occurred while running the App.
     #[error("App Error")]
     AppError(#[from] crate::app::AppError),
@@ -41,9 +38,9 @@ pub enum MainError {
 
 fn main_func() -> Result<Option<Handle>, MainError> {
     uefi::helpers::init().map_err(BootError::Uefi)?;
-    log::set_logger(UefiLogger::static_new())
-        .map(|()| log::set_max_level(log::LevelFilter::Warn))
-        .map_err(MainError::SetLogger)?;
+    let _ = log::set_logger(UefiLogger::static_new())
+        .map(|()| log::set_max_level(log::LevelFilter::Warn)); // if the logger was already set, then ignore it
+
     let backend = UefiBackend::new()?;
     let mut terminal = Terminal::new(backend)?;
     let mut app = App::new()?;

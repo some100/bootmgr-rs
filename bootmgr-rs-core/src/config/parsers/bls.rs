@@ -10,7 +10,6 @@
 //! linux /vmlinuz-linux
 //! options root=UUID=e09d636b-0cd9-4e84-8a39-84432cfc2b8e ro
 //! ```
-#![cfg(feature = "bls")]
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use log::{error, warn};
@@ -23,7 +22,11 @@ use uefi::{
 
 use crate::{
     BootResult,
-    config::{Config, builder::ConfigBuilder, parsers::ConfigParser},
+    config::{
+        Config,
+        builder::ConfigBuilder,
+        parsers::{ConfigParser, Parsers},
+    },
     error::BootError,
     system::{
         fs::{FsError, read, read_filtered_dir, read_into, rename},
@@ -47,7 +50,7 @@ const BLS_SUFFIX: &str = ".conf";
 /// 5. Once the counter reaches 0 (+1-2 -> +0-3), the boot loader will mark this entry as "bad" and derank it.
 ///
 /// This implementation will check for the boot counter, then decrement it, or if the boot counter is 0, then it will mark the entry as bad.
-pub struct BootCounter {
+struct BootCounter {
     /// The base name of the configuration name (without .conf, or boot counting)
     base_name: String,
 
@@ -63,7 +66,7 @@ impl BootCounter {
     ///
     /// Will return [`None`] if there is no boot counter, or the file does not contain a valid
     /// boot counter.
-    pub fn new(filename: impl Into<String>) -> Option<Self> {
+    fn new(filename: impl Into<String>) -> Option<Self> {
         let filename = filename.into();
 
         let filename = filename.trim_end_matches(BLS_SUFFIX);
@@ -159,7 +162,7 @@ impl BlsConfig {
     #[must_use = "Has no effect if the result is unused"]
     pub fn new(content: &[u8], bytes: Option<usize>) -> Self {
         let mut config = Self::default();
-        let slice = &content[0..bytes.unwrap_or(content.len())];
+        let slice = &content[0..bytes.unwrap_or(content.len()).min(content.len())];
 
         if let Ok(content) = str::from_utf8(slice) {
             for line in content.lines() {
@@ -190,7 +193,7 @@ impl BlsConfig {
                         "devicetree" => config.devicetree = Some(value),
                         "devicetree_overlay" => config.devicetree_overlay = Some(value),
                         "architecture" => config.architecture = Some(value.to_ascii_lowercase()),
-                        _ => (),
+                        _ => warn!("[BLS PARSER]: Found unrecognized key {key} with value {value}"),
                     }
                 }
             }
@@ -201,7 +204,7 @@ impl BlsConfig {
 
     /// Joins both options and initrd options
     #[must_use = "Has no effect if the result is unused"]
-    pub fn get_options(&self) -> String {
+    fn get_options(&self) -> String {
         let mut options = String::new();
         if let Some(opts) = &self.options {
             options.push_str(opts);
@@ -211,7 +214,7 @@ impl BlsConfig {
     }
 
     /// Obtains all specified initrd files as options for the cmdline
-    pub fn initrd_options(&self, buffer: &mut String) {
+    fn initrd_options(&self, buffer: &mut String) {
         if let Some(initrd) = &self.initrd {
             for initrd in initrd.split_ascii_whitespace() {
                 if !buffer.is_empty() {
@@ -267,36 +270,18 @@ fn get_bls_config(
         return Ok(None);
     };
 
-    let mut config = ConfigBuilder::new(file.file_name(), BLS_SUFFIX)
+    let config = ConfigBuilder::new(file.file_name(), BLS_SUFFIX)
         .efi(efi)
         .options(options)
-        .bad(check_bad(file, fs))
-        .handle(handle);
-
-    // Pain
-    if let Some(title) = bls_config.title {
-        config = config.title(title);
-    }
-
-    if let Some(version) = bls_config.version {
-        config = config.version(version);
-    }
-
-    if let Some(machine_id) = bls_config.machine_id {
-        config = config.machine_id(machine_id);
-    }
-
-    if let Some(sort_key) = bls_config.sort_key {
-        config = config.sort_key(sort_key);
-    }
-
-    if let Some(devicetree) = bls_config.devicetree {
-        config = config.devicetree(devicetree);
-    }
-
-    if let Some(architecture) = bls_config.architecture {
-        config = config.architecture(architecture);
-    }
+        .set_bad(check_bad(file, fs))
+        .handle(handle)
+        .origin(Parsers::Bls)
+        .assign_if_some(bls_config.title, ConfigBuilder::title)
+        .assign_if_some(bls_config.version, ConfigBuilder::version)
+        .assign_if_some(bls_config.machine_id, ConfigBuilder::machine_id)
+        .assign_if_some(bls_config.sort_key, ConfigBuilder::sort_key)
+        .assign_if_some(bls_config.devicetree, ConfigBuilder::devicetree)
+        .assign_if_some(bls_config.architecture, ConfigBuilder::architecture);
 
     Ok(Some(config.build()))
 }
@@ -334,6 +319,8 @@ fn check_bad(file: &FileInfo, fs: &mut ScopedProtocol<SimpleFileSystem>) -> bool
 
 #[cfg(test)]
 mod tests {
+    use proptest::prelude::*;
+
     use super::*;
 
     #[test]
@@ -420,6 +407,8 @@ mod tests {
     #[test]
     fn test_boot_counter() {
         let filename = "somelinuxconf+3.conf";
+
+        // if this panics, it indicates a failure in the boot counter parser.
         let mut ctr = BootCounter::new(filename)
             .expect("Failed to create a boot counter from valid filename in test");
         ctr.decrement();
@@ -438,5 +427,21 @@ mod tests {
             CString16::try_from("somelinuxconf+0-3.conf").ok()
         );
         assert!(ctr.is_bad());
+    }
+
+    proptest! {
+        #[test]
+        fn doesnt_panic(x in any::<Vec<u8>>(), y in any::<usize>()) {
+            let _ = BlsConfig::new(&x, Some(y));
+        }
+
+        #[test]
+        fn sets_title(x in any::<String>()) {
+            let title = format!("title {x}");
+            let config = BlsConfig::new(title.as_bytes(), None);
+            if !x.is_empty() {
+                prop_assert_eq!(config.title, Some(x.trim().to_owned()));
+            }
+        }
     }
 }

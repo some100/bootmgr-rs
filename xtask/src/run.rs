@@ -12,6 +12,8 @@ pub fn run_bootmgr(
         "bootmgr-rs-ratatui",
         "--target",
         "x86_64-unknown-uefi",
+        "--features",
+        "global_allocator,panic_handler",
     ];
 
     if let Some(ovmf_code) = ovmf_code {

@@ -16,7 +16,7 @@
 //! authenticators with custom ones using Shim or any other validator.
 //!
 //! These hooks are temporary and should be uninstalled after the image is loaded. This is done
-//! automatically through the [`SecurityOverrideGuard`] struct.
+//! automatically through the `SecurityOverrideGuard` struct.
 
 use core::cell::OnceCell;
 use core::ptr::NonNull;
@@ -48,7 +48,7 @@ pub enum SecureBootError {
 }
 
 /// The function signature for a validator.
-pub type Validator = fn(
+pub(crate) type Validator = fn(
     ctx: Option<NonNull<u8>>,
     device_path: Option<&DevicePath>,
     file_buffer: Option<&mut [u8]>,
@@ -70,7 +70,7 @@ static SECURITY_OVERRIDE: SecurityOverride = SecurityOverride {
 };
 
 /// The security override, for installing a custom validator.
-pub struct SecurityOverride {
+struct SecurityOverride {
     /// The inner [`SecurityOverrideInner`] wrapped around a [`OnceCell`] for safety.
     inner: OnceCell<SecurityOverrideInner>,
 }
@@ -82,7 +82,11 @@ impl SecurityOverride {
     /// However, this is not possible since the [`OnceCell`] is always initalized at the start
     /// of the program as a static. Therefore, this method cannot actually panic.
     fn get(&self) -> &SecurityOverrideInner {
-        self.inner.get().unwrap() // even though unwrap is used here, this cannot panic
+        self.inner.get().unwrap_or_else(|| {
+            unreachable!(
+                "The static OnceCell should always be initialized at the start of the programming"
+            )
+        })
     }
 }
 
@@ -91,7 +95,7 @@ unsafe impl Sync for SecurityOverride {}
 
 /// A guard for [`SecurityOverride`]. When created, it will install a validator. When the
 /// override is eventually dropped, the validator will be uninstalled.
-pub struct SecurityOverrideGuard {
+pub(super) struct SecurityOverrideGuard {
     /// If the validator is installed or not.
     installed: bool,
 }
@@ -104,7 +108,7 @@ impl SecurityOverrideGuard {
     /// # Errors
     ///
     /// May return an `Error` if the security override was already installed before.
-    pub fn new(
+    pub(super) fn new(
         validator: Validator,
         validator_ctx: Option<NonNull<u8>>,
     ) -> Result<Self, SecureBootError> {
@@ -137,7 +141,7 @@ pub fn secure_boot_enabled() -> bool {
 /// # Errors
 ///
 /// May return an `Error` if the security override was already installed before.
-pub fn install_security_override(
+pub(super) fn install_security_override(
     validator: Validator,
     validator_ctx: Option<NonNull<u8>>,
 ) -> Result<(), SecureBootError> {
@@ -155,7 +159,7 @@ pub fn install_security_override(
 /// Uninstalls the security override. Should be used after installing the security override.
 ///
 /// Alternatively, you can use the [`SecurityOverrideGuard`] to safely ensure the override is dropped.
-pub fn uninstall_security_override() {
+pub(super) fn uninstall_security_override() {
     let security_override = &SECURITY_OVERRIDE;
 
     security_override.get().uninstall_validator();

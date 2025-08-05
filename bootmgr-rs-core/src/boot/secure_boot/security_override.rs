@@ -1,4 +1,4 @@
-//! Provide [`SecurityOverrideInner`], which is what handles validation with custom hooks.
+//! Provide `SecurityOverrideInner`, which is what handles validation with custom hooks.
 //!
 //! This is most applicable for usage with Shim, as before Shim v16, validation must be manually done using the `ShimLock` protocol.
 //! This adopts an approach very, very similar to systemd-boot's security override installation. Essentially, the methods
@@ -41,24 +41,24 @@ type Authentication = unsafe extern "efiapi" fn(
 
 /// The main handler for the security override
 #[derive(Clone, Copy, Default)]
-pub struct SecurityOverrideInner {
+pub(super) struct SecurityOverrideInner {
     /// The [`Handle`] that supports [`SecurityArchProtocol`].
-    pub security: Option<Handle>,
+    pub(super) security: Option<Handle>,
 
     /// The [`Handle`] that supports [`Security2ArchProtocol`].
-    pub security2: Option<Handle>,
+    pub(super) security2: Option<Handle>,
 
     /// The original method for [`SecurityArchProtocol`] that was used in `LoadImage` before the override.
-    pub original_hook: Option<AuthState>,
+    pub(super) original_hook: Option<AuthState>,
 
     /// The original method for [`Security2ArchProtocol`] that was used in `LoadImage` before the override.
-    pub original_hook2: Option<Authentication>,
+    pub(super) original_hook2: Option<Authentication>,
 
     /// The custom validator installed.
-    pub validator: Option<Validator>,
+    pub(super) validator: Option<Validator>,
 
     /// The context for the validator if required.
-    pub validator_ctx: Option<NonNull<u8>>,
+    pub(super) validator_ctx: Option<NonNull<u8>>,
 }
 
 impl SecurityOverrideInner {
@@ -66,26 +66,11 @@ impl SecurityOverrideInner {
     ///
     /// This validator must be of type [`Validator`], and may optionally have a persistent `validator_ctx` state.
     /// This context is a `NonNull<u8>` and should be cast to and from whatever type you're using as context.
-    ///
-    /// # Example
-    /// ```
-    /// fn some_validate(
-    ///     _ctx: Option<core::ptr::NonNull<u8>>,
-    ///     _device_path: Option<&uefi::proto::device_path::DevicePath>,
-    ///     _file_buffer: Option<&mut [u8]>,
-    ///     _file_size: usize,
-    /// ) -> BootResult<()> {
-    ///     Ok(()) // a validator that accepts every image
-    /// }
-    ///
-    /// use bootmgr_rs_core::BootResult;
-    /// use bootmgr_rs_core::boot::secure_boot::security_override::SecurityOverrideInner;
-    ///
-    /// let security_override = SecurityOverrideInner::default();
-    ///
-    /// security_override.install_validator(some_validate, None);
-    /// ```
-    pub fn install_validator(&mut self, validator: Validator, validator_ctx: Option<NonNull<u8>>) {
+    pub(super) fn install_validator(
+        &mut self,
+        validator: Validator,
+        validator_ctx: Option<NonNull<u8>>,
+    ) {
         if self.should_skip_install(validator, validator_ctx) {
             return;
         }
@@ -102,7 +87,7 @@ impl SecurityOverrideInner {
     /// Note that this method takes `&self`, which means that it does not modify any of the inner members.
     /// It only uninstalls the security hooks from the [`SecurityArchProtocol`] and [`Security2ArchProtocol`]
     /// handles, which should be enough.
-    pub fn uninstall_validator(&self) {
+    pub(super) fn uninstall_validator(&self) {
         self.uninstall_security1_hook();
         self.uninstall_security2_hook();
     }
@@ -138,7 +123,7 @@ impl SecurityOverrideInner {
     /// # Errors
     ///
     /// May return an `Error` if there is no validator, or the validator deems the image as having failed.
-    pub fn call_validator(
+    pub(super) fn call_validator(
         &self,
         device_path: Option<&DevicePath>,
         file_buffer: Option<&mut [u8]>,
@@ -167,14 +152,18 @@ impl SecurityOverrideInner {
     /// passed to this function, those will be dereferenced, which is UB.
     ///
     /// The caller must ensure that the pointers passed to this function are not invalid pointers.
-    pub unsafe fn call_original_hook(
+    pub(super) unsafe fn call_original_hook(
         &self,
         this: *const SecurityArchProtocol,
         auth_status: u32,
         file: *const FfiDevicePath,
     ) -> Status {
         match self.original_hook {
-            Some(original_hook) => unsafe { original_hook(this, auth_status, file) },
+            Some(original_hook) => {
+                // SAFETY: the main caller of this method should be UEFI LoadImage, which (dependent on firmware)
+                // should pass safe and valid pointers. therefore this is safe in that case
+                unsafe { original_hook(this, auth_status, file) }
+            }
             None => Status::SUCCESS,
         }
     }
@@ -189,7 +178,7 @@ impl SecurityOverrideInner {
     /// passed to this function, those will be dereferenced, which is UB.
     ///
     /// The caller must ensure that the pointers passed to this function are not invalid pointers.
-    pub unsafe fn call_original_hook2(
+    pub(super) unsafe fn call_original_hook2(
         &self,
         this: *const Security2ArchProtocol,
         device_path: *const FfiDevicePath,
@@ -198,9 +187,11 @@ impl SecurityOverrideInner {
         boot_policy: u8,
     ) -> Status {
         match self.original_hook2 {
-            Some(original_hook2) => unsafe {
-                original_hook2(this, device_path, file_buffer, file_size, boot_policy)
-            },
+            Some(original_hook2) => {
+                // SAFETY: the main caller of this method should be UEFI LoadImage, which (dependent on firmware)
+                // should pass safe and valid pointers. therefore this is safe in that case
+                unsafe { original_hook2(this, device_path, file_buffer, file_size, boot_policy) }
+            }
             None => Status::SUCCESS,
         }
     }

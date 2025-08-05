@@ -1,5 +1,4 @@
 //! A parser for BootLoaderSpec type #2, a versionless specification for single Linux boot binaries.
-#![cfg(feature = "uki")]
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use log::warn;
@@ -16,7 +15,11 @@ use uefi::{
 
 use crate::{
     BootResult,
-    config::{Config, builder::ConfigBuilder, parsers::ConfigParser},
+    config::{
+        Config,
+        builder::ConfigBuilder,
+        parsers::{ConfigParser, Parsers},
+    },
     system::{
         fs::{read, read_filtered_dir},
         helper::get_path_cstr,
@@ -180,15 +183,26 @@ fn get_uki_config(
     let uki_config = UkiConfig::new(&content)?;
 
     let efi = format!("{UKI_PREFIX}\\{}", file.file_name());
-    let mut config = ConfigBuilder::new(file.file_name(), UKI_SUFFIX)
+    let config = ConfigBuilder::new(file.file_name(), UKI_SUFFIX)
         .efi(efi)
         .title(uki_config.title)
         .sort_key(uki_config.sort_key)
-        .handle(handle);
-
-    if let Some(version) = uki_config.version {
-        config = config.version(version);
-    }
+        .handle(handle)
+        .origin(Parsers::Uki)
+        .assign_if_some(uki_config.version, ConfigBuilder::version);
 
     Ok(config.build())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn doesnt_panic(x in any::<Vec<u8>>()) {
+            let _ = UkiConfig::new(&x);
+        }
+    }
 }

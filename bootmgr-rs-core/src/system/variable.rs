@@ -1,6 +1,6 @@
 //! UEFI variable storage helpers.
 //!
-//! These store a number into a UEFI variable in a custom vendor namespace.
+//! These store a value into a UEFI variable in a custom vendor namespace.
 
 use alloc::vec::Vec;
 use smallvec::{SmallVec, smallvec};
@@ -44,7 +44,7 @@ impl UefiVariableStorage for RuntimeUefiVariableStorage {
         buf: &mut [u8],
     ) -> BootResult<T> {
         match runtime::get_variable(name, vendor, buf) {
-            Ok((var, _)) => Ok(T::from_le_bytes(var)),
+            Ok((var, _)) => Ok(T::from_bytes(var)),
             Err(e) if e.status() == Status::NOT_FOUND => Ok(T::default()), // pretend that we got all zeroes if its not found
             Err(e) => Err(BootError::Uefi(e.to_err_without_payload())),
         }
@@ -57,7 +57,7 @@ impl UefiVariableStorage for RuntimeUefiVariableStorage {
         num: Option<T>,
     ) -> BootResult<()> {
         let num = match num {
-            Some(num) => num.to_le_bytes(),
+            Some(num) => num.to_bytes(),
             None => Vec::with_capacity(0), // a zero sized array will delete the variable. this will not allocate
         };
         Ok(runtime::set_variable(name, vendor, attributes, &num)?)
@@ -65,22 +65,26 @@ impl UefiVariableStorage for RuntimeUefiVariableStorage {
 }
 
 /// A value that can be stored in a UEFI variable.
+///
+/// This is essentially a type that can be converted into and from a vector of bytes. What byte ordering these bytes
+/// are in does not particularly matter, or how these bytes are encoded or decoded, as long as the method from
+/// [`UefiVariable`] is used instead of whatever type you have. It also has to be a set size.
 pub trait UefiVariable: Sized {
-    /// Convert `Self` to a vector of little endian bytes.
-    fn to_le_bytes(self) -> Vec<u8>;
+    /// Convert `Self` to a vector of bytes.
+    fn to_bytes(self) -> Vec<u8>;
 
-    /// Convert a vector of little endian bytes to `Self`.
-    fn from_le_bytes(bytes: &[u8]) -> Self;
+    /// Convert a vector of bytes to `Self`.
+    fn from_bytes(bytes: &[u8]) -> Self;
 
     /// Return 0, or an equivalent value.
     fn default() -> Self;
 }
 
 impl UefiVariable for usize {
-    fn to_le_bytes(self) -> Vec<u8> {
+    fn to_bytes(self) -> Vec<u8> {
         self.to_le_bytes().to_vec()
     }
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_bytes(bytes: &[u8]) -> Self {
         let mut array = [0; size_of::<Self>()];
         array.copy_from_slice(bytes);
         Self::from_le_bytes(array)
@@ -91,10 +95,38 @@ impl UefiVariable for usize {
 }
 
 impl UefiVariable for u64 {
-    fn to_le_bytes(self) -> Vec<u8> {
+    fn to_bytes(self) -> Vec<u8> {
         self.to_le_bytes().to_vec()
     }
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_bytes(bytes: &[u8]) -> Self {
+        let mut array = [0; size_of::<Self>()];
+        array.copy_from_slice(bytes);
+        Self::from_le_bytes(array)
+    }
+    fn default() -> Self {
+        0
+    }
+}
+
+impl UefiVariable for u32 {
+    fn to_bytes(self) -> Vec<u8> {
+        self.to_le_bytes().to_vec()
+    }
+    fn from_bytes(bytes: &[u8]) -> Self {
+        let mut array = [0; size_of::<Self>()];
+        array.copy_from_slice(bytes);
+        Self::from_le_bytes(array)
+    }
+    fn default() -> Self {
+        0
+    }
+}
+
+impl UefiVariable for u16 {
+    fn to_bytes(self) -> Vec<u8> {
+        self.to_le_bytes().to_vec()
+    }
+    fn from_bytes(bytes: &[u8]) -> Self {
         let mut array = [0; size_of::<Self>()];
         array.copy_from_slice(bytes);
         Self::from_le_bytes(array)
@@ -105,10 +137,10 @@ impl UefiVariable for u64 {
 }
 
 impl UefiVariable for u8 {
-    fn to_le_bytes(self) -> Vec<u8> {
+    fn to_bytes(self) -> Vec<u8> {
         self.to_le_bytes().to_vec()
     }
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_bytes(bytes: &[u8]) -> Self {
         let mut array = [0; size_of::<Self>()];
         array.copy_from_slice(bytes);
         Self::from_le_bytes(array)

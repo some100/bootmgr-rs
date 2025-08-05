@@ -9,7 +9,7 @@
 //! 2. Pass those safer equivalents to the custom validator
 //! 3. If the validator returns a failed status, then pass those raw pointers to the original validators.
 //!
-//! It will also provide an implementation for [`SecurityOverrideInner`] for installing those hooks into the security override
+//! It will also provide an implementation for `SecurityOverrideInner` for installing those hooks into the security override
 //! state.
 
 use core::ffi::c_void;
@@ -29,7 +29,7 @@ impl SecurityOverrideInner {
     /// Installs the security hook for [`SecurityArch`].
     ///
     /// It will only install the hook if the firmware supports [`SecurityArch`].
-    pub fn install_security1_hook(&mut self) {
+    pub(crate) fn install_security1_hook(&mut self) {
         if let Ok(handle) = boot::get_handle_for_protocol::<SecurityArch>()
             && let Ok(mut security) = boot::open_protocol_exclusive::<SecurityArch>(handle)
         {
@@ -42,7 +42,7 @@ impl SecurityOverrideInner {
     /// Installs the security hook for [`Security2Arch`].
     ///
     /// It will only install the hook if the firmware supports [`Security2Arch`].
-    pub fn install_security2_hook(&mut self) {
+    pub(crate) fn install_security2_hook(&mut self) {
         if let Ok(handle) = boot::get_handle_for_protocol::<Security2Arch>()
             && let Ok(mut security) = boot::open_protocol_exclusive::<Security2Arch>(handle)
         {
@@ -60,7 +60,7 @@ impl SecurityOverrideInner {
     /// - Firmware supports [`SecurityArch`].
     ///
     /// Otherwise, this method will do nothing.
-    pub fn uninstall_security1_hook(&self) {
+    pub(crate) fn uninstall_security1_hook(&self) {
         if let Some(original_hook) = self.original_hook
             && let Some(handle) = self.security
             && let Ok(mut security) = boot::open_protocol_exclusive::<SecurityArch>(handle)
@@ -77,7 +77,7 @@ impl SecurityOverrideInner {
     /// - Firmware supports [`Security2Arch`].
     ///
     /// Otherwise, this method will do nothing.
-    pub fn uninstall_security2_hook(&self) {
+    pub(crate) fn uninstall_security2_hook(&self) {
         if let Some(original_hook2) = self.original_hook2
             && let Some(handle) = self.security2
             && let Ok(mut security) = boot::open_protocol_exclusive::<Security2Arch>(handle)
@@ -109,6 +109,8 @@ unsafe extern "efiapi" fn auth_state_hook(
     {
         Err(e) => {
             warn!("{e}"); // if we get an error, log it and call the original hook to be the final verdict
+
+            // SAFETY: if UEFI LoadImage is calling this hook, these arguments should be completely valid and safe
             unsafe {
                 security_override
                     .get()
@@ -138,7 +140,9 @@ unsafe extern "efiapi" fn authentication_hook(
 ) -> Status {
     let security_override = &SECURITY_OVERRIDE;
 
-    // SAFETY:
+    // SAFETY: this is quite unsafe as file_size is not guaranteed to be the same size as file_buffer.
+    // if UEFI LoadImage is calling this hook, however, it should be safe, since there are no other
+    // direct users.
     let slice = unsafe { mut_ptr_to_u8_slice(file_buffer, file_size) };
 
     match security_override
@@ -147,6 +151,8 @@ unsafe extern "efiapi" fn authentication_hook(
     {
         Err(e) => {
             warn!("{e}"); // if we get an error, log it and call the original hook to be the final verdict
+
+            // SAFETY: if UEFI LoadImage is calling this hook, these arguments should be completely valid and safe
             unsafe {
                 security_override.get().call_original_hook2(
                     this,
@@ -166,6 +172,8 @@ unsafe extern "efiapi" fn authentication_hook(
 /// If the [`c_void`] is an invalid pointer, then it will return [`None`]. However, this is still unsafe as
 /// the size passed through the parameter cannot be verified as the exact size of the slice.
 unsafe fn mut_ptr_to_u8_slice<'a>(ptr: *mut c_void, size: usize) -> Option<&'a mut [u8]> {
+    // SAFETY: an invalid pointer should be guarded against, but if the size is invalid, then this
+    // could be unsafe.
     (!ptr.is_null() && ptr.is_aligned())
         .then(|| unsafe { core::slice::from_raw_parts_mut(ptr.cast::<u8>(), size) })
 }
@@ -174,5 +182,6 @@ unsafe fn mut_ptr_to_u8_slice<'a>(ptr: *mut c_void, size: usize) -> Option<&'a m
 ///
 /// If [`FfiDevicePath`] is an invalid pointer, then it will return [`None`]. Because of this, this function is safe.
 fn ffi_ptr_to_device_path<'a>(ptr: *const FfiDevicePath) -> Option<&'a DevicePath> {
+    // SAFETY: this checks the pointer for validity beforehand, so the pointer should be valid and therefore safe
     (!ptr.is_null() && ptr.is_aligned()).then(|| unsafe { DevicePath::from_ffi_ptr(ptr) })
 }

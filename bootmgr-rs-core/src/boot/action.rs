@@ -6,7 +6,7 @@ use uefi::Handle;
 use crate::{
     BootResult,
     boot::{config::BootConfig, loader},
-    config::Config,
+    config::{Config, parsers::Parsers},
 };
 
 pub mod firmware;
@@ -55,7 +55,7 @@ impl BootAction {
 }
 
 /// Adds reboot, shutdown, reset into firmware, and optionally a PXE boot entry.
-pub fn add_special_boot(configs: &mut Vec<Config>, boot_config: &BootConfig) {
+pub(super) fn add_special_boot(configs: &mut Vec<Config>, boot_config: &BootConfig) {
     let actions = [
         ("Reboot", BootAction::Reboot),
         ("Shutdown", BootAction::Shutdown),
@@ -67,8 +67,10 @@ pub fn add_special_boot(configs: &mut Vec<Config>, boot_config: &BootConfig) {
 
     for (title, action) in actions {
         let config = Config {
+            filename: title.to_owned(),
             title: Some(title.to_owned()),
             action,
+            origin: Some(Parsers::Special),
             ..Config::default()
         };
 

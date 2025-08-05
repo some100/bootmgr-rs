@@ -1,8 +1,8 @@
 [workspace]
 members = [
     "bootmgr-rs-core",
-    "bootmgr-rs-ratatui",
     "bootmgr-rs-minimal",
+    "bootmgr-rs-ratatui",
     "bootmgr-rs-tests",
     "fuzz",
     "xtask",
@@ -28,9 +28,12 @@ lto = true
 
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(fuzzing)'] }
-missing_docs = "warn"
+missing_docs = "deny"
+unsafe_op_in_unsafe_fn = "deny"
 
 [workspace.lints.clippy]
-pedantic = "warn"
-mod_module_files = "warn"
+pedantic = { level = "warn", priority = -1 }
 missing_docs_in_private_items = "warn"
+mod_module_files = "deny"
+undocumented_unsafe_blocks = "deny"
+missing_safety_doc = "deny"

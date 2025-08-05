@@ -62,8 +62,8 @@ impl LoadOptions {
                 Ok(size) => size,
                 _ => u32::MAX,
             };
+            // SAFETY: this should ONLY be used with a static cell, as the pointer must last long enough for the loaded image to use it
             unsafe {
-                // SAFETY: this should ONLY be used with a static cell, as the pointer must last long enough for the loaded image to use it
                 image.set_load_options(ptr, size);
             }
         }
@@ -82,7 +82,7 @@ unsafe impl Sync for LoadOptions {}
 /// # Errors
 ///
 /// May return an `Error` for many reasons, see [`boot::load_image`] and [`boot::open_protocol_exclusive`]
-pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
+pub(crate) fn load_boot_option(config: &Config) -> BootResult<Handle> {
     let handle = *config
         .handle
         .ok_or_else(|| LoadError::ConfigMissingHandle(config.filename.clone()))?;
