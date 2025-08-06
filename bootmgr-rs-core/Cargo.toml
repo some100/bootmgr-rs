@@ -17,7 +17,8 @@ thiserror = { version = "2.0.12", default-features = false }
 uefi = { version = "0.35.0", features = ["alloc"] }
 
 [features]
-default = ["bls", "fallback", "osx", "pxe", "shell", "uki", "windows"]
+default = ["all_parsers", "pxe"]
+all_parsers = ["bls", "fallback", "osx", "shell", "uki", "windows"]
 bls = []
 fallback = []
 osx = []

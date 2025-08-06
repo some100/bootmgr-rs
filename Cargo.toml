@@ -3,6 +3,7 @@ members = [
     "bootmgr-rs-core",
     "bootmgr-rs-minimal",
     "bootmgr-rs-ratatui",
+    "bootmgr-rs-slint",
     "bootmgr-rs-tests",
     "fuzz",
     "xtask",
@@ -11,6 +12,7 @@ default-members = [
     "bootmgr-rs-core",
     "bootmgr-rs-minimal",
     "bootmgr-rs-ratatui",
+    "bootmgr-rs-slint",
     "bootmgr-rs-tests",
 ]
 resolver = "3"

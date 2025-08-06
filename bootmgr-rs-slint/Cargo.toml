@@ -1,0 +1,17 @@
+[package]
+name = "bootmgr-rs-slint"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bootmgr-rs-core = { version = "0.2.0", path = "../bootmgr-rs-core" }
+log = "0.4.27"
+slint = { version = "1.12.1", default-features = false, features = ["compat-1-2", "unsafe-single-threaded", "libm", "renderer-software"] }
+thiserror = { version = "2.0.12", default-features = false }
+uefi = { version = "0.35.0", features = ["alloc"] }
+
+[lints]
+workspace = true
+
+[build-dependencies]
+slint-build = "1.12.1"

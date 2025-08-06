@@ -1,0 +1,46 @@
+import { BootList } from "boot_list.slint";
+import { Card } from "card.slint";
+import { Theme } from "theme.slint";
+struct BootOption {
+    image: image,
+}
+
+export component Ui inherits Window {
+    in-out property <[{ parser: string, image: image }]> images: [
+        { parser: "bls", image: @image-url("icons/linux.png") },
+        { parser: "fallback", image: @image-url("icons/fallback.png") },
+        { parser: "osx", image: @image-url("icons/osx.png") },
+        { parser: "shell", image: @image-url("icons/shell.png") },
+        { parser: "uki", image: @image-url("icons/linux.png") },
+        { parser: "windows", image: @image-url("icons/windows.png") },
+        { parser: "special", image: @image-url("icons/special.png") },
+    ];
+    in-out property <[{ title: string, image: image }]> items;
+    in-out property <int> listIdx: 0;
+    in-out property <int> timeout;
+
+    pure callback tryboot(int);
+
+    forward-focus: boot_list;
+
+    default-font-family: Theme.font-family;
+    background: Theme.window-background;
+
+    boot_list := BootList {
+        y: (root.height - self.height) / 2;
+        height: 100%;
+        itemWidth: Theme.size-medium;
+        count: root.items.length;
+        listIdx <=> root.listIdx;
+        spacing: Theme.spacing-medium;
+        timeout: root.timeout;
+        tryboot(int) => { root.tryboot(int) }
+
+        for item[index] in root.items : Card {
+            is-selected: index == root.listIdx;
+            title: item.title;
+            image-source: item.image;
+            y: (parent.height - self.height) / 2;
+        }
+    }
+}

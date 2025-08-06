@@ -172,7 +172,9 @@ impl Config {
     /// May return an `Error` if there is no EFI path, and the action field is one of [`BootAction::BootEfi`] or
     /// [`BootAction::BootTftp`].
     fn validate_efi(&self) -> Result<(), ConfigError> {
-        if matches!(self.action, BootAction::BootEfi | BootAction::BootTftp) && self.efi_path.is_none() {
+        if matches!(self.action, BootAction::BootEfi | BootAction::BootTftp)
+            && self.efi_path.is_none()
+        {
             return Err(ConfigError::ConfigMissingEfi(self.filename.clone()));
         }
         Ok(())
@@ -196,7 +198,10 @@ impl Config {
             if let Some(devicetree_path) = &self.devicetree_path
                 && !check_file_exists_str(&mut fs, devicetree_path).unwrap_or(false)
             {
-                return Err(ConfigError::NotExist("Devicetree", (**devicetree_path).clone()));
+                return Err(ConfigError::NotExist(
+                    "Devicetree",
+                    (**devicetree_path).clone(),
+                ));
             }
         } else if self.action == BootAction::BootEfi {
             return Err(ConfigError::ConfigMissingHandle(self.filename.clone()));

@@ -15,7 +15,7 @@ use uefi::{
 
 use crate::{
     MainError,
-    editor::persist::PersistentConfig,
+    features::editor::PersistentConfig,
     ui::{boot_list::BootList, ratatui_backend::UefiBackend, theme::Theme},
 };
 

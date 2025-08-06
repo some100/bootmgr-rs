@@ -13,10 +13,11 @@ use uefi::{
 };
 
 use crate::{
+    BootResult,
     system::{
         fs::read_filtered_dir,
         helper::{get_path_cstr, join_to_device_path, str_to_cstr},
-    }, BootResult
+    },
 };
 
 /// An `Error` that may result from loading drivers.

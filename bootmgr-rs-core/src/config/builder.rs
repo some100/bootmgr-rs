@@ -219,10 +219,16 @@ impl From<&Config> for ConfigBuilder {
             .assign_if_some(value.machine_id.as_deref(), ConfigBuilder::machine_id)
             .assign_if_some(value.sort_key.as_deref(), ConfigBuilder::sort_key)
             .assign_if_some(value.options.as_ref(), ConfigBuilder::options)
-            .assign_if_some(value.devicetree_path.as_deref(), ConfigBuilder::devicetree_path)
+            .assign_if_some(
+                value.devicetree_path.as_deref(),
+                ConfigBuilder::devicetree_path,
+            )
             .assign_if_some(value.architecture.as_deref(), ConfigBuilder::architecture)
             .assign_if_some(value.efi_path.as_deref(), ConfigBuilder::efi_path)
-            .assign_if_some(value.fs_handle.as_deref().copied(), ConfigBuilder::fs_handle)
+            .assign_if_some(
+                value.fs_handle.as_deref().copied(),
+                ConfigBuilder::fs_handle,
+            )
             .assign_if_some(value.origin, ConfigBuilder::origin)
     }
 }
@@ -242,7 +248,10 @@ mod tests {
             .options("Some options")
             .build();
 
-        assert_eq!(config.efi_path.as_deref(), Some(&"\\foo\\foo.bar".to_owned()));
+        assert_eq!(
+            config.efi_path.as_deref(),
+            Some(&"\\foo\\foo.bar".to_owned())
+        );
         assert_eq!(config.filename, "foo.bar".to_owned());
         assert_eq!(config.suffix, ".bar".to_owned());
         assert_eq!(config.title, Some("Some title".to_owned()));
@@ -261,7 +270,10 @@ mod tests {
             .devicetree_path("/baz/baz.qux")
             .build();
 
-        assert_eq!(config.efi_path.as_deref(), Some(&"\\foo\\foo.bar".to_owned()));
+        assert_eq!(
+            config.efi_path.as_deref(),
+            Some(&"\\foo\\foo.bar".to_owned())
+        );
         assert_eq!(
             config.devicetree_path.as_deref(),
             Some(&"\\baz\\baz.qux".to_owned())

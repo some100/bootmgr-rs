@@ -20,21 +20,20 @@ use uefi::{
 /// The actual main function of the program, which returns an [`anyhow::Result`].
 fn main_func() -> anyhow::Result<Handle> {
     uefi::helpers::init().map_err(BootError::Uefi)?; // initialize helpers (for print)
-    with_stdout(Output::clear)?; // clear output in case this was loaded from shell, or is loading itself
+    with_stdout(Output::clear)?;
     let _ = log::set_logger(UefiLogger::static_new())
         .map(|()| log::set_max_level(log::LevelFilter::Warn));
 
-    let mut boot_mgr = BootMgr::new()?; // create the main boot manager
+    let mut boot_mgr = BootMgr::new()?;
 
     for (i, config) in boot_mgr.list().iter().enumerate() {
         println!("{i}: {}", config.title.as_ref().unwrap_or(&config.filename)); // print every boot option present
     }
     println!("Enter the preferred boot option here:");
 
-    let handle = boot::get_handle_for_protocol::<Input>()?; // get a random input
-    let mut input = boot::open_protocol_exclusive::<Input>(handle)?; // get input protocol
+    let handle = boot::get_handle_for_protocol::<Input>()?;
+    let mut input = boot::open_protocol_exclusive::<Input>(handle)?;
 
-    // create an event for waiting for a key press
     let mut events = [input
         .wait_for_key_event()
         .ok_or(anyhow!("Failed to get key event from input"))?];
@@ -43,9 +42,8 @@ fn main_func() -> anyhow::Result<Handle> {
 
         if let Some(Key::Printable(key)) = input.read_key()? {
             let key = char::from(key);
-            if let Some(key) = key.to_digit(10) // convert the key to a number
+            if let Some(key) = key.to_digit(10)
                 && (key as usize) < boot_mgr.list().len()
-            // check if the number is less than the length of hte list
             {
                 return Ok(boot_mgr.load(key as usize)?); // load the boot option
             }

@@ -3,6 +3,7 @@
 /// The editor feature.
 #[cfg(feature = "editor")]
 pub mod editor {
+    pub use crate::editor::persist::*;
     pub use crate::editor::*;
 }
 
@@ -16,6 +17,16 @@ pub mod editor {
 
     use crate::ui::{ratatui_backend::UefiBackend, theme::Theme};
 
+    pub struct PersistentConfig;
+
+    impl PersistentConfig {
+        pub fn new() -> BootResult<Self> {
+            Ok(Self)
+        }
+
+        pub fn swap_config_in_persist(&self, _config: &mut Config) {}
+    }
+
     /// A disabled editor. Has only one field, which does nothing.
     #[derive(Default)]
     pub struct Editor {
@@ -28,7 +39,11 @@ pub mod editor {
         ///
         /// None
         #[must_use = "Has no effect if the result is unused"]
-        pub fn new(_input: &ScopedProtocol<Input>, _theme: Theme) -> BootResult<Self> {
+        pub fn new(
+            _input: &ScopedProtocol<Input>,
+            _theme: Theme,
+            _persist: PersistentConfig,
+        ) -> BootResult<Self> {
             Ok(Self::default())
         }
 

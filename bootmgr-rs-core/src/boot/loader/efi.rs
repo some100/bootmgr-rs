@@ -5,11 +5,14 @@
 use core::cell::RefCell;
 
 use crate::{
+    BootResult,
     boot::{
         devicetree::install_devicetree,
-        loader::{get_efi, LoadError},
+        loader::{LoadError, get_efi},
         secure_boot::shim::shim_load_image,
-    }, config::Config, system::helper::{join_to_device_path, str_to_cstr}, BootResult
+    },
+    config::Config,
+    system::helper::{join_to_device_path, str_to_cstr},
 };
 
 use uefi::{

@@ -64,7 +64,10 @@ pub fn test_loading() -> BootResult<()> {
         boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path)?
     }; // so that the handle will be able to be opened for loading the boot option
 
-    let config = ConfigBuilder::new("", "").efi_path(efi_path).fs_handle(handle).build();
+    let config = ConfigBuilder::new("", "")
+        .efi_path(efi_path)
+        .fs_handle(handle)
+        .build();
 
     let handle = load_boot_option(&config)?;
     set_variable::<usize>(LOADED_VARIABLE_NAME, None, None, Some(1))?;
