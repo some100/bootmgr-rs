@@ -14,6 +14,7 @@ use uefi::{
 
 use crate::{
     BootResult,
+    boot::secure_boot::shim::shim_load_image,
     system::{
         fs::read_filtered_dir,
         helper::{get_path_cstr, join_to_device_path, str_to_cstr},
@@ -44,7 +45,9 @@ fn load_driver(driver_path: &CStr16, file: &FileInfo, buf: &mut [u8]) -> BootRes
         device_path: &path,
         boot_policy: uefi::proto::BootPolicy::ExactMatch,
     };
-    let handle = boot::load_image(boot::image_handle(), src)?;
+
+    // use Shim if available to load the image, incase the driver is in mok or something
+    let handle = shim_load_image(boot::image_handle(), src)?;
 
     let image = boot::open_protocol_exclusive::<LoadedImage>(handle)?;
 

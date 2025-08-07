@@ -7,7 +7,7 @@ use core::time::Duration;
 
 use alloc::{borrow::ToOwned, boxed::Box, format, rc::Rc, vec};
 use slint::{
-    PhysicalSize, PlatformError, SharedString,
+    Color as SlintColor, PhysicalSize, PlatformError, SharedString,
     platform::{
         Key as SlintKey, Platform, WindowAdapter, WindowEvent,
         software_renderer::{
@@ -19,7 +19,7 @@ use uefi::{
     boot,
     proto::console::{
         gop::{BltOp, BltPixel, BltRegion, GraphicsOutput},
-        text::{Input, Key as UefiKey, ScanCode},
+        text::{Color as UefiColor, Input, Key as UefiKey, ScanCode},
     },
 };
 
@@ -186,5 +186,26 @@ fn read_key() -> Option<char> {
             .into(),
         ),
         _ => None,
+    }
+}
+
+pub const fn ueficolor_to_slintcolor(color: UefiColor) -> SlintColor {
+    match color {
+        UefiColor::Black => SlintColor::from_rgb_u8(0, 0, 0),
+        UefiColor::Blue => SlintColor::from_rgb_u8(0, 0, 255),
+        UefiColor::Green => SlintColor::from_rgb_u8(0, 255, 0),
+        UefiColor::Cyan => SlintColor::from_rgb_u8(0, 255, 255),
+        UefiColor::Red => SlintColor::from_rgb_u8(255, 0, 0),
+        UefiColor::Magenta => SlintColor::from_rgb_u8(255, 0, 255),
+        UefiColor::Brown => SlintColor::from_rgb_u8(150, 75, 0),
+        UefiColor::LightGray => SlintColor::from_rgb_u8(211, 211, 211),
+        UefiColor::DarkGray => SlintColor::from_rgb_u8(169, 169, 169),
+        UefiColor::LightBlue => SlintColor::from_rgb_u8(173, 216, 230),
+        UefiColor::LightGreen => SlintColor::from_rgb_u8(144, 238, 144),
+        UefiColor::LightCyan => SlintColor::from_rgb_u8(224, 255, 255),
+        UefiColor::LightRed => SlintColor::from_rgb_u8(238, 36, 0),
+        UefiColor::LightMagenta => SlintColor::from_rgb_u8(255, 128, 255),
+        UefiColor::Yellow => SlintColor::from_rgb_u8(255, 255, 0),
+        UefiColor::White => SlintColor::from_rgb_u8(255, 255, 255),
     }
 }

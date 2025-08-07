@@ -5,23 +5,25 @@ export component Card inherits Rectangle {
     in property <string> title: "title";
     in property <bool> is-selected: false;
     in property <image> image-source <=> image.source;
+    in property <color> fg;
+    in property <color> highlight-bg;
+    in property <color> highlight-fg;
 
     private property <length> spacing: Theme.spacing-medium;
     private property <length> title-spacing: Theme.spacing-medium;
     private property <length> title-area-height: Theme.size-small;
 
     border-radius: Theme.radius-regular;
-    background: Theme.background-regular;
+    background: highlight-bg;
     width: Theme.size-medium;
     height: Theme.size-medium;
     clip: false;
 
     states [
         selected when root.is-selected : {
-            background: Theme.background-selected;
             width: Theme.size-big;
             height: Theme.size-big;
-            title-label.visible: true;
+            title-label.font-size: Theme.font-size-medium;
         }
     ]
 
@@ -34,6 +36,7 @@ export component Card inherits Rectangle {
         y: (parent.height - self.height) / 2;
         width: 80%;
         height: 80%;
+        colorize: highlight-fg;
 
         animate colorize { duration: Theme.duration-fast; }
     }
@@ -43,7 +46,9 @@ export component Card inherits Rectangle {
         x: (parent.width - self.width) / 2;
         y: parent.height;
         text <=> root.title;
-        visible: false;
-        color: Theme.foreground;
+        font-size: Theme.font-size-regular;
+        width: 100%;
+        wrap: word-wrap;
+        color: fg;
     }
 }

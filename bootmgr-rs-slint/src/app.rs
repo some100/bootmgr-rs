@@ -7,90 +7,87 @@
 #![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::cast_sign_loss)]
 
-use alloc::{rc::Rc, string::ToString, vec::Vec};
+use core::cell::RefCell;
+
+use alloc::{rc::Rc, vec::Vec};
 use bootmgr_rs_core::{
     boot::BootMgr,
     config::{Config, parsers::Parsers},
 };
-use slint::{Image, Model, ModelRc, SharedString, ToSharedString, VecModel};
+use slint::{Image, Model, ModelRc, SharedString, VecModel};
 
 use crate::{
     MainError,
-    ui::{Ui, create_window},
+    ui::{Ui, create_window, ueficolor_to_slintcolor},
 };
 
 /// The main application logic of the bootloader.
 pub struct App {
     /// The internal manager of `Config` files.
-    pub boot_mgr: BootMgr,
+    pub boot_mgr: Rc<RefCell<BootMgr>>,
 
-    /// The index of the currently selected boot option.
-    pub list_idx: usize,
-
-    /// The timeout before the default boot entry is selected.
-    pub timeout: i64,
+    /// The slint user interface.
+    pub ui: Ui,
 }
 
 impl App {
     /// Initialize the state of the [`App`].
     pub fn new() -> Result<Self, MainError> {
-        let boot_mgr = BootMgr::new()?;
+        let boot_mgr = Rc::new(RefCell::new(BootMgr::new()?));
 
-        let list_idx = boot_mgr.get_default();
+        let list_idx = boot_mgr.borrow_mut().get_default();
 
-        let timeout = boot_mgr.boot_config.timeout;
+        let timeout = boot_mgr.borrow_mut().boot_config.timeout;
+
+        let ui = Self::get_ui(&boot_mgr.borrow(), list_idx, timeout)?;
 
         Ok(Self {
             boot_mgr,
-            list_idx,
-            timeout,
+            ui,
         })
     }
 
     /// Get an instance of the slint UI.
-    pub fn get_ui(&mut self) -> Result<Ui, MainError> {
+    #[allow(clippy::similar_names)]
+    pub fn get_ui(boot_mgr: &BootMgr, list_idx: usize, timeout: i64) -> Result<Ui, MainError> {
         let (_window, ui) = create_window()?;
 
         let images = ui.get_images();
 
-        let items: Vec<_> = self
-            .boot_mgr
+        let items: Vec<_> = boot_mgr
             .list()
             .iter()
             .enumerate()
-            .map(|(i, config)| (choose_image(&images, config), choose_title(config, i)))
+            .map(|(i, config)| {
+                (
+                    choose_image(&images, config),
+                    config.get_preferred_title(Some(i)).into(),
+                )
+            })
             .collect();
 
         let items_rc = Rc::new(VecModel::from(items));
         let boot_items = ModelRc::from(items_rc.clone());
 
+        let boot_config = &boot_mgr.boot_config;
+        let (fg, bg, highlight_fg, highlight_bg) = (
+            ueficolor_to_slintcolor(boot_config.fg),
+            ueficolor_to_slintcolor(boot_config.bg),
+            ueficolor_to_slintcolor(boot_config.highlight_fg),
+            ueficolor_to_slintcolor(boot_config.highlight_bg),
+        );
+
+        ui.set_fg(fg);
+        ui.set_bg(bg);
+        ui.set_highlight_fg(highlight_fg);
+        ui.set_highlight_bg(highlight_bg);
+
         ui.set_items(boot_items.clone());
-        ui.set_listIdx(self.list_idx as i32);
-        ui.set_timeout(self.timeout as i32);
+        ui.set_listIdx(list_idx as i32);
+        ui.set_timeout(timeout as i32);
+
         Ok(ui)
     }
-
-    /// Try to boot give an index, and panic if it fails.
-    pub fn try_boot(&mut self, idx: i32) {
-        let image = self.boot_mgr.load(idx as usize).unwrap();
-        uefi::boot::start_image(image).unwrap();
-    }
-}
-
-/// Choose a title based on if the [`Config`] contains a title, if it contains a non-empty filename, or the index of the boot option
-/// as an absolute fallback.
-fn choose_title(config: &Config, i: usize) -> SharedString {
-    config
-        .title
-        .clone()
-        .unwrap_or_else(|| {
-            if config.filename.is_empty() {
-                i.to_string()
-            } else {
-                config.filename.clone()
-            }
-        })
-        .to_shared_string()
 }
 
 /// Pick an image based on the origin of the [`Config`].

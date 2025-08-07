@@ -6,8 +6,12 @@
 //! This is mainly intended for FAT filesystems (hence the assumption in `helper.rs` that the max path is 256 chars in length).
 //! However, [`SimpleFileSystem`] is also abstractable over filesystems of other types. This is only possible with UEFI drivers,
 //! so if a filesystem other than FAT needs to be supported, then the appropriate driver implementing [`SimpleFileSystem`] should
-//! be put in the drivers directory. Examples of such drivers include those found in [efifs](https://efi.akeo.ie), which are built
-//! off of GRUB's drivers.
+//! be put in the drivers directory.
+//!
+//! Examples of such drivers implementing [`SimpleFileSystem`] include those found in [efifs](https://efi.akeo.ie), which are built
+//! off of GRUB's drivers, as well as [Ext4Pkg](https://github.com/acidanthera/audk/tree/master/Ext4Pkg). This means that filesystems
+//! ranging from Ext4 to Btrfs and ZFS can be supported due to the pluggable nature of UEFI drivers. Note however that drivers must be 
+//! signed before loading.
 //!
 //! This module also provides filesystem-related testing functions, like [`check_file_exists`].
 

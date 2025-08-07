@@ -27,7 +27,7 @@ fn main_func() -> anyhow::Result<Handle> {
     let mut boot_mgr = BootMgr::new()?;
 
     for (i, config) in boot_mgr.list().iter().enumerate() {
-        println!("{i}: {}", config.title.as_ref().unwrap_or(&config.filename)); // print every boot option present
+        println!("{i}: {}", config.get_preferred_title(Some(i))); // print every boot option present
     }
     println!("Enter the preferred boot option here:");
 

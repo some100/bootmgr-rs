@@ -17,14 +17,14 @@ use uefi::{
 
 fn main_func() -> anyhow::Result<Handle> {
     uefi::helpers::init().map_err(BootError::Uefi)?;
-    with_stdout(Output::clear)?; // clear screen first before we do anything
+    with_stdout(Output::clear)?; 
     let _ = log::set_logger(UefiLogger::static_new())
         .map(|()| log::set_max_level(log::LevelFilter::Warn));
 
     let mut boot_mgr = BootMgr::new()?;
 
-    for (i, config) in boot_mgr.list().into_iter().enumerate() {
-        println!("{i}: {}", config.title.unwrap_or(config.filename)); // get all boot entries in system
+    for (i, config) in boot_mgr.list().iter().enumerate() {
+        println!("{i}: {}", config.title.get_preferred_title(Some(i))); // get all boot entries in system
     }
     println!("Enter the preferred boot option here:");
 

@@ -2,16 +2,37 @@
 
 Windows BOOTMGR and systemd-boot inspired UEFI-only boot manager written in Rust
 
+## Quickstart
+
+```sh
+git clone https://github.com/some100/bootmgr-rs
+cd bootmgr-rs
+
+# If rust is not installed
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+cargo xtask build -r
+
+# For x64 systems
+cp target/x86_64-unknown-uefi/release-lto/bootmgr-rs-ratatui.efi /boot/efi/EFI/BOOT/BOOTx64.efi
+
+# For x86 systems
+cp target/i686-unknown-uefi/release-lto/bootmgr-rs-ratatui.efi /boot/efi/EFI/BOOT/BOOTia32.efi
+
+# For aarch64 systems
+cp target/aarch64-unknown-uefi/release-lto/bootmgr-rs-ratatui.efi /boot/efi/EFI/BOOT/BOOTaa64.efi
+```
+
 ## Usage
 
-Compile it, then install the produced .efi file to \EFI\BOOT\BOOTx64.efi. This includes support for macOS, Windows, UKIs, and BLS configuration files which are detected at runtime.
+Compile it, then install the produced .efi file to \EFI\BOOT\BOOTx64.efi (or the appropriate name for your architecture). This includes support for macOS, Windows, UKIs, and BLS configuration files which are detected at runtime.
 
 ## Compilation
 
 bootmgr-rs is written in Rust, so the Cargo toolchain is required for compilation.
 
 The command must be ran at the root of the repository.
-```
+```sh
 git clone https://github.com/some100/bootmgr-rs
 cargo xtask build -r
 ```
@@ -33,3 +54,7 @@ Fuzzing tests are ran using `cargo xtask fuzz <PARSER>`, where `<PARSER>` is one
 ## License
 
 Licensed under the MIT License.
+
+![systemd-boot and Windows bootmgr-like interface for a bootloader](/images/bootmgr-rs-ratatui.png)
+
+Example frontend using ratatui.

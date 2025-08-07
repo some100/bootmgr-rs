@@ -151,7 +151,7 @@ pub fn get_arch() -> Option<Architecture> {
     } else if cfg!(target_arch = "aarch64") {
         Architecture::new("aa64").ok()
     } else {
-        None // rust doesnt support itanium anyways
+        None // rust doesnt support itanium
     }
 }
 

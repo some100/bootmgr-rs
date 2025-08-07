@@ -62,6 +62,16 @@ pub(super) struct SecurityOverrideInner {
 }
 
 impl SecurityOverrideInner {
+    /// Create a new instance of [`SecurityOverrideInner`].
+    ///
+    /// This will essentially create a new instance of [`SecurityOverrideInner`] through default,
+    /// then use `install_validator` on that instance, then return that instance.
+    pub(super) fn new(validator: Validator, validator_ctx: Option<NonNull<u8>>) -> Self {
+        let mut security_override = Self::default();
+        security_override.install_validator(validator, validator_ctx);
+        security_override
+    }
+
     /// Installs a custom validator.
     ///
     /// This validator must be of type [`Validator`], and may optionally have a persistent `validator_ctx` state.

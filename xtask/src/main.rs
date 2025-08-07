@@ -72,6 +72,7 @@ pub enum Commands {
         command: Option<Test>,
     },
 
+    /// Run fuzzers for config parsers on host
     Fuzz {
         #[command(subcommand)]
         command: Fuzz,

@@ -4,13 +4,13 @@
 
 extern crate alloc;
 
-use core::cell::RefCell;
+use core::cell::{Cell, RefCell};
 
 use alloc::rc::Rc;
 use bootmgr_rs_core::error::BootError;
 use slint::ComponentHandle;
 use thiserror::Error;
-use uefi::{Status, entry};
+use uefi::{boot::start_image, entry, Handle, ResultExt, Status};
 
 use crate::app::App;
 
@@ -28,20 +28,37 @@ pub enum MainError {
     SlintError(slint::PlatformError),
 }
 
-fn main_func() -> Result<(), MainError> {
+fn main_func() -> Result<Option<Handle>, MainError> {
     uefi::helpers::init().map_err(BootError::Uefi)?;
-    let app = Rc::new(RefCell::new(App::new()?));
 
-    let ui = app.borrow_mut().get_ui()?;
+    // This is all done to ensure that GOP, Input, etc. are properly dropped before the next program is started.
+    // If the image was simply booted directly from the tryboot function, then it would result in this program
+    // still holding on to GOP and other protocols, which in the case of loading this program again, would result
+    // in a panic.
+    let app = Rc::new(RefCell::new(App::new()?)); // yeah....
+    let boot_mgr = app.borrow().boot_mgr.clone();
 
-    ui.on_tryboot(move |x| app.borrow_mut().try_boot(x));
-    ui.run().map_err(MainError::SlintError)?;
+    let image = Rc::new(Cell::new(None));
+    let image_weak = Rc::downgrade(&image);
 
-    Ok(())
+    #[allow(clippy::cast_sign_loss)]
+    app.borrow_mut().ui.on_tryboot(move |x| {
+        if let Some(image) = image_weak.upgrade() 
+        {
+            image.set(boot_mgr.borrow_mut().load(x as usize).ok());
+            let _ = slint::quit_event_loop();
+        }
+    });
+    app.borrow().ui.run().map_err(MainError::SlintError)?;
+
+    Ok(image.take())
 }
 
 #[entry]
 fn main() -> Status {
-    main_func().unwrap_or_else(|e| panic!("Error occurred while running: {e}")); // panic on critical error
-    Status::SUCCESS
+    let image = main_func().unwrap_or_else(|e| panic!("Error occurred while running: {e}")); // panic on critical error
+    match image {
+        Some(image) => start_image(image).status(),
+        None => Status::SUCCESS,
+    }
 }

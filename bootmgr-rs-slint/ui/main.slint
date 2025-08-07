@@ -1,6 +1,7 @@
 import { BootList } from "boot_list.slint";
 import { Card } from "card.slint";
 import { Theme } from "theme.slint";
+import { TitleLabel } from "title_label.slint";
 struct BootOption {
     image: image,
 }
@@ -19,12 +20,18 @@ export component Ui inherits Window {
     in-out property <int> listIdx: 0;
     in-out property <int> timeout;
 
+    in-out property <color> fg;
+    in-out property <color> bg;
+    in-out property <color> highlight_fg;
+    in-out property <color> highlight_bg;
+
     pure callback tryboot(int);
 
     forward-focus: boot_list;
 
     default-font-family: Theme.font-family;
-    background: Theme.window-background;
+
+    background: bg;
 
     boot_list := BootList {
         y: (root.height - self.height) / 2;
@@ -33,7 +40,7 @@ export component Ui inherits Window {
         count: root.items.length;
         listIdx <=> root.listIdx;
         spacing: Theme.spacing-medium;
-        timeout: root.timeout;
+        timeout <=> root.timeout;
         tryboot(int) => { root.tryboot(int) }
 
         for item[index] in root.items : Card {
@@ -41,6 +48,17 @@ export component Ui inherits Window {
             title: item.title;
             image-source: item.image;
             y: (parent.height - self.height) / 2;
+            fg: root.fg;
+            highlight-bg: root.highlight_bg;
+            highlight-fg: root.highlight_fg;
         }
+    }
+
+    timeout-label := TitleLabel {
+        text: timeout > 0 ? "Booting in \{timeout} seconds" : "";
+        x: (root.width - self.width) / 2;
+        y: ((root.height - self.height) * (5 / 6));
+        font-size: Theme.font-size-medium;
+        color: root.fg;
     }
 }

@@ -85,6 +85,9 @@ impl PersistentConfig {
     }
 
     /// Check if the [`PersistentConfig`] contains a certain entry.
+    /// 
+    /// This compares the filename and origin of the [`Config`]s. If the filename
+    /// and origin are both exactly the same, then it is most likely the same [`Config`].
     pub fn contains(&self, config: &Config) -> bool {
         self.configs
             .get(&config.filename)
@@ -136,5 +139,10 @@ impl PersistentConfig {
     pub fn add_config_to_persist(&mut self, config: &Config) {
         self.configs
             .insert(config.filename.clone(), config.clone().into());
+    }
+
+    /// Remove a [`Config`] from the [`PersistentConfig`] map.
+    pub fn remove_config_from_persist(&mut self, config: &Config) {
+        self.configs.remove(&config.filename);
     }
 }

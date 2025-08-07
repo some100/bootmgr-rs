@@ -18,7 +18,7 @@
 //! These hooks are temporary and should be uninstalled after the image is loaded. This is done
 //! automatically through the `SecurityOverrideGuard` struct.
 
-use core::cell::OnceCell;
+use core::cell::Cell;
 use core::ptr::NonNull;
 
 use thiserror::Error;
@@ -62,29 +62,29 @@ pub(crate) type Validator = fn(
 /// possibly know of the existence of what custom validator we have installed, or where the original security validators
 /// are.
 ///
-/// To partially counter the security risk that a global static state brings, the inner override may only be set a grand
-/// total of one time, due to it using a [`OnceCell`]. This makes it so that it cannot be modified after the security
-/// override is installed.
+/// To partially counter the risk that a singular static state brings, this static is not exposed to anywhere other than
+/// [`SecurityOverrideGuard`]. This may need to be changed more than once in case `LoadImage` fails, and the override
+/// is still installed.
 static SECURITY_OVERRIDE: SecurityOverride = SecurityOverride {
-    inner: OnceCell::new(),
+    inner: Cell::new(None),
 };
 
 /// The security override, for installing a custom validator.
 struct SecurityOverride {
-    /// The inner [`SecurityOverrideInner`] wrapped around a [`OnceCell`] for safety.
-    inner: OnceCell<SecurityOverrideInner>,
+    /// The inner [`SecurityOverrideInner`] wrapped around a [`Cell`] for safety.
+    inner: Cell<Option<SecurityOverrideInner>>,
 }
 
 impl SecurityOverride {
-    /// Return a reference to the inner [`SecurityOverrideInner`].
+    /// Return a copy of the inner [`SecurityOverrideInner`].
     ///
-    /// This will panic if the [`OnceCell`] is not yet initialized.
-    /// However, this is not possible since the [`OnceCell`] is always initalized at the start
+    /// This will panic if the [`Cell`] is not yet initialized.
+    /// However, this is not possible since the [`Cell`] is always initalized at the start
     /// of the program as a static. Therefore, this method cannot actually panic.
-    fn get(&self) -> &SecurityOverrideInner {
+    fn get(&self) -> SecurityOverrideInner {
         self.inner.get().unwrap_or_else(|| {
             unreachable!(
-                "The static OnceCell should always be initialized at the start of the programming"
+                "The static Cell should always be initialized at the start of the programming"
             )
         })
     }
@@ -104,16 +104,9 @@ impl SecurityOverrideGuard {
     /// Create a new [`SecurityOverrideGuard`]. Installs a validator and returns the guard.
     ///
     /// When the returned guard is dropped, the security override is automatically uninstalled.
-    ///
-    /// # Errors
-    ///
-    /// May return an `Error` if the security override was already installed before.
-    pub(super) fn new(
-        validator: Validator,
-        validator_ctx: Option<NonNull<u8>>,
-    ) -> Result<Self, SecureBootError> {
-        install_security_override(validator, validator_ctx)?;
-        Ok(Self { installed: true })
+    pub(super) fn new(validator: Validator, validator_ctx: Option<NonNull<u8>>) -> Self {
+        install_security_override(validator, validator_ctx);
+        Self { installed: true }
     }
 }
 
@@ -136,31 +129,21 @@ pub fn secure_boot_enabled() -> bool {
 
 /// Installs a security override given a [`Validator`] and optionally a `validator_ctx`.
 ///
-/// Alternatively, you can use the [`SecurityOverrideGuard`] to safely ensure the override is dropped.
-///
-/// # Errors
-///
-/// May return an `Error` if the security override was already installed before.
-pub(super) fn install_security_override(
-    validator: Validator,
-    validator_ctx: Option<NonNull<u8>>,
-) -> Result<(), SecureBootError> {
+/// You should use the [`SecurityOverrideGuard`] to safely ensure the override is dropped.
+fn install_security_override(validator: Validator, validator_ctx: Option<NonNull<u8>>) {
     let security_override = &SECURITY_OVERRIDE;
-    let mut inner = SecurityOverrideInner::default();
-    inner.install_validator(validator, validator_ctx);
 
     security_override
         .inner
-        .set(inner)
-        .map_err(|_| SecureBootError::AlreadyInstalled)?;
-    Ok(())
+        .set(Some(SecurityOverrideInner::new(validator, validator_ctx)));
 }
 
 /// Uninstalls the security override. Should be used after installing the security override.
 ///
-/// Alternatively, you can use the [`SecurityOverrideGuard`] to safely ensure the override is dropped.
-pub(super) fn uninstall_security_override() {
+/// You should use the [`SecurityOverrideGuard`] to safely ensure the override is dropped.
+fn uninstall_security_override() {
     let security_override = &SECURITY_OVERRIDE;
 
     security_override.get().uninstall_validator();
+    security_override.inner.take();
 }

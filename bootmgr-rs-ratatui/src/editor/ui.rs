@@ -55,6 +55,7 @@ impl Editor {
             ("Any Key", "Edit"),
             ("ESC", "Exit"),
             ("F1", "Persistently Save and Exit"),
+            ("F2", "Delete From Persistent Cache and Exit"),
         ];
         let spans: Vec<_> = keys
             .iter()

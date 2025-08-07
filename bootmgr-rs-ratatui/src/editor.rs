@@ -41,6 +41,9 @@ pub struct Editor {
     /// Checks if the editor wants to persist the current [`Config`].
     pub persisting: bool,
 
+    /// Checks if the editor wants to delete the current [`Config`] from the persist cache.
+    pub deleting: bool,
+
     /// Stores the `wait_for_key` event.
     pub events: Option<[Event; 1]>,
 
@@ -119,6 +122,10 @@ impl Editor {
             }
             let _ = self.persist.save_to_fs();
             self.persisting = false;
+        } else if self.deleting {
+            self.persist.remove_config_from_persist(config);
+            let _ = self.persist.save_to_fs();
+            self.persisting = false;
         }
 
         terminal.hide_cursor()?;
@@ -175,6 +182,10 @@ impl Editor {
             }
             ScanCode::FUNCTION_1 => {
                 self.persisting = true;
+                self.editing = false;
+            }
+            ScanCode::FUNCTION_2 => {
+                self.deleting = true;
                 self.editing = false;
             }
             ScanCode::UP => {

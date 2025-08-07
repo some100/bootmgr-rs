@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = { version = "1.0.98", default-features = false }
-bootmgr-rs-core = { version = "0.2.0", path = "../bootmgr-rs-core" }
+bootmgr-rs-core = { version = "0.3.0", path = "../bootmgr-rs-core" }
 log = "0.4.27"
 uefi = "0.35.0"
 

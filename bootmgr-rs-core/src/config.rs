@@ -2,7 +2,10 @@
 //!
 //! This will generally represent a boot entry in the boot manager.
 
-use alloc::{string::String, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use log::{error, warn};
 use smallvec::{SmallVec, smallvec};
 use thiserror::Error;
@@ -148,6 +151,27 @@ impl Config {
                 warn!("Config {} does not have a title", self.filename);
             }
         }
+    }
+
+    /// Picks the preferred title for a [`Config`] using one of three sources.
+    ///
+    /// If the title of the [`Config`] is found, then that is used and preferred because it indicates the preferred
+    /// name for the boot option.
+    /// If the title is not present, and the filename is not empty, then the filename is used. This is because it can
+    /// still indicate the source of a particular boot option or its origin.
+    /// If the filename is empty, then the index of the boot option is used. This is because at least some way of differentiating
+    /// the boot option from other boot options is required. This will only be the case if the index is provided.
+    #[must_use = "Has no effect if the result is unused"]
+    pub fn get_preferred_title(&self, option: Option<usize>) -> String {
+        self.title.clone().unwrap_or_else(|| {
+            if self.filename.is_empty()
+                && let Some(option) = option
+            {
+                option.to_string()
+            } else {
+                self.filename.clone()
+            }
+        })
     }
 
     /// Validate an architecture by checking if it is the same as the system architecture.

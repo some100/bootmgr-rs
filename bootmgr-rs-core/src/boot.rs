@@ -106,7 +106,8 @@ impl BootMgr {
 
     /// Sets the default boot option by index.
     ///
-    /// This is stored in a UEFI variable, so it may not be completely reliable across firmware implementations.
+    /// This is stored in a UEFI variable. Due to the poor quality of how UEFI variables are stored sometimes, this
+    /// cannot be completely reliable across all firmware implementations.
     pub fn set_default(&self, option: usize) {
         if option < self.configs.len()
             && let Err(e) = set_variable::<usize>(cstr16!("BootDefault"), None, None, Some(option))

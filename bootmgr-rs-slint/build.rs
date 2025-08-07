@@ -2,7 +2,27 @@
 //!
 //! Embeds ui/main.slint, which defines the design of the program.
 
+use std::{env, path::PathBuf};
+
+/// The files that are required by the program or user interface.
+const REQUIRED_FILES: [&str; 7] = [
+    "ui/fonts/Roboto-Regular.ttf",
+    "ui/icons/fallback.png",
+    "ui/icons/linux.png",
+    "ui/icons/osx.png",
+    "ui/icons/shell.png",
+    "ui/icons/special.png",
+    "ui/icons/windows.png"
+];
+
 fn main() {
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+
+    #[allow(clippy::never_loop)]
+    for file in REQUIRED_FILES {
+        let file = manifest_dir.join(file);
+        assert!(matches!(std::fs::exists(&file), Ok(true)), "Required file did not exist: {}", file.display());
+    }
     slint_build::compile_with_config(
         "ui/main.slint",
         slint_build::CompilerConfiguration::new()
