@@ -12,7 +12,7 @@ const REQUIRED_FILES: [&str; 7] = [
     "ui/icons/osx.png",
     "ui/icons/shell.png",
     "ui/icons/special.png",
-    "ui/icons/windows.png"
+    "ui/icons/windows.png",
 ];
 
 fn main() {
@@ -21,7 +21,11 @@ fn main() {
     #[allow(clippy::never_loop)]
     for file in REQUIRED_FILES {
         let file = manifest_dir.join(file);
-        assert!(matches!(std::fs::exists(&file), Ok(true)), "Required file did not exist: {}", file.display());
+        assert!(
+            matches!(std::fs::exists(&file), Ok(true)),
+            "Required file did not exist: {}",
+            file.display()
+        );
     }
     slint_build::compile_with_config(
         "ui/main.slint",

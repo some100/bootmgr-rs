@@ -41,10 +41,7 @@ impl App {
 
         let ui = Self::get_ui(&boot_mgr.borrow(), list_idx, timeout)?;
 
-        Ok(Self {
-            boot_mgr,
-            ui,
-        })
+        Ok(Self { boot_mgr, ui })
     }
 
     /// Get an instance of the slint UI.

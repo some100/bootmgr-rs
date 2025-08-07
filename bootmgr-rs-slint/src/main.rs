@@ -10,7 +10,7 @@ use alloc::rc::Rc;
 use bootmgr_rs_core::error::BootError;
 use slint::ComponentHandle;
 use thiserror::Error;
-use uefi::{boot::start_image, entry, Handle, ResultExt, Status};
+use uefi::{Handle, ResultExt, Status, boot::start_image, entry};
 
 use crate::app::App;
 
@@ -43,8 +43,7 @@ fn main_func() -> Result<Option<Handle>, MainError> {
 
     #[allow(clippy::cast_sign_loss)]
     app.borrow_mut().ui.on_tryboot(move |x| {
-        if let Some(image) = image_weak.upgrade() 
-        {
+        if let Some(image) = image_weak.upgrade() {
             image.set(boot_mgr.borrow_mut().load(x as usize).ok());
             let _ = slint::quit_event_loop();
         }

@@ -22,6 +22,8 @@ The core crate is located at bootmgr-rs-core. The frontends will generally be na
 * error (provides `BootError`)
 * system (provides UEFI, filesystem, and protocol helpers)
 
+config contains parsers, which are essentially structs implementing `ConfigParser` that, given an `fs` and `handle`, will generate boot entries in the format of `Config`, that are pushed into the `configs` parameter.
+
 boot itself is structured into 5 submodules, those being:
 
 * action (provides firmware reset, reboot, and shutdown functions, as well as a PXE parser)
@@ -30,11 +32,15 @@ boot itself is structured into 5 submodules, those being:
 * loader (provides EFI loader and EFI over TFTP loader)
 * secure_boot (provides `SecurityOverrideGuard`, which may install security protocol overrides for Shim)
 
-config contains parsers, which are essentially structs implementing `ConfigParser` that, given an `fs` and `handle`, will generate boot entries in the format of `Config`, that are pushed into the `configs` parameter.
+# Writing a parser
 
 In order to create a parser, it must first implement `ConfigParser`, which can be done by detecting if a file exists for example, then using the `ConfigBuilder` in order to create a `Config` that will then be pushed into the `configs` parameter. Then, add it as a module in `bootmgr-rs-core/src/config/parsers.rs` as well as to the `Parsers` enum. Afterwards, add it to `bootmgr-rs-core/src/features.rs` using the `optional_config!` macro, then add it as a feature flag in the `Cargo.toml`.
 
 Optionally, you can also add an icon for it in `bootmgr-rs-slint`, as well as unit testing and fuzzing in xtask if applicable.
+
+A good example of an auto-detecting "parser" can be found in `bootmgr-rs-core/src/config/parsers/shell.rs`. This simply checks for the existence of `\shellx64.efi`. It specifies the EFI path, the title, the sort key, the filesystem handle, as well as the origin of the `Config`, then pushes a built `Config` into the `configs` parameter. 
+
+A good example of a parser that actually parses can be found in `bootmgr-rs-core/src/config/parsers/bls.rs`. This builds the `Config` based on information that was received while parsing the BLS configuration file. Because it actually parses things, it also has unit tests and fuzzing as well, to ensure the expected result.
 
 # Writing a frontend
 
@@ -71,13 +77,13 @@ Using xtask is still preferred, however.
 
 Generally, you should always run `cargo fmt` and `cargo xtask test` after every significant change is made. As with most Rust projects, the code should aim to be idiomatic Rust. 
 
-Usage of `clone` should be minimized, and used only if it is inexpensive to clone (i.e. when wrapped in an `Rc`) or if absolutely necessary and unlikely to impact performance (i.e. in error handling). 
+Usage of `clone` should be minimized, and used only if it is inexpensive to clone (i.e. when wrapped in an `Rc`) or if absolutely necessary and unlikely to impact performance (i.e. in error handling). A notable exception to this is `to_owned`, which might be necessary if you want to put an owned value in a struct but only have a reference. However, similarly to `clone`, it should not be overused, and for other cases you should look into seeing if a reference can be used in those situations instead.
 
 Always prefer borrowed types as arguments, and owned types as return values. This is unless you are planning to consume the owned type in the argument (if you are cloning immediately after, you should be using a reference). 
 
 `unwrap()` should never be used, except in examples. If a certain call is infallible, using `unwrap_or_else(|_| unreachable!("message"))` is a little bit more clear in intent than using unwrap. Always use `map_err()` instead, or at the very least `expect()`. 
 
-Every single unsafe block that is used must be preceded by a `// SAFETY:` comment that explains why it is safe, or in what situations it may be unsafe. This will cause a clippy deny error if this is not followed properly. Unsafe should only be used when strictly necessary. If a safe alternative can be used (i.e. `Cell`/`OnceCell`/`RefCell` over `UnsafeCell`), then it should be used.
+Every single unsafe block that is used must be preceded by a `// SAFETY:` comment that explains why it is safe, or in what situations it may be unsafe. This is enforced using the `unsafe_op_in_unsafe_fn` lint. Unsafe should only be used when strictly necessary. If a safe alternative can be used (i.e. `Cell`/`OnceCell`/`RefCell` over `UnsafeCell`), then it should be used.
 
 Every module and item should be documented. Using `cargo xtask test` should fail in case a public item is undocumented, and warn in case a private item is undocumented.
 

@@ -28,6 +28,7 @@ use crate::{
 };
 
 pub mod builder;
+pub mod editor;
 pub mod parsers;
 pub mod types;
 
@@ -82,6 +83,8 @@ pub struct Config {
     pub action: BootAction,
 
     /// Checks if an entry is bad, for sorting and deranking.
+    ///
+    /// This does not necessarily mean that it's invalid, only that it's known to fail.
     pub bad: bool,
 
     /// The [`FsHandle`] of the entry, if one is required.

@@ -1,6 +1,6 @@
 # bootmgr-rs
 
-Windows BOOTMGR and systemd-boot inspired UEFI-only boot manager written in Rust
+UEFI-only boot manager library written in Rust
 
 ## Quickstart
 

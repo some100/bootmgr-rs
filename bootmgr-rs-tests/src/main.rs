@@ -48,7 +48,7 @@ fn main_func() -> anyhow::Result<()> {
                 '1' => test_custom_actions(),
                 '2' => Ok(test_variables()?),
                 '3' => Ok(test_filesystem()?),
-                '4' => Ok(test_loading()?),
+                '4' => test_loading(),
                 _ => Ok(()),
             };
         }

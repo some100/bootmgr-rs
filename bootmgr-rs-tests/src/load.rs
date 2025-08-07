@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use bootmgr_rs_core::{
     BootResult,
     boot::loader::load_boot_option,
@@ -33,7 +34,7 @@ pub fn check_loaded() -> BootResult<()> {
     Ok(())
 }
 
-pub fn test_loading() -> BootResult<()> {
+pub fn test_loading() -> anyhow::Result<()> {
     println!(
         "Will try to load an image from either {SHELL_PATH} or {FALLBACK_PATH} on same filesystem"
     );
@@ -59,7 +60,7 @@ pub fn test_loading() -> BootResult<()> {
         let loaded_image = boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle())?;
         let device_handle = loaded_image
             .device()
-            .unwrap_or_else(|| panic!("Image handle was not loaded from a storage device"));
+            .ok_or(anyhow!("Image handle was not loaded from a storage device"))?;
         let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle)?;
         boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path)?
     }; // so that the handle will be able to be opened for loading the boot option

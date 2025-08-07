@@ -7,9 +7,7 @@
 //! specified in the overlay will be applied to the [`Config`] if it exists the next time it is booted. Generally, this
 //! will be done according to the filename of the [`Config`].
 
-use alloc::string::String;
 use ratatui_core::{layout::Position, terminal::Terminal};
-use smallvec::SmallVec;
 use uefi::{
     Event,
     boot::{self, ScopedProtocol},
@@ -18,7 +16,7 @@ use uefi::{
 
 use bootmgr_rs_core::{
     BootResult,
-    config::{Config, builder::ConfigBuilder},
+    config::{Config, editor::ConfigEditor},
 };
 
 use crate::{
@@ -44,17 +42,14 @@ pub struct Editor {
     /// Checks if the editor wants to delete the current [`Config`] from the persist cache.
     pub deleting: bool,
 
+    /// The [`ConfigEditor`].
+    pub edit: ConfigEditor,
+
     /// Stores the `wait_for_key` event.
     pub events: Option<[Event; 1]>,
 
     /// Tracks the current position of the cursor.
     pub cursor_pos: usize,
-
-    /// Stores the fields that are in the [`Config`].
-    pub fields: SmallVec<[(&'static str, String); 8]>,
-
-    /// Stores which field is currently being edited.
-    pub idx: usize,
 
     /// Stores the collection of persistently saved [`Config`]s.
     pub persist: PersistentConfig,
@@ -102,7 +97,9 @@ impl Editor {
 
         terminal.clear()?;
 
-        self.init_state(config);
+        self.edit = ConfigEditor::new(config);
+
+        self.cursor_pos = self.edit.current_field().chars().count();
 
         while self.editing {
             self.draw(terminal)?;
@@ -114,7 +111,7 @@ impl Editor {
             self.handle_key(input)?;
         }
 
-        self.save_to_config(config);
+        self.edit.build(config);
 
         if self.persisting {
             if !self.persist.contains(config) {
@@ -131,18 +128,6 @@ impl Editor {
         terminal.hide_cursor()?;
 
         Ok(())
-    }
-
-    /// Reads the [`Config`] file into the field and initializes the state
-    fn init_state(&mut self, config: &Config) {
-        self.fields.extend(
-            config
-                .get_str_fields()
-                .map(|(k, v)| (k, v.cloned().unwrap_or_default())),
-        );
-
-        self.cursor_pos = self.fields[0].1.chars().count();
-        self.idx = 0;
     }
 
     /// Wait for the key event.
@@ -175,7 +160,6 @@ impl Editor {
     /// If the key is left or right, then the cursor position is moved.
     /// If the key is F1, then the values will be saved to the filesystem persistently and the editor exits.
     fn handle_special_key(&mut self, key: ScanCode) {
-        let value = &self.fields[self.idx].1;
         match key {
             ScanCode::ESCAPE => {
                 self.editing = false;
@@ -189,22 +173,18 @@ impl Editor {
                 self.editing = false;
             }
             ScanCode::UP => {
-                if self.idx > 0 {
-                    self.idx -= 1;
-                }
-                self.cursor_pos = value.chars().count();
+                self.edit.prev_field();
+                self.cursor_pos = self.edit.chars();
             }
             ScanCode::DOWN => {
-                if self.idx + 1 < self.fields.len() {
-                    self.idx += 1;
-                }
-                self.cursor_pos = self.fields[self.idx].1.chars().count();
+                self.edit.next_field();
+                self.cursor_pos = self.edit.chars();
             }
             ScanCode::LEFT => {
                 self.cursor_pos = self.cursor_pos.saturating_sub(1);
             }
             ScanCode::RIGHT => {
-                self.cursor_pos = (self.cursor_pos + 1).min(value.len());
+                self.cursor_pos = (self.cursor_pos + 1).min(self.edit.chars());
             }
             _ => (),
         }
@@ -215,7 +195,7 @@ impl Editor {
     /// If the key is a backspace, then it will remove the current value and push the cursor position back by one.
     /// If the key is anything else, then that key will be inserted into the current value.
     fn handle_printable_key(&mut self, key: char) {
-        let value = &mut self.fields[self.idx].1;
+        let value = &mut self.edit.current_field();
         match key {
             '\x08' => {
                 if self.cursor_pos > 0 {
@@ -228,30 +208,6 @@ impl Editor {
                 self.cursor_pos += 1;
             }
         }
-    }
-
-    /// Parse the fields of the editor back into the [`Config`].
-    fn save_to_config(&self, config: &mut Config) {
-        let builder =
-            self.fields
-                .iter()
-                .fold(ConfigBuilder::from(&*config), |builder, (key, val)| {
-                    if val.trim().is_empty() {
-                        builder
-                    } else {
-                        match *key {
-                            "title" => builder.title(val),
-                            "version" => builder.version(val),
-                            "machine_id" => builder.machine_id(val),
-                            "sort_key" => builder.sort_key(val),
-                            "options" => builder.options(val),
-                            "devicetree" => builder.devicetree_path(val),
-                            "architecture" => builder.architecture(val),
-                            "efi" => builder.efi_path(val),
-                            _ => builder,
-                        }
-                    }
-                });
-        *config = builder.build();
+        self.edit.update_selected(value);
     }
 }

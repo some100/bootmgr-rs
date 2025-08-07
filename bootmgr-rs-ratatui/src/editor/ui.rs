@@ -30,7 +30,7 @@ impl Editor {
             .borders(Borders::ALL)
             .style(Style::default());
         let title = Paragraph::new(Text::styled(
-            format!("Currently editing {}", self.fields[self.idx].0),
+            format!("Currently editing {}", self.edit.current_name()),
             self.theme.base,
         ))
         .block(title_block);
@@ -40,7 +40,8 @@ impl Editor {
 
     /// Displays the content of the current field.
     pub fn render_editor(&self, area: Rect, buf: &mut Buffer) {
-        let text = Line::raw(&self.fields[self.idx].1)
+        let value = self.edit.current_field();
+        let text = Line::raw(&value)
             .style(self.theme.base)
             .alignment(Alignment::Left);
 

@@ -10,8 +10,8 @@
 //!
 //! Examples of such drivers implementing [`SimpleFileSystem`] include those found in [efifs](https://efi.akeo.ie), which are built
 //! off of GRUB's drivers, as well as [Ext4Pkg](https://github.com/acidanthera/audk/tree/master/Ext4Pkg). This means that filesystems
-//! ranging from Ext4 to Btrfs and ZFS can be supported due to the pluggable nature of UEFI drivers. Note however that drivers must be 
-//! signed before loading.
+//! ranging from Ext4 to Btrfs and ZFS can be supported due to the pluggable nature of UEFI drivers. Note however that drivers must be
+//! signed before loading if you are using Secure Boot.
 //!
 //! This module also provides filesystem-related testing functions, like [`check_file_exists`].
 

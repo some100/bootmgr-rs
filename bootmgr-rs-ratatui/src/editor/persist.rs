@@ -85,7 +85,7 @@ impl PersistentConfig {
     }
 
     /// Check if the [`PersistentConfig`] contains a certain entry.
-    /// 
+    ///
     /// This compares the filename and origin of the [`Config`]s. If the filename
     /// and origin are both exactly the same, then it is most likely the same [`Config`].
     pub fn contains(&self, config: &Config) -> bool {
