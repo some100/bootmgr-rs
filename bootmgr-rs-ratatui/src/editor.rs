@@ -7,6 +7,7 @@
 //! specified in the overlay will be applied to the [`Config`] if it exists the next time it is booted. Generally, this
 //! will be done according to the filename of the [`Config`].
 
+use alloc::borrow::ToOwned;
 use ratatui_core::{layout::Position, terminal::Terminal};
 use uefi::{
     Event,
@@ -30,17 +31,28 @@ pub mod persist;
 mod ui;
 mod widget;
 
+/// The state of the editor.
+#[derive(Default, PartialEq, Eq)]
+pub enum EditorState {
+    /// The [`Editor`] is currently not open.
+    #[default]
+    Idle,
+
+    /// The [`Editor`] is currently open and is editing a field.
+    Editing,
+
+    /// The [`Editor`] is exiting, and is persisting the contents to the filesystem.
+    Persisting,
+
+    /// The [`Editor`] is exiting, and is deleting the contents from the filesystem.
+    Deleting,
+}
+
 /// The basic editor
 #[derive(Default)]
 pub struct Editor {
-    /// Checks if the editor is currently editing.
-    pub editing: bool,
-
-    /// Checks if the editor wants to persist the current [`Config`].
-    pub persisting: bool,
-
-    /// Checks if the editor wants to delete the current [`Config`] from the persist cache.
-    pub deleting: bool,
+    /// The state of the editor
+    pub state: EditorState,
 
     /// The [`ConfigEditor`].
     pub edit: ConfigEditor,
@@ -101,7 +113,7 @@ impl Editor {
 
         self.cursor_pos = self.edit.current_field().chars().count();
 
-        while self.editing {
+        while self.state == EditorState::Editing {
             self.draw(terminal)?;
 
             let cursor_pos = u16::try_from(self.cursor_pos).unwrap_or(u16::MAX);
@@ -113,16 +125,14 @@ impl Editor {
 
         self.edit.build(config);
 
-        if self.persisting {
+        if self.state == EditorState::Editing {
             if !self.persist.contains(config) {
                 self.persist.add_config_to_persist(config);
             }
             let _ = self.persist.save_to_fs();
-            self.persisting = false;
-        } else if self.deleting {
+        } else if self.state == EditorState::Deleting {
             self.persist.remove_config_from_persist(config);
             let _ = self.persist.save_to_fs();
-            self.persisting = false;
         }
 
         terminal.hide_cursor()?;
@@ -162,15 +172,13 @@ impl Editor {
     fn handle_special_key(&mut self, key: ScanCode) {
         match key {
             ScanCode::ESCAPE => {
-                self.editing = false;
+                self.state = EditorState::Idle;
             }
             ScanCode::FUNCTION_1 => {
-                self.persisting = true;
-                self.editing = false;
+                self.state = EditorState::Persisting;
             }
             ScanCode::FUNCTION_2 => {
-                self.deleting = true;
-                self.editing = false;
+                self.state = EditorState::Deleting;
             }
             ScanCode::UP => {
                 self.edit.prev_field();
@@ -195,7 +203,7 @@ impl Editor {
     /// If the key is a backspace, then it will remove the current value and push the cursor position back by one.
     /// If the key is anything else, then that key will be inserted into the current value.
     fn handle_printable_key(&mut self, key: char) {
-        let value = &mut self.edit.current_field();
+        let mut value = self.edit.current_field().to_owned();
         match key {
             '\x08' => {
                 if self.cursor_pos > 0 {
@@ -208,6 +216,6 @@ impl Editor {
                 self.cursor_pos += 1;
             }
         }
-        self.edit.update_selected(value);
+        self.edit.update_selected(&value);
     }
 }

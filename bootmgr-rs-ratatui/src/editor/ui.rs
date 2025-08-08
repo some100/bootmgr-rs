@@ -41,7 +41,7 @@ impl Editor {
     /// Displays the content of the current field.
     pub fn render_editor(&self, area: Rect, buf: &mut Buffer) {
         let value = self.edit.current_field();
-        let text = Line::raw(&value)
+        let text = Line::raw(value)
             .style(self.theme.base)
             .alignment(Alignment::Left);
 

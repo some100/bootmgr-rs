@@ -1,4 +1,8 @@
-//! Input
+//! Input protocol bindings for UEFI to Slint.
+//!
+//! This will expose printable keys as well as a subset of special keys to Slint, as well
+//! as the state of the mouse. In addition, it also provides a helper method
+//! [`MouseState::draw_cursor`].
 
 use bootmgr_rs_core::BootResult;
 use slint::{

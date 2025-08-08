@@ -43,14 +43,14 @@ struct SerializableConfig {
     origin: Option<String>,
 }
 
-impl From<Config> for SerializableConfig {
-    fn from(value: Config) -> Self {
+impl From<&Config> for SerializableConfig {
+    fn from(value: &Config) -> Self {
         Self {
-            title: value.title,
-            version: value.version,
+            title: value.title.clone(), // cloning the required members individually is faster than cloning the whole thing
+            version: value.version.clone(),
             machine_id: value.machine_id.as_deref().cloned(),
             sort_key: value.sort_key.as_deref().cloned(),
-            options: value.options,
+            options: value.options.clone(),
             devicetree_path: value.devicetree_path.as_deref().cloned(),
             architecture: value.architecture.as_deref().cloned(),
             efi_path: value.efi_path.as_deref().cloned(),
@@ -138,7 +138,7 @@ impl PersistentConfig {
     /// Add a [`Config`] into the [`PersistentConfig`] map.
     pub fn add_config_to_persist(&mut self, config: &Config) {
         self.configs
-            .insert(config.filename.clone(), config.clone().into());
+            .insert(config.filename.clone(), SerializableConfig::from(config));
     }
 
     /// Remove a [`Config`] from the [`PersistentConfig`] map.

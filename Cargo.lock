@@ -469,7 +469,7 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-minimal"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bootmgr-rs-core",
  "log",
@@ -478,7 +478,7 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-ratatui"
-version = "0.5.0"
+version = "0.2.0"
 dependencies = [
  "bootmgr-rs-core",
  "log",
@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-slint"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bootmgr-rs-core",
  "log",

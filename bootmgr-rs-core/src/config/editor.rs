@@ -79,8 +79,8 @@ impl ConfigEditor {
 
     /// Get the value of the current field.
     #[must_use = "Has no effect if the result is unused"]
-    pub fn current_field(&self) -> String {
-        self.fields[self.idx].1.clone()
+    pub fn current_field(&self) -> &str {
+        &self.fields[self.idx].1
     }
 
     /// Get the character count of the current field.

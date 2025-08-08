@@ -26,20 +26,28 @@ use uefi::{
 
 use crate::{
     MainError,
-    app::input::MouseState,
+    input::MouseState,
     ui::{SlintBltPixel, Ui, create_window, ueficolor_to_slintcolor},
 };
 
-mod input;
-
 /// The current status of the [`App`].
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub enum AppState {
     /// The app is currently booting an image.
     Booting,
 
     /// The app is currently running in its main loop.
+    #[default]
     Running,
+}
+
+#[derive(Clone, Copy, Default)]
+pub struct SharedState {
+    /// The index, or the currently selected item.
+    pub idx: usize,
+
+    /// The current state of the [`App`].
+    pub state: AppState,
 }
 
 /// The main application logic of the bootloader.
@@ -59,11 +67,8 @@ pub struct App {
     /// The [`GraphicsOutput`] of the application.
     pub gop: ScopedProtocol<GraphicsOutput>,
 
-    /// The list index, or the currently selected item
-    pub list_idx: Rc<Cell<usize>>,
-
-    /// The current state of the [`App`].
-    pub state: Rc<Cell<AppState>>,
+    /// The shared state between the UI and the Rust backend.
+    pub shared: Rc<Cell<SharedState>>,
 }
 
 impl App {
@@ -84,8 +89,7 @@ impl App {
 
         // All of this awkward Rc<Cell<T>> wrapping is so that these properties are shared with
         // slint in callbacks.
-        let list_idx = Rc::new(Cell::new(boot_mgr.get_default()));
-        let state = Rc::new(Cell::new(AppState::Running));
+        let shared = Rc::new(Cell::new(SharedState::default()));
 
         Ok(Self {
             boot_mgr,
@@ -93,8 +97,7 @@ impl App {
             input,
             mouse,
             gop,
-            list_idx,
-            state,
+            shared,
         })
     }
 
@@ -115,11 +118,15 @@ impl App {
         let (window, ui) = self.get_a_ui(w, h)?;
         let mut fb = vec![SlintBltPixel::new(); w * h];
 
-        let idx_clone = self.list_idx.clone();
-        let state_clone = self.state.clone();
+        let shared_weak = Rc::downgrade(&self.shared);
         ui.on_tryboot(move |x| {
-            idx_clone.set(usize::try_from(x).unwrap_or(0));
-            state_clone.set(AppState::Booting);
+            if let Some(shared) = shared_weak.upgrade() {
+                shared.update(|mut shared| {
+                    shared.idx = usize::try_from(x).unwrap_or(0);
+                    shared.state = AppState::Booting;
+                    shared
+                });
+            }
         });
 
         loop {
@@ -171,7 +178,7 @@ impl App {
                 });
             });
 
-            match self.state.get() {
+            match self.shared.get().state {
                 AppState::Booting => break Ok(self.maybe_boot()),
                 AppState::Running => (),
             }
@@ -181,14 +188,19 @@ impl App {
     /// Might try to boot the currently selected boot option, probably. Will return a handle to the loaded image
     /// if the image is loaded.
     ///
-    /// # Errors
-    ///
-    /// May return an `Error` if the terminal could not be cleared.
+    /// This will return [`None`] if the image could not be loaded. In the context of the main loop, this will
+    /// essentially result in the application exiting, or shutting down.
     fn maybe_boot(&mut self) -> Option<Handle> {
-        self.boot_mgr.load(self.list_idx.get()).ok()
+        self.boot_mgr.load(self.shared.get().idx).ok()
     }
 
-    /// Get an instance of the slint UI.
+    /// Get an instance of the Slint UI.
+    ///
+    /// This will set up all the necessary parameters and callbacks needed for the application to run with the
+    /// user interface. First, it sets the size of the window to the size parameters (which will usually be the GOP mode).
+    /// Then, it gets the images from the UI, and, for each [`Config`] in the [`BootMgr`], it will assign an image
+    /// given the origin of the [`Config`], then put those items back into the UI. Then theme settings from `BootConfig`
+    /// are applied. Finally, the list index and timeout are set to the application's values.
     pub fn get_a_ui(
         &self,
         w: usize,
@@ -200,6 +212,7 @@ impl App {
             u32::try_from(h).unwrap_or(0),
         ));
 
+        // this will return a list of every image and its associated parser, such as (img, bls).
         let images = ui.get_images();
 
         let items: Vec<_> = self
@@ -215,9 +228,11 @@ impl App {
             })
             .collect();
 
+        // slint requires that they be in ModelRc, for some reason
         let items_rc = Rc::new(VecModel::from(items));
         let boot_items = ModelRc::from(items_rc.clone());
 
+        // applying theme
         let boot_config = &self.boot_mgr.boot_config;
         let (fg, bg, h_foreground, h_background) = (
             ueficolor_to_slintcolor(boot_config.fg),
@@ -231,8 +246,9 @@ impl App {
         ui.set_highlight_fg(h_foreground);
         ui.set_highlight_bg(h_background);
 
+        // set up the rest of properties
         ui.set_items(boot_items.clone());
-        ui.set_listIdx(i32::try_from(self.list_idx.get()).unwrap_or(0));
+        ui.set_listIdx(i32::try_from(self.shared.get().idx).unwrap_or(0));
         ui.set_timeout(i32::try_from(self.timeout).unwrap_or(-1));
 
         Ok((window, ui))

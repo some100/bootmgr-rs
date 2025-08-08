@@ -77,7 +77,11 @@ Using xtask is still preferred, however.
 
 You should always run `cargo fmt` and `cargo xtask test` after every significant change is made. As with most Rust projects, the code should aim to be idiomatic Rust. 
 
-Usage of `clone` should be minimized, and used only if it is inexpensive to clone (i.e. when wrapped in an `Rc`) or if absolutely necessary and unlikely to impact performance (i.e. in error handling). A notable exception to this is `to_owned`, which might be necessary if you want to put an owned value in a struct but only have a reference. However, similarly to `clone`, it should not be overused, and for other cases you should look into seeing if a reference can be used in those situations instead.
+Usage of `clone` should be minimized, and used only if it is inexpensive to clone or if absolutely necessary and unlikely to impact performance. 
+
+The primary exception to this of course is reference counting smart pointers like `Rc`. Another exception to this is when cloning filenames for error handling, if the error type takes an owned `String`. This is necessary if the content of the error type must be dynamic and changing.
+
+A notable exception to this is `to_owned`, which might be necessary if you want to put an owned value in a struct but only have a reference. However, similarly to `clone`, it should not be overused, and for other cases you should look into seeing if a reference can be used in those situations instead.
 
 Always prefer borrowed types as arguments, and owned types as return values. This is unless you are planning to consume the owned type in the argument (if you are cloning immediately after, you should be using a reference). 
 
@@ -122,3 +126,5 @@ cargo fuzz run win
 ```
 
 Seed corpuses should be placed in the directory fuzz/corpus/`<FUZZER>`, where `<FUZZER>` is whichever parser you are fuzzing. If an unexpected panic or otherwise interesting result was found, it will be located in fuzz/artifacts/`<FUZZER>`.
+
+Once you find an interesting result, try to locate the origin of the result. If it was within this repository (for example, in the BLS parser), then an issue should be opened in this repo. If it was in a dependency crate, however (like nt-hive), then the issue should be opened within that respective crate's repository or bugtracker.

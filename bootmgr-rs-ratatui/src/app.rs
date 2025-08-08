@@ -15,6 +15,7 @@ use uefi::{
 
 use crate::{
     MainError,
+    editor::EditorState,
     features::editor::PersistentConfig,
     ui::{boot_list::BootList, ratatui_backend::UefiBackend, theme::Theme},
 };
@@ -209,7 +210,7 @@ impl App {
             Ok(handle) => Ok(Some(handle)),
             Err(e) => {
                 terminal.backend_mut().reset_color();
-                error!("{e}");
+                error!("Failed to load image: {e}");
                 boot::stall(ERROR_DELAY); // wait for 5 seconds so the error is visible
                 self.timeout = -1;
                 self.state = AppState::Running;
@@ -229,7 +230,7 @@ impl App {
         &mut self,
         terminal: &mut Terminal<UefiBackend>,
     ) -> Result<(), MainError> {
-        if self.editor.editing
+        if self.editor.state == EditorState::Editing
             && self.boot_mgr.boot_config.editor
             && let Some(option) = self.boot_list.state.selected()
         {
@@ -336,7 +337,7 @@ impl App {
             }
             '+' | '=' => self.set_default = !self.set_default,
             '\r' => self.state = AppState::Booting, // return key
-            'e' => self.editor.editing = true,
+            'e' => self.editor.state = EditorState::Editing,
             _ => (),
         }
         self.timeout = -1;
