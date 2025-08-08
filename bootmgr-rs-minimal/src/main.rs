@@ -8,7 +8,9 @@
 #![no_main]
 #![no_std]
 
-use anyhow::anyhow;
+extern crate alloc;
+
+use alloc::boxed::Box;
 use bootmgr_rs_core::{boot::BootMgr, error::BootError, system::log_backend::UefiLogger};
 use uefi::{
     prelude::*,
@@ -18,7 +20,7 @@ use uefi::{
 };
 
 /// The actual main function of the program, which returns an [`anyhow::Result`].
-fn main_func() -> anyhow::Result<Handle> {
+fn main_func() -> Result<Handle, Box<dyn core::error::Error>> {
     uefi::helpers::init().map_err(BootError::Uefi)?; // initialize helpers (for print)
     with_stdout(Output::clear)?;
     let _ = log::set_logger(UefiLogger::static_new())
@@ -36,7 +38,7 @@ fn main_func() -> anyhow::Result<Handle> {
 
     let mut events = [input
         .wait_for_key_event()
-        .ok_or(anyhow!("Failed to get key event from input"))?];
+        .ok_or("Failed to get key event from input")?];
     loop {
         boot::wait_for_event(&mut events)?; // wait for a key press
 

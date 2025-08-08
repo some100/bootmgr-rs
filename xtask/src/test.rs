@@ -24,8 +24,7 @@ pub fn test_on_host() -> anyhow::Result<()> {
     cmd!(
         "cargo",
         "clippy",
-        "--features",
-        "global_allocator,panic_handler",
+        "--all-features",
         "--",
         "-C",
         "panic=abort"

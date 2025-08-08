@@ -9,6 +9,19 @@
 //! - BOOTx64.efi, BOOTia32.efi, BOOTaa32.efi, BOOTaa64.efi.
 //! - shellx64.efi
 //! - boot.efi (macOS)
+//!
+//! These parsers are all feature gated. This is to avoid too much code size and bloat if the user doesn't have
+//! macOS or UKIs on their system, for example, or didn't have Windows. It will also avoid having to scan filesystems
+//! In that case, one can simply build this workspace with `--no-default-features`, then specify the parsers that are
+//! applicable to their system. The features are as follows:
+//! - bls
+//! - fallback
+//! - osx
+//! - shell
+//! - uki
+//! - windows
+//!
+//! You can enable or disable these features in accordance with your requirements.
 
 use alloc::vec::Vec;
 use uefi::{Handle, boot::ScopedProtocol, proto::media::fs::SimpleFileSystem};

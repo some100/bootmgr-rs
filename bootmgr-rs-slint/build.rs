@@ -18,7 +18,6 @@ const REQUIRED_FILES: [&str; 7] = [
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
 
-    #[allow(clippy::never_loop)]
     for file in REQUIRED_FILES {
         let file = manifest_dir.join(file);
         assert!(

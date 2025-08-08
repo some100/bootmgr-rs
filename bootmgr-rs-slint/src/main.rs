@@ -4,11 +4,7 @@
 
 extern crate alloc;
 
-use core::cell::{Cell, RefCell};
-
-use alloc::rc::Rc;
 use bootmgr_rs_core::error::BootError;
-use slint::ComponentHandle;
 use thiserror::Error;
 use uefi::{Handle, ResultExt, Status, boot::start_image, entry};
 
@@ -35,22 +31,8 @@ fn main_func() -> Result<Option<Handle>, MainError> {
     // If the image was simply booted directly from the tryboot function, then it would result in this program
     // still holding on to GOP and other protocols, which in the case of loading this program again, would result
     // in a panic.
-    let app = Rc::new(RefCell::new(App::new()?)); // yeah....
-    let boot_mgr = app.borrow().boot_mgr.clone();
-
-    let image = Rc::new(Cell::new(None));
-    let image_weak = Rc::downgrade(&image);
-
-    #[allow(clippy::cast_sign_loss)]
-    app.borrow_mut().ui.on_tryboot(move |x| {
-        if let Some(image) = image_weak.upgrade() {
-            image.set(boot_mgr.borrow_mut().load(x as usize).ok());
-            let _ = slint::quit_event_loop();
-        }
-    });
-    app.borrow().ui.run().map_err(MainError::SlintError)?;
-
-    Ok(image.take())
+    let mut app = App::new()?;
+    app.run()
 }
 
 #[entry]
