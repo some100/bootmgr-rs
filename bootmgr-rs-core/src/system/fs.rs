@@ -3,15 +3,18 @@
 //! These mostly wrap around the UEFI [`SimpleFileSystem`] protocol to make an interface that's slightly more
 //! intuitive and more in line with the Rust standard library.
 //!
-//! This is mainly intended for FAT filesystems (hence the assumption in `helper.rs` that the max path is 256 chars in length).
-//! However, [`SimpleFileSystem`] is also abstractable over filesystems of other types. This is only possible with UEFI drivers,
-//! so if a filesystem other than FAT needs to be supported, then the appropriate driver implementing [`SimpleFileSystem`] should
-//! be put in the drivers directory.
+//! These filesystem helpers are guaranteed to support FAT filesystems. This is mandated by the UEFI specification. However, UEFI firmwares
+//! are not forced to support solely FAT32. It is perfectly possible and even simple to support non FAT filesystems, using EFI filesystem
+//! drivers.
 //!
 //! Examples of such drivers implementing [`SimpleFileSystem`] include those found in [efifs](https://efi.akeo.ie), which are built
 //! off of GRUB's drivers, as well as [Ext4Pkg](https://github.com/acidanthera/audk/tree/master/Ext4Pkg). This means that filesystems
 //! ranging from Ext4 to Btrfs and ZFS can be supported due to the pluggable nature of UEFI drivers. Note however that drivers must be
-//! signed before loading if you are using Secure Boot.
+//! signed before loading if you are using Secure Boot (or enrolled with MOK if you're using a custom Shim build).
+//!
+//! These drivers can be installed in `\EFI\BOOT\drivers` of the same EFI partition as `bootmgr-rs`, and `bootmgr-rs` will automatically
+//! load those drivers for usage in scanning for `Config`s. Alternatively, if the firmware supports those filesystems in the first place,
+//! then `bootmgr-rs` will already be able to scan those drivers. You also have to explicitly enable those drivers in `BootConfig`.
 //!
 //! This module also provides filesystem-related testing functions, like [`UefiFileSystem::exists`].
 
@@ -32,7 +35,7 @@ use uefi::{
     },
 };
 
-use crate::{BootResult, error::BootError, system::helper::str_to_cstr};
+use crate::{BootResult, system::helper::str_to_cstr};
 
 /// The partition GUID of an `XBOOTLDR` partition.
 const XBOOTLDR_PARTITION: uefi::Guid = guid!("bc13c2ff-59e6-4262-a352-b275fd6f7172");
@@ -53,6 +56,26 @@ pub enum FsError {
         /// The amount of bytes that were written.
         bytes: usize,
     },
+
+    /// A file could not be opened.
+    #[error("Failed to open file")]
+    OpenErr(Status),
+
+    /// A file could not be read.
+    #[error("Failed to read file")]
+    ReadErr(Status),
+
+    /// A file could not be deleted.
+    #[error("Failed to delete file")]
+    DeleteErr(Status),
+
+    /// A seek operation was attempted to be made on a deleted file
+    #[error("Could not set position of a deleted file")]
+    SeekErr,
+
+    /// Failed to get a volume label on a partition.
+    #[error("Could not get volume label of a partition")]
+    VolumeLabelErr,
 }
 
 /// A rust-ier wrapper around [`SimpleFileSystem`].
@@ -95,9 +118,14 @@ impl UefiFileSystem {
     /// # Errors
     ///
     /// May return an `Error` if the volume could not be opened, or the volume does not support [`FileSystemVolumeLabel`]
-    pub fn get_volume_label(&mut self) -> BootResult<CString16> {
-        let mut root = self.0.open_volume()?;
-        let info = root.get_boxed_info::<FileSystemVolumeLabel>()?;
+    pub fn get_volume_label(&mut self) -> Result<CString16, FsError> {
+        let mut root = self
+            .0
+            .open_volume()
+            .map_err(|x| FsError::OpenErr(x.status()))?;
+        let info = root
+            .get_boxed_info::<FileSystemVolumeLabel>()
+            .map_err(|_| FsError::VolumeLabelErr)?;
         Ok(info.volume_label().to_owned())
     }
 
@@ -132,7 +160,7 @@ impl UefiFileSystem {
     /// # Errors
     ///
     /// May return an `Error` if the path does not exist.
-    pub fn read_dir(&mut self, path: &CStr16) -> BootResult<UefiDirectoryIter> {
+    pub fn read_dir(&mut self, path: &CStr16) -> Result<UefiDirectoryIter, FsError> {
         Ok(UefiDirectoryIter::new(self.get_directory(path)?))
     }
 
@@ -171,16 +199,18 @@ impl UefiFileSystem {
     /// May return an `Error` if the volume couldn't be opened, the path does not point to a valid file,
     /// the file could not be read for any reason, or the buffer was too small. If the buffer was too small,
     /// the amount of bytes required is returned.
-    pub fn read_into(&mut self, path: &CStr16, buf: &mut [u8]) -> BootResult<usize> {
+    pub fn read_into(&mut self, path: &CStr16, buf: &mut [u8]) -> Result<usize, FsError> {
         let mut file = self.get_regular_file(path)?;
 
-        let info = file.get_boxed_info::<FileInfo>()?;
+        let info = file
+            .get_boxed_info::<FileInfo>()
+            .map_err(|e| FsError::ReadErr(e.status()))?;
 
         let size = usize::try_from(info.file_size()).unwrap_or(usize::MAX);
 
-        let read = file.read(buf)?;
+        let read = file.read(buf).map_err(|e| FsError::ReadErr(e.status()))?;
         if read != size {
-            return Err(FsError::BufTooSmall(size).into());
+            return Err(FsError::BufTooSmall(size));
         }
 
         Ok(read)
@@ -194,15 +224,18 @@ impl UefiFileSystem {
     ///
     /// May return an `Error` if the volume couldn't be opened, the path does not point to a valid file, or
     /// the file could not be read for any reason.
-    pub fn read(&mut self, path: &CStr16) -> BootResult<Vec<u8>> {
+    pub fn read(&mut self, path: &CStr16) -> Result<Vec<u8>, FsError> {
         let mut file = self.get_regular_file(path)?;
 
-        let info = file.get_boxed_info::<FileInfo>()?;
+        let info = file
+            .get_boxed_info::<FileInfo>()
+            .map_err(|e| FsError::ReadErr(e.status()))?;
 
         let size = usize::try_from(info.file_size()).unwrap_or(usize::MAX);
 
         let mut buf = vec![0; size];
-        file.read(&mut buf)?;
+        file.read(&mut buf)
+            .map_err(|e| FsError::ReadErr(e.status()))?;
 
         Ok(buf)
     }
@@ -216,7 +249,7 @@ impl UefiFileSystem {
     ///
     /// May return an `Error` if the volume couldn't be opened, any of the two paths don't point to a valid file,
     /// the source file could not be read, or the source file could not be deleted.
-    pub fn rename(&mut self, src: &CStr16, dst: &CStr16) -> BootResult<()> {
+    pub fn rename(&mut self, src: &CStr16, dst: &CStr16) -> Result<(), FsError> {
         let _ = self.delete(dst);
         let _ = self.create(dst); // this way if dst exists or not, it will be created anyways
         let src_data = self.read(src)?;
@@ -229,7 +262,7 @@ impl UefiFileSystem {
             bytes: *e.data(),
         })?;
 
-        src.delete()?;
+        src.delete().map_err(|e| FsError::DeleteErr(e.status()))?;
 
         Ok(())
     }
@@ -239,9 +272,15 @@ impl UefiFileSystem {
     /// # Errors
     ///
     /// May return an `Error` if the volume could not be opened.
-    pub fn create(&mut self, path: &CStr16) -> BootResult<()> {
-        let mut root = self.0.open_volume()?;
-        let f = root.open(path, FileMode::CreateReadWrite, FileAttribute::empty())?;
+    pub fn create(&mut self, path: &CStr16) -> Result<(), FsError> {
+        let mut root = self
+            .0
+            .open_volume()
+            .map_err(|x| FsError::OpenErr(x.status()))?;
+        let f = root
+            .open(path, FileMode::CreateReadWrite, FileAttribute::empty())
+            .map_err(|e| FsError::OpenErr(e.status()))?;
+
         if let Some(mut f) = f.into_regular_file() {
             let buf = [0; 0];
             let _ = f.write(&buf);
@@ -254,7 +293,7 @@ impl UefiFileSystem {
     /// # Errors
     ///
     /// May return an `Error` if the volume couldn't be opened, or the file does not exist.
-    pub fn write(&mut self, path: &CStr16, buffer: &[u8]) -> BootResult<()> {
+    pub fn write(&mut self, path: &CStr16, buffer: &[u8]) -> Result<(), FsError> {
         let mut file = self.get_mut_file(path)?;
 
         file.write(buffer).map_err(|e| FsError::WriteErr {
@@ -275,7 +314,8 @@ impl UefiFileSystem {
     /// May return an `Error` if the volume couldn't be opened, or the file does not exist.
     pub fn append(&mut self, path: &CStr16, buffer: &[u8]) -> BootResult<()> {
         let mut file = self.get_mut_file(path)?;
-        file.set_position(RegularFile::END_OF_FILE)?;
+        file.set_position(RegularFile::END_OF_FILE)
+            .map_err(|_| FsError::SeekErr)?;
 
         file.write(buffer).map_err(|e| FsError::WriteErr {
             status: e.status(),
@@ -291,9 +331,9 @@ impl UefiFileSystem {
     ///
     /// May return an `Error` if the volume couldn't be opened, the path does not point to a valid file,
     /// or the file could not be deleted.
-    pub fn delete(&mut self, path: &CStr16) -> BootResult<()> {
+    pub fn delete(&mut self, path: &CStr16) -> Result<(), FsError> {
         let file = self.get_mut_file(path)?;
-        file.delete()?;
+        file.delete().map_err(|e| FsError::DeleteErr(e.status()))?;
 
         Ok(())
     }
@@ -303,11 +343,15 @@ impl UefiFileSystem {
     /// # Errors
     ///
     /// May return an `Error` if the volume couldn't be opened, or the path does not point to a file.
-    fn get_regular_file(&mut self, path: &CStr16) -> BootResult<RegularFile> {
-        let mut root = self.0.open_volume()?;
-        root.open(path, FileMode::Read, FileAttribute::empty())?
+    fn get_regular_file(&mut self, path: &CStr16) -> Result<RegularFile, FsError> {
+        let mut root = self
+            .0
+            .open_volume()
+            .map_err(|e| FsError::OpenErr(e.status()))?;
+        root.open(path, FileMode::Read, FileAttribute::empty())
+            .map_err(|e| FsError::OpenErr(e.status()))?
             .into_regular_file()
-            .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
+            .ok_or(FsError::OpenErr(Status::INVALID_PARAMETER))
     }
 
     /// Gets a handle to a [`RegularFile`] that is writable in the filesystem.
@@ -315,11 +359,15 @@ impl UefiFileSystem {
     /// # Errors
     ///
     /// May return an `Error` if the volume couldn't be opened, or the path does not point to a file.
-    fn get_mut_file(&mut self, path: &CStr16) -> BootResult<RegularFile> {
-        let mut root = self.0.open_volume()?;
-        root.open(path, FileMode::ReadWrite, FileAttribute::empty())?
+    fn get_mut_file(&mut self, path: &CStr16) -> Result<RegularFile, FsError> {
+        let mut root = self
+            .0
+            .open_volume()
+            .map_err(|e| FsError::OpenErr(e.status()))?;
+        root.open(path, FileMode::ReadWrite, FileAttribute::empty())
+            .map_err(|e| FsError::OpenErr(e.status()))?
             .into_regular_file()
-            .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
+            .ok_or(FsError::OpenErr(Status::INVALID_PARAMETER))
     }
 
     /// Gets a handle to a [`Directory`] in the filesystem.
@@ -327,11 +375,15 @@ impl UefiFileSystem {
     /// # Errors
     ///
     /// May return an `Error` if the volume couldn't be opened, or the path does not point to a folder.
-    fn get_directory(&mut self, path: &CStr16) -> BootResult<Directory> {
-        let mut root = self.0.open_volume()?;
-        root.open(path, FileMode::Read, FileAttribute::empty())?
+    fn get_directory(&mut self, path: &CStr16) -> Result<Directory, FsError> {
+        let mut root = self
+            .0
+            .open_volume()
+            .map_err(|e| FsError::OpenErr(e.status()))?;
+        root.open(path, FileMode::ReadWrite, FileAttribute::empty())
+            .map_err(|e| FsError::OpenErr(e.status()))?
             .into_directory()
-            .ok_or_else(|| BootError::Uefi(Status::INVALID_PARAMETER.into()))
+            .ok_or(FsError::OpenErr(Status::INVALID_PARAMETER))
     }
 }
 

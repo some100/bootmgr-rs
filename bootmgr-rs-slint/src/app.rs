@@ -110,6 +110,11 @@ impl App {
     /// The "super-loop" style of UI is used here, since it is overall more aligned with
     /// the other applications. Once it is finished, it will return a [`Handle`] to a loaded application.
     ///
+    /// This also handles the graphical drawing. It maintains a framebuffer the size of the screen, and blits those pixels
+    /// onto the screen every frame. This is not hardware accelerated, mainly because GOP is the only available, truly cross
+    /// platform and firmware protocol that we have. For the purposes of rendering a graphical boot picker UI, hardware
+    /// acceleration is not necessary. The animations will still look smooth.
+    ///
     /// # Errors
     ///
     /// May return an `Error` if the state of the keyboard could not be successfully communicated to the slint Window,

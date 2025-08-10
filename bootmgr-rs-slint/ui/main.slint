@@ -17,7 +17,7 @@ export component Ui inherits Window {
         { parser: "special", image: @image-url("icons/special.png") },
     ];
     in-out property <[{ title: string, image: image }]> items;
-    in-out property <int> listIdx: 0;
+    in-out property <int> listIdx;
     in-out property <int> timeout;
     in-out property <bool> now_booting;
 

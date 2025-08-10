@@ -20,6 +20,8 @@ use uefi::{
 };
 
 /// The actual main function of the program, which returns a [`Result`].
+///
+/// `Box<dyn core::error::Error>` is used here mainly for simplicity purposes (we simply will propagate all these errors).
 fn main_func() -> Result<Handle, Box<dyn core::error::Error>> {
     uefi::helpers::init().map_err(BootError::Uefi)?; // initialize helpers (for print)
     with_stdout(Output::clear)?;

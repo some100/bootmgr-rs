@@ -8,8 +8,8 @@
 //!    in UEFI as it is a completely single threaded environment. Therefore, it is safe.
 //! 2. See point 1.
 //! 3. Inline assembly is practically always unsafe, however this specific segment is safe as it only reads from `CNTVCT_EL0`,
-//!    which is the frequency of the timer.
-//! 4. See point 3, but replace `CNTVCT_EL0` with `CNTFRQ_EL0`
+//!    which is the counter of the timer.
+//! 4. See point 3, but replace `CNTVCT_EL0` with `CNTFRQ_EL0` and "counter" with "frequency".
 
 #![allow(
     clippy::missing_docs_in_private_items,

@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.3.0] - 2025-08-10
+
+### Changed
+
+- Improved documentation.
+- Slint `listIdx` is now set exclusively by Rust.
+
+## bootmgr-rs-ratatui - [0.3.0] - 2025-08-10
+
+### Added
+
+- New indicator for bad boot entries.
+
+## bootmgr-rs-core - [0.6.0] - 2025-08-10
+
+### Added
+
+- More error variants added to `FsError`.
+
+### Changed
+
+- Improved documentation.
+- `BootConfig` file errors are now propagated, unless the error was file not found.
+- `UefiFileSystem` methods now return `Result<T, FsError>`. (BREAKING)
+
 ## bootmgr-rs-core - [0.5.0] - 2025-08-10
 
 ### Added

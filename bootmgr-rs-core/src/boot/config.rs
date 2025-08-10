@@ -39,12 +39,14 @@
 //! from this color type.
 
 use alloc::{borrow::ToOwned, string::String};
-use log::warn;
-use uefi::{CStr16, cstr16, proto::console::text::Color};
+use uefi::{CStr16, Status, cstr16, proto::console::text::Color};
 
 use crate::{
     BootResult,
-    system::{fs::UefiFileSystem, helper::normalize_path},
+    system::{
+        fs::{FsError, UefiFileSystem},
+        helper::normalize_path,
+    },
 };
 
 /// The hardcoded configuration path for the [`BootConfig`].
@@ -98,10 +100,8 @@ impl BootConfig {
             let mut buf = [0; 4096]; // a config file over 4096 bytes is very unusual and is not supported
             let bytes = match fs.read_into(CONFIG_PATH, &mut buf) {
                 Ok(bytes) => bytes,
-                Err(e) => {
-                    warn!("{e}");
-                    return Ok(Self::default());
-                }
+                Err(FsError::OpenErr(Status::NOT_FOUND)) => return Ok(Self::default()),
+                Err(e) => return Err(e.into()),
             };
 
             return Ok(Self::get_boot_config(&buf, Some(bytes)));

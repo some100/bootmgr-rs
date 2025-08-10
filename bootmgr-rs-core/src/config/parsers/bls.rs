@@ -250,8 +250,8 @@ fn get_bls_config(
     // the size of the file.
     let (bytes, buf) = match read_result {
         Ok(bytes) => (bytes, &buf[..]),
-        Err(BootError::FsError(FsError::BufTooSmall(bytes))) => (bytes, &fs.read(&path)?[..]),
-        Err(e) => return Err(e),
+        Err(FsError::BufTooSmall(bytes)) => (bytes, &fs.read(&path)?[..]),
+        Err(e) => return Err(BootError::FsError(e)),
     };
 
     let bls_config = BlsConfig::new(buf, Some(bytes));
