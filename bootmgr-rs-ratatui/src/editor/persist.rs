@@ -4,10 +4,10 @@ use alloc::{borrow::ToOwned, collections::btree_map::BTreeMap, string::String};
 use bootmgr_rs_core::{
     BootResult,
     config::{Config, builder::ConfigBuilder, parsers::Parsers},
-    system::fs::{create, read, write},
+    system::fs::UefiFileSystem,
 };
 use serde::{Deserialize, Serialize};
-use uefi::{CStr16, boot, cstr16};
+use uefi::{CStr16, cstr16};
 
 /// The path where the persistent [`Config`]s are stored.
 const PERSISTENT_CONFIG_PATH: &CStr16 = cstr16!("\\loader\\bootmgr-rs-saved.conf");
@@ -75,8 +75,9 @@ impl PersistentConfig {
     pub fn new() -> BootResult<Self> {
         let mut configs = Self::default();
 
-        let mut fs = boot::get_image_file_system(boot::image_handle())?;
-        if let Ok(content) = read(&mut fs, PERSISTENT_CONFIG_PATH)
+        let mut fs = UefiFileSystem::from_image_fs()?;
+
+        if let Ok(content) = fs.read(PERSISTENT_CONFIG_PATH)
             && let Ok(content) = postcard::from_bytes(&content)
         {
             configs.configs = content;
@@ -97,11 +98,12 @@ impl PersistentConfig {
 
     /// Save the [`Config`]s in the [`PersistentConfig`] to the filesystem.
     pub fn save_to_fs(&self) -> BootResult<()> {
-        let mut fs = boot::get_image_file_system(boot::image_handle())?;
-        create(&mut fs, PERSISTENT_CONFIG_PATH)?;
+        let mut fs = UefiFileSystem::from_image_fs()?;
+
+        fs.create(PERSISTENT_CONFIG_PATH)?;
 
         if let Ok(content) = postcard::to_allocvec(&self.configs) {
-            write(&mut fs, PERSISTENT_CONFIG_PATH, &content)?;
+            fs.write(PERSISTENT_CONFIG_PATH, &content)?;
         }
         Ok(())
     }

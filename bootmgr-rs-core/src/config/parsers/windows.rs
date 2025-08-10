@@ -4,7 +4,7 @@ use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use log::warn;
 use nt_hive::{Hive, KeyNode};
 use thiserror::Error;
-use uefi::{CStr16, Handle, boot::ScopedProtocol, cstr16, proto::media::fs::SimpleFileSystem};
+use uefi::{CStr16, Handle, cstr16};
 
 use crate::{
     BootResult,
@@ -13,10 +13,7 @@ use crate::{
         builder::ConfigBuilder,
         parsers::{ConfigParser, Parsers},
     },
-    system::{
-        fs::{check_file_exists, read},
-        helper::get_path_cstr,
-    },
+    system::{fs::UefiFileSystem, helper::get_path_cstr},
 };
 
 /// The configuration prefix.
@@ -139,15 +136,11 @@ impl Default for WinConfig {
 }
 
 impl ConfigParser for WinConfig {
-    fn parse_configs(
-        fs: &mut ScopedProtocol<SimpleFileSystem>,
-        handle: Handle,
-        configs: &mut Vec<Config>,
-    ) {
+    fn parse_configs(fs: &mut UefiFileSystem, handle: Handle, configs: &mut Vec<Config>) {
         let Ok(path) = get_path_cstr(WIN_PREFIX, cstr16!("BCD")) else {
             return;
         };
-        if check_file_exists(fs, &path) {
+        if fs.exists(&path) {
             match get_win_config(fs, handle) {
                 Ok(config) => configs.push(config),
                 Err(e) => warn!("{e}"),
@@ -156,9 +149,9 @@ impl ConfigParser for WinConfig {
     }
 }
 
-/// Parse a BLS file given a [`SimpleFileSystem`] protocol, and a handle to that protocol.
-fn get_win_config(fs: &mut ScopedProtocol<SimpleFileSystem>, handle: Handle) -> BootResult<Config> {
-    let content = read(fs, &get_path_cstr(WIN_PREFIX, cstr16!("BCD"))?)?;
+/// Parse a BLS file given a [`UefiFileSystem`], and a handle to that protocol's underlying [`SimpleFileSystem`].
+fn get_win_config(fs: &mut UefiFileSystem, handle: Handle) -> BootResult<Config> {
+    let content = fs.read(&get_path_cstr(WIN_PREFIX, cstr16!("BCD"))?)?;
 
     let win_config = WinConfig::new(&content)?;
 

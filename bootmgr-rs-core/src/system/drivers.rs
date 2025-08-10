@@ -16,7 +16,7 @@ use crate::{
     BootResult,
     boot::secure_boot::shim::shim_load_image,
     system::{
-        fs::read_filtered_dir,
+        fs::UefiFileSystem,
         helper::{get_path_cstr, join_to_device_path, str_to_cstr},
     },
 };
@@ -71,8 +71,9 @@ pub(crate) fn load_drivers(drivers: bool, driver_path: &str) -> BootResult<()> {
         return Ok(());
     }
     let driver_path = str_to_cstr(driver_path)?;
-    let mut fs = boot::get_image_file_system(boot::image_handle())?;
-    let dir = read_filtered_dir(&mut fs, &driver_path, ".efi");
+    let mut fs = UefiFileSystem::from_image_fs()?;
+
+    let dir = fs.read_filtered_dir(&driver_path, ".efi");
 
     // it should be rare for a devicepath to be greater than 2048 bytes. this is a generous amount that should cover
     // for most cases

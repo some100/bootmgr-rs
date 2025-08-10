@@ -22,7 +22,7 @@ use crate::{
         types::{Architecture, DevicetreePath, EfiPath, FsHandle, MachineId, SortKey},
     },
     system::{
-        fs::{check_file_exists_str, is_target_partition},
+        fs::{UefiFileSystem, is_target_partition},
         helper::get_arch,
     },
 };
@@ -214,15 +214,16 @@ impl Config {
     /// May return an `Error` if the paths do not exist in the filesystem when they are in the [`Config`].
     fn validate_paths(&self) -> Result<(), ConfigError> {
         if let Some(handle) = self.fs_handle {
-            let mut fs = boot::open_protocol_exclusive(*handle)
+            let mut fs = UefiFileSystem::from_handle(*handle)
                 .expect("FsHandle should always support SimpleFileSystem");
+
             if let Some(efi_path) = &self.efi_path
-                && !check_file_exists_str(&mut fs, efi_path).unwrap_or(false)
+                && !fs.exists_str(efi_path).unwrap_or(false)
             {
                 return Err(ConfigError::NotExist("EFI", (**efi_path).clone()));
             }
             if let Some(devicetree_path) = &self.devicetree_path
-                && !check_file_exists_str(&mut fs, devicetree_path).unwrap_or(false)
+                && !fs.exists_str(devicetree_path).unwrap_or(false)
             {
                 return Err(ConfigError::NotExist(
                     "Devicetree",
@@ -253,7 +254,8 @@ pub fn scan_configs() -> BootResult<Vec<Config>> {
             continue;
         }
 
-        let mut fs = boot::open_protocol_exclusive(handle)?;
+        let mut fs = UefiFileSystem::from_handle(handle)?;
+
         parse_all_configs(&mut fs, handle, &mut configs);
     }
 

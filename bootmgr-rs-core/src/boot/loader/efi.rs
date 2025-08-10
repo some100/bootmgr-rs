@@ -20,13 +20,16 @@ use crate::{
         secure_boot::shim::shim_load_image,
     },
     config::Config,
-    system::helper::{join_to_device_path, str_to_cstr},
+    system::{
+        fs::UefiFileSystem,
+        helper::{join_to_device_path, str_to_cstr},
+    },
 };
 
 use uefi::{
     CStr16, CString16, Handle,
     boot::{self, ScopedProtocol},
-    proto::{device_path::DevicePath, loaded_image::LoadedImage, media::fs::SimpleFileSystem},
+    proto::{device_path::DevicePath, loaded_image::LoadedImage},
 };
 
 /// An instance of `LoadOptions` that remains for the lifetime of the program.
@@ -98,7 +101,7 @@ pub(crate) fn load_boot_option(config: &Config) -> BootResult<Handle> {
         .fs_handle
         .ok_or_else(|| LoadError::ConfigMissingHandle(config.filename.clone()))?;
 
-    let mut fs = boot::open_protocol_exclusive(handle)?;
+    let mut fs = UefiFileSystem::from_handle(handle)?;
 
     let file = get_efi(config)?;
 
@@ -132,11 +135,7 @@ fn load_image_from_path(handle: Handle, path: &CStr16) -> BootResult<Handle> {
 ///
 /// May return an `Error` if the image does not support [`LoadedImage`], or, if a devicetree
 /// is present, the devicetree could not be installed.
-fn setup_image(
-    fs: &mut ScopedProtocol<SimpleFileSystem>,
-    handle: Handle,
-    config: &Config,
-) -> BootResult<Handle> {
+fn setup_image(fs: &mut UefiFileSystem, handle: Handle, config: &Config) -> BootResult<Handle> {
     if let Some(devicetree) = &config.devicetree_path {
         install_devicetree(devicetree, fs)?;
     }

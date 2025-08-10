@@ -1,7 +1,7 @@
 //! An auto detector for the fallback boot loader (BOOTx64.efi, etc.)
 
 use alloc::{format, vec::Vec};
-use uefi::{CStr16, Handle, boot::ScopedProtocol, cstr16, proto::media::fs::SimpleFileSystem};
+use uefi::{CStr16, Handle, cstr16};
 
 use crate::{
     config::{
@@ -10,7 +10,7 @@ use crate::{
         parsers::{ConfigParser, Parsers},
     },
     system::{
-        fs::{check_file_exists, get_volume_label},
+        fs::UefiFileSystem,
         helper::{get_arch, get_path_cstr, str_to_cstr},
     },
 };
@@ -25,11 +25,7 @@ const FALLBACK_SUFFIX: &str = ".efi";
 pub struct FallbackConfig;
 
 impl ConfigParser for FallbackConfig {
-    fn parse_configs(
-        fs: &mut ScopedProtocol<SimpleFileSystem>,
-        handle: Handle,
-        configs: &mut Vec<Config>,
-    ) {
+    fn parse_configs(fs: &mut UefiFileSystem, handle: Handle, configs: &mut Vec<Config>) {
         let filename = match get_arch().as_deref().map(alloc::string::String::as_str) {
             Some("x86") => "BOOTia32.efi",
             Some("x64") => "BOOTx64.efi",
@@ -46,8 +42,8 @@ impl ConfigParser for FallbackConfig {
             return; // this also should not fail, since this path is hardcoded and valid
         };
 
-        if check_file_exists(fs, &path)
-            && let Ok(volume_label) = get_volume_label(fs)
+        if fs.exists(&path)
+            && let Ok(volume_label) = fs.get_volume_label()
         {
             let efi_path = format!("{FALLBACK_PREFIX}\\{filename}");
             let title = if volume_label.is_empty() {

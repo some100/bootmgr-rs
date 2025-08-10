@@ -20,7 +20,7 @@ use uefi::{
 use crate::{
     BootResult,
     boot::secure_boot::{SecureBootError, SecurityOverrideGuard, secure_boot_enabled},
-    system::{fs::read, helper::device_path_to_text, protos::ShimImageLoader},
+    system::{fs::UefiFileSystem, helper::device_path_to_text, protos::ShimImageLoader},
 };
 
 /// Checks an image using [`ShimLock`] protocol when provided the [`DevicePath`].
@@ -34,10 +34,10 @@ fn validate_from_device_path(
     shim: &mut ScopedProtocol<ShimLock>,
 ) -> BootResult<()> {
     let handle = boot::locate_device_path::<SimpleFileSystem>(&mut device_path)?;
-    let mut fs = boot::open_protocol_exclusive::<SimpleFileSystem>(handle)?;
+    let mut fs = UefiFileSystem::from_handle(handle)?;
 
     let path = device_path_to_text(device_path)?;
-    let file_buffer = read(&mut fs, &path)?;
+    let file_buffer = fs.read(&path)?;
 
     Ok(shim.verify(&file_buffer)?)
 }

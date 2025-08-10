@@ -27,12 +27,11 @@ use core::ptr::{NonNull, copy_nonoverlapping};
 
 use thiserror::Error;
 use uefi::boot::ScopedProtocol;
-use uefi::proto::media::fs::SimpleFileSystem;
 use uefi::{guid, prelude::*};
 
 use crate::BootResult;
 use crate::error::BootError;
-use crate::system::fs::read;
+use crate::system::fs::UefiFileSystem;
 use crate::system::helper::{get_arch, normalize_path, str_to_cstr};
 use crate::system::protos::DevicetreeFixup;
 
@@ -230,16 +229,13 @@ fn fixup_devicetree(devicetree: &mut DevicetreeGuard) -> BootResult<()> {
 /// May return an `Error` if the devicetree path is not valid, the handle does not
 /// support [`SimpleFileSystem`], or memory allocation fails. If there is failure
 /// anywhere after memory is allocated, then the data is freed.
-pub(super) fn install_devicetree(
-    devicetree: &str,
-    fs: &mut ScopedProtocol<SimpleFileSystem>,
-) -> BootResult<()> {
+pub(super) fn install_devicetree(devicetree: &str, fs: &mut UefiFileSystem) -> BootResult<()> {
     if matches!(
         get_arch().as_deref().map(alloc::string::String::as_str),
         Some("arm" | "aa64") // these are the only archs requiring devicetree supported by both uefi and rust
     ) {
         let path = str_to_cstr(&normalize_path(devicetree))?;
-        let f = read(fs, &path)?;
+        let f = fs.read(&path)?;
 
         let mut devicetree = DevicetreeGuard::new(&f, None)?;
 

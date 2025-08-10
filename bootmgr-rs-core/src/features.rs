@@ -24,15 +24,14 @@ macro_rules! optional_config {
         /// The disabled parser for $config
         #[cfg(not(feature = $feature))]
         pub(crate) mod $name {
-            use crate::config::{Config, parsers::ConfigParser};
+            use crate::{config::{Config, parsers::ConfigParser}, system::fs::UefiFileSystem};
             use alloc::vec::Vec;
-            use uefi::{Handle, boot::ScopedProtocol, proto::media::fs::SimpleFileSystem};
 
             pub(crate) struct $config;
 
             impl ConfigParser for $config {
                 fn parse_configs(
-                    _fs: &mut ScopedProtocol<SimpleFileSystem>,
+                    _fs: &mut UefiFileSystem,
                     _handle: Handle,
                     _configs: &mut Vec<Config>,
                 ) {

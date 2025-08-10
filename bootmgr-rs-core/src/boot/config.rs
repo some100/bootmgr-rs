@@ -40,14 +40,11 @@
 
 use alloc::{borrow::ToOwned, string::String};
 use log::warn;
-use uefi::{CStr16, boot, cstr16, proto::console::text::Color};
+use uefi::{CStr16, cstr16, proto::console::text::Color};
 
 use crate::{
     BootResult,
-    system::{
-        fs::{check_file_exists, read_into},
-        helper::normalize_path,
-    },
+    system::{fs::UefiFileSystem, helper::normalize_path},
 };
 
 /// The hardcoded configuration path for the [`BootConfig`].
@@ -95,11 +92,11 @@ impl BootConfig {
     /// does not support [`uefi::proto::media::fs::SimpleFileSystem`]. Otherwise, it will
     /// return an empty [`BootConfig`].
     pub(super) fn new() -> BootResult<Self> {
-        let mut fs = boot::get_image_file_system(boot::image_handle())?;
+        let mut fs = UefiFileSystem::from_image_fs()?;
 
-        if check_file_exists(&mut fs, CONFIG_PATH) {
+        if fs.exists(CONFIG_PATH) {
             let mut buf = [0; 4096]; // a config file over 4096 bytes is very unusual and is not supported
-            let bytes = match read_into(&mut fs, CONFIG_PATH, &mut buf) {
+            let bytes = match fs.read_into(CONFIG_PATH, &mut buf) {
                 Ok(bytes) => bytes,
                 Err(e) => {
                     warn!("{e}");

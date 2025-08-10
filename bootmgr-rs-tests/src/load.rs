@@ -4,7 +4,7 @@ use bootmgr_rs_core::{
     boot::loader::load_boot_option,
     config::builder::ConfigBuilder,
     system::{
-        fs::check_file_exists,
+        fs::UefiFileSystem,
         variable::{get_variable, set_variable},
     },
 };
@@ -42,10 +42,11 @@ pub fn test_loading() -> anyhow::Result<()> {
     let _ = read_key();
 
     let efi_path = {
-        let mut fs = boot::get_image_file_system(boot::image_handle())?;
-        if check_file_exists(&mut fs, SHELL_PATH) {
+        let mut fs = UefiFileSystem::from_image_fs()?;
+
+        if fs.exists(SHELL_PATH) {
             SHELL_PATH
-        } else if check_file_exists(&mut fs, FALLBACK_PATH) {
+        } else if fs.exists(FALLBACK_PATH) {
             FALLBACK_PATH
         } else {
             println!(

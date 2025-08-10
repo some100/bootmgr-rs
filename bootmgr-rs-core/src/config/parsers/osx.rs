@@ -1,7 +1,7 @@
 //! An auto detector for the macOS boot loader.
 
 use alloc::{format, vec::Vec};
-use uefi::{CStr16, Handle, boot::ScopedProtocol, cstr16, proto::media::fs::SimpleFileSystem};
+use uefi::{CStr16, Handle, cstr16};
 
 use crate::{
     config::{
@@ -9,7 +9,7 @@ use crate::{
         builder::ConfigBuilder,
         parsers::{ConfigParser, Parsers},
     },
-    system::{fs::check_file_exists, helper::get_path_cstr},
+    system::{fs::UefiFileSystem, helper::get_path_cstr},
 };
 
 /// The configuration prefix.
@@ -22,16 +22,12 @@ const BOOTEFI_SUFFIX: &str = ".efi";
 pub struct OsxConfig;
 
 impl ConfigParser for OsxConfig {
-    fn parse_configs(
-        fs: &mut ScopedProtocol<SimpleFileSystem>,
-        handle: Handle,
-        configs: &mut Vec<Config>,
-    ) {
+    fn parse_configs(fs: &mut UefiFileSystem, handle: Handle, configs: &mut Vec<Config>) {
         let Ok(path) = get_path_cstr(BOOTEFI_PREFIX, cstr16!("boot.efi")) else {
             return;
         };
 
-        if check_file_exists(fs, &path) {
+        if fs.exists(&path) {
             let efi_path = format!("{BOOTEFI_PREFIX}\\boot.efi");
             let config = ConfigBuilder::new("boot.efi", BOOTEFI_SUFFIX)
                 .efi_path(efi_path)

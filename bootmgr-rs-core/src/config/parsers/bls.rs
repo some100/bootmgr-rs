@@ -13,12 +13,7 @@
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use log::{error, warn};
-use uefi::{
-    CStr16, CString16, Handle,
-    boot::ScopedProtocol,
-    cstr16,
-    proto::media::{file::FileInfo, fs::SimpleFileSystem},
-};
+use uefi::{CStr16, CString16, Handle, cstr16, proto::media::file::FileInfo};
 
 use crate::{
     BootResult,
@@ -29,7 +24,7 @@ use crate::{
     },
     error::BootError,
     system::{
-        fs::{FsError, read, read_filtered_dir, read_into, rename},
+        fs::{FsError, UefiFileSystem},
         helper::{get_path_cstr, str_to_cstr},
     },
 };
@@ -228,12 +223,8 @@ impl BlsConfig {
 }
 
 impl ConfigParser for BlsConfig {
-    fn parse_configs(
-        fs: &mut ScopedProtocol<SimpleFileSystem>,
-        handle: Handle,
-        configs: &mut Vec<Config>,
-    ) {
-        let dir = read_filtered_dir(fs, BLS_PREFIX, BLS_SUFFIX);
+    fn parse_configs(fs: &mut UefiFileSystem, handle: Handle, configs: &mut Vec<Config>) {
+        let dir = fs.read_filtered_dir(BLS_PREFIX, BLS_SUFFIX);
 
         for file in dir {
             match get_bls_config(&file, fs, handle) {
@@ -248,18 +239,18 @@ impl ConfigParser for BlsConfig {
 /// Parse a BLS file given the [`FileInfo`], a [`SimpleFileSystem`] protocol, and a handle to that protocol.
 fn get_bls_config(
     file: &FileInfo,
-    fs: &mut ScopedProtocol<SimpleFileSystem>,
+    fs: &mut UefiFileSystem,
     handle: Handle,
 ) -> BootResult<Option<Config>> {
     let mut buf = [0; 4096]; // preallocated buffer big enough for most config files
     let path = get_path_cstr(BLS_PREFIX, file.file_name())?;
-    let read_result = read_into(fs, &path, &mut buf);
+    let read_result = fs.read_into(&path, &mut buf);
 
     // if the file was too big for the buffer, it will use read instead, which allocates on the heap
     // the size of the file.
     let (bytes, buf) = match read_result {
         Ok(bytes) => (bytes, &buf[..]),
-        Err(BootError::FsError(FsError::BufTooSmall(bytes))) => (bytes, &read(fs, &path)?[..]),
+        Err(BootError::FsError(FsError::BufTooSmall(bytes))) => (bytes, &fs.read(&path)?[..]),
         Err(e) => return Err(e),
     };
 
@@ -287,7 +278,7 @@ fn get_bls_config(
 }
 
 /// Check if a certain config is bad given the [`FileInfo`] and a [`SimpleFileSystem`] protocol.
-fn check_bad(file: &FileInfo, fs: &mut ScopedProtocol<SimpleFileSystem>) -> bool {
+fn check_bad(file: &FileInfo, fs: &mut UefiFileSystem) -> bool {
     let counter = BootCounter::new(file.file_name());
 
     if let Some(mut counter) = counter {
@@ -309,7 +300,7 @@ fn check_bad(file: &FileInfo, fs: &mut ScopedProtocol<SimpleFileSystem>) -> bool
             return false;
         };
 
-        if let Err(e) = rename(fs, &src, &dst) {
+        if let Err(e) = fs.rename(&src, &dst) {
             error!("{e}");
         }
     }

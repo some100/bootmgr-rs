@@ -2,11 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
-## bootmgr-rs-core - [Unreleased]
+## bootmgr-rs-core - [0.5.0] - 2025-08-10
+
+### Added
+
+- Consolidated filesystem helpers into `UefiFileSystem` struct.
 
 ### Changed
 
 - Improved documentation.
+- Internal helper `slice_to_maybe_uninit` is now generic.
+
+### Removed
+
+- Removed almost every standalone filesystem helper. (BREAKING)
 
 ## bootmgr-rs-slint - [0.2.1] - 2025-08-09
 

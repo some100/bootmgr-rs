@@ -1,7 +1,7 @@
 //! An auto detector for the UEFI shell (located at /shellx64.efi)
 
 use alloc::{format, vec::Vec};
-use uefi::{CStr16, Handle, boot::ScopedProtocol, cstr16, proto::media::fs::SimpleFileSystem};
+use uefi::{CStr16, Handle, cstr16};
 
 use crate::{
     config::{
@@ -9,7 +9,7 @@ use crate::{
         builder::ConfigBuilder,
         parsers::{ConfigParser, Parsers},
     },
-    system::{fs::check_file_exists, helper::get_path_cstr},
+    system::{fs::UefiFileSystem, helper::get_path_cstr},
 };
 
 /// The configuration prefix.
@@ -22,15 +22,11 @@ const SHELL_SUFFIX: &str = ".efi";
 pub struct ShellConfig;
 
 impl ConfigParser for ShellConfig {
-    fn parse_configs(
-        fs: &mut ScopedProtocol<SimpleFileSystem>,
-        handle: Handle,
-        configs: &mut Vec<Config>,
-    ) {
+    fn parse_configs(fs: &mut UefiFileSystem, handle: Handle, configs: &mut Vec<Config>) {
         let Ok(path) = get_path_cstr(SHELL_PREFIX, cstr16!("shellx64.efi")) else {
             return;
         };
-        if check_file_exists(fs, &path) {
+        if fs.exists(&path) {
             let efi_path = format!("{SHELL_PREFIX}\\shellx64.efi");
             let config = ConfigBuilder::new("shellx64.efi", SHELL_SUFFIX)
                 .efi_path(efi_path)

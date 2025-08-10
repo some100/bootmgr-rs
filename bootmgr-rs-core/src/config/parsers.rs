@@ -24,9 +24,9 @@
 //! You can enable or disable these features in accordance with your requirements.
 
 use alloc::vec::Vec;
-use uefi::{Handle, boot::ScopedProtocol, proto::media::fs::SimpleFileSystem};
+use uefi::Handle;
 
-use crate::{config::Config, features};
+use crate::{config::Config, features, system::fs::UefiFileSystem};
 
 /// The BLS (BLS type 1) parser.
 pub mod bls;
@@ -90,16 +90,12 @@ impl Parsers {
 /// Parses configs.
 pub trait ConfigParser {
     /// Pushes configs into a mutable reference to a vector, given a filesystem and handle to that filesystem.
-    fn parse_configs(
-        fs: &mut ScopedProtocol<SimpleFileSystem>,
-        handle: Handle,
-        configs: &mut Vec<Config>,
-    );
+    fn parse_configs(fs: &mut UefiFileSystem, handle: Handle, configs: &mut Vec<Config>);
 }
 
 /// Parses every config file that has an implementation in parsers.
 pub(super) fn parse_all_configs(
-    fs: &mut ScopedProtocol<SimpleFileSystem>,
+    fs: &mut UefiFileSystem,
     handle: Handle,
     configs: &mut Vec<Config>,
 ) {

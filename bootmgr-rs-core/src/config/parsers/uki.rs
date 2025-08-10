@@ -6,12 +6,7 @@ use log::warn;
 use object::{Object, ObjectSection, Section};
 
 use thiserror::Error;
-use uefi::{
-    CStr16, Handle,
-    boot::ScopedProtocol,
-    cstr16,
-    proto::media::{file::FileInfo, fs::SimpleFileSystem},
-};
+use uefi::{CStr16, Handle, cstr16, proto::media::file::FileInfo};
 
 use crate::{
     BootResult,
@@ -20,10 +15,7 @@ use crate::{
         builder::ConfigBuilder,
         parsers::{ConfigParser, Parsers},
     },
-    system::{
-        fs::{read, read_filtered_dir},
-        helper::get_path_cstr,
-    },
+    system::{fs::UefiFileSystem, helper::get_path_cstr},
 };
 
 /// The configuration prefix.
@@ -156,12 +148,8 @@ impl UkiConfig {
 }
 
 impl ConfigParser for UkiConfig {
-    fn parse_configs(
-        fs: &mut ScopedProtocol<SimpleFileSystem>,
-        handle: Handle,
-        configs: &mut Vec<Config>,
-    ) {
-        let dir = read_filtered_dir(fs, UKI_PREFIX, UKI_SUFFIX);
+    fn parse_configs(fs: &mut UefiFileSystem, handle: Handle, configs: &mut Vec<Config>) {
+        let dir = fs.read_filtered_dir(UKI_PREFIX, UKI_SUFFIX);
 
         for file in dir {
             match get_uki_config(&file, fs, handle) {
@@ -173,12 +161,8 @@ impl ConfigParser for UkiConfig {
 }
 
 /// Parse a UKI executable given the [`FileInfo`], a [`SimpleFileSystem`] protocol, and a handle to that protocol.
-fn get_uki_config(
-    file: &FileInfo,
-    fs: &mut ScopedProtocol<SimpleFileSystem>,
-    handle: Handle,
-) -> BootResult<Config> {
-    let content = read(fs, &get_path_cstr(UKI_PREFIX, file.file_name())?)?;
+fn get_uki_config(file: &FileInfo, fs: &mut UefiFileSystem, handle: Handle) -> BootResult<Config> {
+    let content = fs.read(&get_path_cstr(UKI_PREFIX, file.file_name())?)?;
 
     let uki_config = UkiConfig::new(&content)?;
 

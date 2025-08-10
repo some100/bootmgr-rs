@@ -115,7 +115,7 @@ pub(crate) fn str_to_cstr(str: &str) -> Result<CString16, StrError> {
 /// May return an `Error` if the finalized string could not be converted into a [`CString16`]. This should be
 /// impossible because of the fact that validation is already done through the parameters being [`CStr16`].
 pub(crate) fn get_path_cstr(prefix: &CStr16, filename: &CStr16) -> Result<CString16, StrError> {
-    let mut path_buf: SmallVec<[_; MAX_PATH]> =
+    let mut path_buf: SmallVec<[_; MAX_PATH]> = // this will spill onto heap if the path is longer than 256 chars
         SmallVec::with_capacity(prefix.as_slice().len() + 1 + filename.as_slice().len());
 
     path_buf.extend_from_slice(prefix.to_u16_slice());
@@ -192,11 +192,11 @@ pub(crate) fn normalize_path(path: &str) -> String {
 }
 
 /// Converts a byte slice into an `&mut [MaybeUninit<u8>]`.
-pub(crate) fn slice_to_maybe_uninit(slice: &mut [u8]) -> &mut [MaybeUninit<u8>] {
+pub(crate) fn slice_to_maybe_uninit<T>(slice: &mut [T]) -> &mut [MaybeUninit<T>] {
     // SAFETY: this is essentially equivalent to reconstructing an &mut [MaybeUninit<u8>] from a mutable slice.
     // because slices are always valid as pointers, and the length of the two slices are the same, this is safe.
     unsafe {
-        core::slice::from_raw_parts_mut(slice.as_mut_ptr().cast::<MaybeUninit<u8>>(), slice.len())
+        core::slice::from_raw_parts_mut(slice.as_mut_ptr().cast::<MaybeUninit<T>>(), slice.len())
     }
 }
 
