@@ -56,7 +56,7 @@ pub enum FsError {
 }
 
 /// A rust-ier wrapper around [`SimpleFileSystem`].
-/// 
+///
 /// This is similar to [`uefi::fs::FileSystem`], with different design decisions.
 pub struct UefiFileSystem(ScopedProtocol<SimpleFileSystem>);
 

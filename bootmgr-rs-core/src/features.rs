@@ -24,7 +24,10 @@ macro_rules! optional_config {
         /// The disabled parser for $config
         #[cfg(not(feature = $feature))]
         pub(crate) mod $name {
-            use crate::{config::{Config, parsers::ConfigParser}, system::fs::UefiFileSystem};
+            use crate::{
+                config::{Config, parsers::ConfigParser},
+                system::fs::UefiFileSystem,
+            };
             use alloc::vec::Vec;
 
             pub(crate) struct $config;
