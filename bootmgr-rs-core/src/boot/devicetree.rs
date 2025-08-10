@@ -4,6 +4,23 @@
 //! apply fixups if the firmware supports it via the [`DevicetreeFixup`] protocol.
 //!
 //! This is mostly based off of systemd-boot's implementation.
+//!
+//! # Safety
+//!
+//! This module uses unsafe in 4 places currently. This is obviously not preferable since unsafe blocks can destroy
+//! the guarantees that safe Rust carries, however the places where this module uses unsafe are completely safe.
+//!
+//! 1. In the call to [`copy_nonoverlapping`], the destination pointer was freshly allocated, and the source pointer
+//!    was derived from a byte slice reference, which is guaranteed to be non-null and aligned. In addition, they are
+//!    guaranteed to be the same size as [`boot::allocate_pool`] allocated the length of the source slice, so it is safe.
+//! 2. [`copy_nonoverlapping`] preserves the content essentially exactly, so the call to [`core::slice::from_raw_parts`]
+//!    is simply reconstructing the slice from its raw parts. Therefore, it is safe.
+//! 3. Unsafe is required to install the configuration table, because of two conditions that are upheld by the program.
+//!    The first is that the data must not be freed, which is ensured by `DevicetreeGuard` leaking the memory after
+//!    installation. The second is that the data must not be modified, which is similarly ensured by `DevicetreeGuard`
+//!    consuming the inner devicetree.
+//! 4. Unsafe is required to free the allocated memory from [`boot::allocate_pool`]. It is called only when dropped, so
+//!    there cannot possibly be any remaining references to the inner pointer after it goes out of scope.
 
 use core::ffi::c_void;
 use core::ptr::{NonNull, copy_nonoverlapping};

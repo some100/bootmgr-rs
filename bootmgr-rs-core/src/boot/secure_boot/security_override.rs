@@ -5,6 +5,17 @@
 //! `FileAuthenticationState` and `FileAuthentication` are hijacked from whichever [`Handle`] implements those methods, and replaced
 //! with our own. Because the firmware calls upon these methods for validation, this allows us to replace the firmware's secure boot with
 //! Shim's validator or another validator of our choice.
+//!
+//! # Safety
+//!
+//! This module uses unsafe in 2 places. These are mainly for calling FFI functions.
+//!
+//! 1. Unsafe is required to call FFI methods like the original hook. There is no validation in the method itself before
+//!    the original hook is called. This is partially solved by the fact that its visibility is `pub(super)`, which limits
+//!    this method from being called in public API. However, if the caller was to pass null, misaligned, or invalid pointers
+//!    to the methods, it would result in UB. This is also impossible in the normal calling context of the program, as the
+//!    firmware should always supply valid pointers.
+//! 2. See point 1.
 
 use core::{ffi::c_void, ptr::NonNull};
 

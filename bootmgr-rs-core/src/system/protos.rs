@@ -7,6 +7,20 @@
 //!
 //! Technically, it also provides [`ShimImageLoader`], however that isn't really used for anything as if Shim
 //! is loaded, it will have already hooked onto `LoadImage` and such. It only exists to detect its existence.
+//!
+//! # Safety
+//!
+//! This module uses unsafe blocks in 3 places, and unsafe in general in even more places. This is completely unavoidable as
+//! it interacts with raw UEFI protocols. This will only document the usages of unsafe blocks, as those are what the rest of
+//! the program will interact with.
+//!
+//! 1. The inner `fixup` member is only unsafe if the raw pointers are invalid. Because mutable references or at the very least
+//!    [`NonNull<u8>`] are parameters, this is safe since the raw pointers will be guaranteed to be valid.
+//! 2. Similarly, the inner `auth_state` member is only unsafe if the raw pointers are invalid. An immutable reference to
+//!    [`DevicePath`] is passed as a parameter, which can always be converted to [`FfiDevicePath`] validly. Therefore, this is safe.
+//! 3. The inner `authentication` member is unsafe when invalid raw pointers are passed, or the size is invalid. The safe method takes
+//!    no raw pointers, only references. These references are safely and validly converted into their FFI counterparts. In addition, the
+//!    size is guaranteed to be valid as it is derived from the length of the slice. Therefore, this is safe.
 
 use core::{ffi::c_void, ptr::NonNull};
 

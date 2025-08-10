@@ -1,3 +1,16 @@
+//! The user interface backend for Slint.
+//!
+//! # Safety
+//!
+//! This uses unsafe in 4 places, though only 2 at most are enabled per platform.
+//!
+//! 1. `_rdtsc` is not a serializing instruction, which is why it is marked unsafe. However, this problem does not exist
+//!    in UEFI as it is a completely single threaded environment. Therefore, it is safe.
+//! 2. See point 1.
+//! 3. Inline assembly is practically always unsafe, however this specific segment is safe as it only reads from `CNTVCT_EL0`,
+//!    which is the frequency of the timer.
+//! 4. See point 3, but replace `CNTVCT_EL0` with `CNTFRQ_EL0`
+
 #![allow(
     clippy::missing_docs_in_private_items,
     reason = "Slint auto generated files produce false lint warnings by the hundreds"

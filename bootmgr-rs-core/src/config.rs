@@ -214,9 +214,8 @@ impl Config {
     /// May return an `Error` if the paths do not exist in the filesystem when they are in the [`Config`].
     fn validate_paths(&self) -> Result<(), ConfigError> {
         if let Some(handle) = self.fs_handle {
-            let mut fs = boot::open_protocol_exclusive(*handle).unwrap_or_else(|_| {
-                unreachable!("FsHandle should always support SimpleFileSystem")
-            });
+            let mut fs = boot::open_protocol_exclusive(*handle)
+                .expect("FsHandle should always support SimpleFileSystem");
             if let Some(efi_path) = &self.efi_path
                 && !check_file_exists_str(&mut fs, efi_path).unwrap_or(false)
             {

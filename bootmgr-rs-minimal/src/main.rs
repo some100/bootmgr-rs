@@ -19,7 +19,7 @@ use uefi::{
     system::with_stdout,
 };
 
-/// The actual main function of the program, which returns an [`anyhow::Result`].
+/// The actual main function of the program, which returns a [`Result`].
 fn main_func() -> Result<Handle, Box<dyn core::error::Error>> {
     uefi::helpers::init().map_err(BootError::Uefi)?; // initialize helpers (for print)
     with_stdout(Output::clear)?;

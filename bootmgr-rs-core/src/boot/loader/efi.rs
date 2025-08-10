@@ -1,6 +1,14 @@
 //! The boot loader for EFI executables
 //!
 //! This will also handle devicetree installs and Shim authentication if either are available.
+//!
+//! # Safety
+//!
+//! This uses unsafe in one place that is completely safe.
+//!
+//! 1. The `set_load_options` method requires unsafe to call, as it requires one condition that is upheld by the
+//!    program. This one condition is that `ptr` must not be freed, or that it lasts long enough. This is ensured
+//!    by the usage of a static [`RefCell`], so this is safe.
 
 use core::cell::RefCell;
 
@@ -24,6 +32,9 @@ use uefi::{
 /// An instance of `LoadOptions` that remains for the lifetime of the program.
 /// This is because load options must last long enough so that it can be safely
 /// passed into [`LoadOptions::set_load_options`].
+///
+/// A [`RefCell`] is used here as `LoadOptions` may need to be modified more than once.
+/// This is the case if the `shim_load_image` function fails.
 static LOAD_OPTIONS: LoadOptions = LoadOptions {
     options: RefCell::new(None),
 };

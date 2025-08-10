@@ -11,6 +11,23 @@
 //!
 //! It will also provide an implementation for `SecurityOverrideInner` for installing those hooks into the security override
 //! state.
+//!
+//! # Safety
+//!
+//! This module uses unsafe in 5 places. This is quite dangerous, though in the context of how these security hooks are called,
+//! it should still be quite safe even considering the risks.
+//!
+//! 1. Unsafe is required to call FFI functions such as the original hook. This requires one condition, which is upheld in the
+//!    normal calling context of the program. This is that the raw pointers must not be invalid. This is unavoidable even if
+//!    the security override was not installed, since this would indicate a problem with the firmware.
+//! 2. Unsafe is required to convert mutable pointers to u8 slices. This requires one condition, which is upheld in the normal
+//!    calling context of the program. If the size that was passed to the hook was inaccurate, then it will result in UB. This,
+//!    yet again, is unavoidable and would indicate a problem with firmware.
+//! 3. Unsafe is required to call FFI functions such as the original hook. See point 1.
+//! 4. Unsafe is required to convert mutable pointers to u8 slices. See point 2.
+//! 5. Unsafe is required to convert FFI [`DevicePath`]s into regular [`DevicePath`]s. However, this should be safe as long as
+//!    the data is valid (which is true in the normal calling context of the program). There are checks to see if the pointer is
+//!    non-null and aligned as well. In addition, the pointer is not modified at all as it is passed as `*const`.
 
 use core::ffi::c_void;
 

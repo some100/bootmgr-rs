@@ -82,11 +82,9 @@ impl SecurityOverride {
     /// However, this is not possible since the [`Cell`] is always initalized at the start
     /// of the program as a static. Therefore, this method cannot actually panic.
     fn get(&self) -> SecurityOverrideInner {
-        self.inner.get().unwrap_or_else(|| {
-            unreachable!(
-                "The static Cell should always be initialized at the start of the programming"
-            )
-        })
+        self.inner
+            .get()
+            .expect("The static Cell should always be initialized at the start of the programming")
     }
 }
 

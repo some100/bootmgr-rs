@@ -1,4 +1,12 @@
 //! Various helper functions for other modules.
+//!
+//! # Safety
+//!
+//! This module uses unsafe in 1 place.
+//!
+//! 1. `MaybeUninit<T>` provides guarantees that its size and layout will be exactly the same as `T`. Because of this, it is
+//!    safe to interpret a pointer of type `T` as a pointer of type `MaybeUninit<T>` (note: the opposite is not always true).
+//!    Because of this, this is essentially reconstructing a pointer from itself, which is safe.
 
 use core::mem::MaybeUninit;
 

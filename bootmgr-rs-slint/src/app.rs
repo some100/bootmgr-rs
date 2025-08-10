@@ -2,8 +2,13 @@
 //!
 //! This provides callbacks from the Rust side of the UI, as well
 //! as a way to get the UI.
-
-use core::cell::Cell;
+//!
+//! # Safety
+//!
+//! This uses unsafe blocks in 1 place.
+//!
+//! 1. [`SlintBltPixel`] is simply a `repr(transparent)` wrapper around [`BltPixel`]. Therefore, the components of this type
+//!    are identical and therefore can be safely reinterpreted as [`BltPixel`].
 
 use alloc::{rc::Rc, vec, vec::Vec};
 use bootmgr_rs_core::{
@@ -16,7 +21,7 @@ use slint::{
     platform::{WindowEvent, software_renderer::MinimalSoftwareWindow},
 };
 use uefi::{
-    Handle,
+    Event, Handle,
     boot::{self, ScopedProtocol},
     proto::console::{
         gop::{BltOp, BltPixel, BltRegion, GraphicsOutput},
@@ -41,15 +46,6 @@ pub enum AppState {
     Running,
 }
 
-#[derive(Clone, Copy, Default)]
-pub struct SharedState {
-    /// The index, or the currently selected item.
-    pub idx: usize,
-
-    /// The current state of the [`App`].
-    pub state: AppState,
-}
-
 /// The main application logic of the bootloader.
 pub struct App {
     /// The internal manager of `Config` files.
@@ -67,8 +63,14 @@ pub struct App {
     /// The [`GraphicsOutput`] of the application.
     pub gop: ScopedProtocol<GraphicsOutput>,
 
-    /// The shared state between the UI and the Rust backend.
-    pub shared: Rc<Cell<SharedState>>,
+    /// The input events of the system.
+    pub events: Vec<Event>,
+
+    /// The index, or the currently selected item.
+    pub idx: usize,
+
+    /// The current state of the [`App`].
+    pub state: AppState,
 }
 
 impl App {
@@ -87,9 +89,9 @@ impl App {
         let gop =
             boot::open_protocol_exclusive::<GraphicsOutput>(handle).map_err(BootError::Uefi)?;
 
-        // All of this awkward Rc<Cell<T>> wrapping is so that these properties are shared with
-        // slint in callbacks.
-        let shared = Rc::new(Cell::new(SharedState::default()));
+        let events = Vec::new();
+
+        let idx = boot_mgr.get_default();
 
         Ok(Self {
             boot_mgr,
@@ -97,7 +99,9 @@ impl App {
             input,
             mouse,
             gop,
-            shared,
+            events,
+            idx,
+            state: AppState::Running,
         })
     }
 
@@ -118,19 +122,10 @@ impl App {
         let (window, ui) = self.get_a_ui(w, h)?;
         let mut fb = vec![SlintBltPixel::new(); w * h];
 
-        let shared_weak = Rc::downgrade(&self.shared);
-        ui.on_tryboot(move |x| {
-            if let Some(shared) = shared_weak.upgrade() {
-                shared.update(|mut shared| {
-                    shared.idx = usize::try_from(x).unwrap_or(0);
-                    shared.state = AppState::Booting;
-                    shared
-                });
-            }
-        });
-
         loop {
             slint::platform::update_timers_and_animations();
+
+            self.create_events();
 
             if let Some(key) = self.handle_key() {
                 let str = SharedString::from(key);
@@ -178,9 +173,24 @@ impl App {
                 });
             });
 
-            match self.shared.get().state {
-                AppState::Booting => break Ok(self.maybe_boot()),
+            if let Ok(idx) = usize::try_from(ui.get_listIdx())
+                && idx != self.idx
+            {
+                self.idx = idx;
+            }
+
+            if ui.get_now_booting() {
+                self.state = AppState::Booting;
+            }
+
+            match self.state {
+                AppState::Booting => break Ok(self.maybe_boot(self.idx)),
                 AppState::Running => (),
+            }
+
+            if !window.has_active_animations() {
+                let duration = slint::platform::duration_until_next_timer_update();
+                self.wait_for_events(duration)?; // try to go to sleep, until a key press, mouse move, or after the duration
             }
         }
     }
@@ -190,8 +200,8 @@ impl App {
     ///
     /// This will return [`None`] if the image could not be loaded. In the context of the main loop, this will
     /// essentially result in the application exiting, or shutting down.
-    fn maybe_boot(&mut self) -> Option<Handle> {
-        self.boot_mgr.load(self.shared.get().idx).ok()
+    fn maybe_boot(&mut self, idx: usize) -> Option<Handle> {
+        self.boot_mgr.load(idx).ok()
     }
 
     /// Get an instance of the Slint UI.
@@ -248,7 +258,7 @@ impl App {
 
         // set up the rest of properties
         ui.set_items(boot_items.clone());
-        ui.set_listIdx(i32::try_from(self.shared.get().idx).unwrap_or(0));
+        ui.set_listIdx(i32::try_from(self.idx).unwrap_or(0));
         ui.set_timeout(i32::try_from(self.timeout).unwrap_or(-1));
 
         Ok((window, ui))

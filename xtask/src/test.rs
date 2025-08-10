@@ -32,7 +32,7 @@ pub fn test_on_host() -> anyhow::Result<()> {
     .run()?;
     cmd!("cargo", "test", "--lib").run()?;
     cmd!("cargo", "test", "--doc").run()?;
-    cmd!("cargo", "fmt", "--check").run()?;
+    cmd!("cargo", "fmt", "--all", "--check").run()?;
     Ok(())
 }
 

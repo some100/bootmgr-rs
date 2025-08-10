@@ -26,6 +26,9 @@ pub enum MainError {
     /// A fatal error occurred while running the Slint UI.
     #[error("Slint Error")]
     SlintError(slint::PlatformError),
+    /// The input was closed for some reason.
+    #[error("Input protocol was closed")]
+    InputClosed,
 }
 
 fn main_func() -> Result<Option<Handle>, MainError> {

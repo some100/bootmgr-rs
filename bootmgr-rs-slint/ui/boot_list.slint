@@ -3,14 +3,13 @@ import { Theme } from "theme.slint";
 export component BootList {
     in-out property <int> listIdx;
     in-out property <int> timeout;
+    in-out property <bool> now-booting;
     in property <length> spacing;
     in property <length> itemWidth;
     in property <int> count: 0;
 
     callback move-right();
     callback move-left();
-
-    callback tryboot(int);
 
     move-right => {
         root.listIdx = min(root.listIdx + 1, root.count - 1);
@@ -36,7 +35,7 @@ export component BootList {
                 return accept;
             }
             if (event.text == Key.Return) {
-                root.tryboot(root.listIdx);
+                root.now-booting = true;
                 return accept;
             }
             return accept;
@@ -48,7 +47,7 @@ export component BootList {
         running: true;
         triggered() => {
             if timeout == 0 {
-                root.tryboot(root.listIdx);
+                root.now-booting = true;
             } else if timeout > 0 {
                 timeout -= 1;
             }
@@ -72,7 +71,7 @@ export component BootList {
                 focus-scope.focus();
             }
             double-clicked => {
-                root.tryboot(root.listIdx);
+                root.now-booting = true;
             }
         }
 

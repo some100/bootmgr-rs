@@ -3,6 +3,15 @@
 //! This will expose printable keys as well as a subset of special keys to Slint, as well
 //! as the state of the mouse. In addition, it also provides a helper method
 //! [`MouseState::draw_cursor`].
+//!
+//! # Safety
+//!
+//! This module uses unsafe in 1 place.
+//!
+//! 1. Events must be created using unsafe because of how callbacks may not be able to handle exiting from boot services well.
+//!    Because the timer event has no callbacks, this is safe.
+
+use core::time::Duration;
 
 use bootmgr_rs_core::BootResult;
 use slint::{
@@ -10,7 +19,8 @@ use slint::{
     platform::{Key as SlintKey, PointerEventButton},
 };
 use uefi::{
-    boot::{self, ScopedProtocol},
+    Event, ResultExt,
+    boot::{self, EventType, ScopedProtocol, TimerTrigger, Tpl},
     proto::console::{
         gop::BltPixel,
         pointer::{Pointer, PointerMode},
@@ -112,6 +122,13 @@ impl MouseState {
             }
         }
     }
+
+    /// Return an event that waits for the pointer to move.
+    ///
+    /// This simply delegates to the inner `pointer`.
+    pub fn wait_for_input_event(&mut self) -> Option<Event> {
+        self.pointer.wait_for_input_event()
+    }
 }
 
 impl App {
@@ -135,6 +152,39 @@ impl App {
                 .into(),
             ),
             _ => None,
+        }
+    }
+
+    /// Wait for an event.
+    ///
+    /// This will also clear the event queue every time it is called, because the duration may be different between calls.
+    pub fn wait_for_events(&mut self, duration: Option<Duration>) -> BootResult<()> {
+        if let Some(duration) = duration {
+            let duration_time = duration.as_nanos() / 100;
+            // SAFETY: there are no callbacks, so this is safe
+            let timer =
+                unsafe { boot::create_event(EventType::TIMER, Tpl::APPLICATION, None, None)? };
+            boot::set_timer(
+                &timer,
+                TimerTrigger::Relative(u64::try_from(duration_time).unwrap_or(u64::MAX)),
+            )?;
+            self.events.push(timer);
+        }
+
+        boot::wait_for_event(&mut self.events).discard_errdata()?;
+        self.events.clear();
+
+        Ok(())
+    }
+
+    /// Create the input wait for key events.
+    pub fn create_events(&mut self) {
+        if let Some(event) = self.input.wait_for_key_event() {
+            self.events.push(event);
+        }
+
+        if let Some(event) = self.mouse.wait_for_input_event() {
+            self.events.push(event);
         }
     }
 }

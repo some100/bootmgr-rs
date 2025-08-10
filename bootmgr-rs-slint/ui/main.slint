@@ -19,13 +19,12 @@ export component Ui inherits Window {
     in-out property <[{ title: string, image: image }]> items;
     in-out property <int> listIdx: 0;
     in-out property <int> timeout;
+    in-out property <bool> now_booting;
 
     in-out property <color> fg;
     in-out property <color> bg;
     in-out property <color> highlight_fg;
     in-out property <color> highlight_bg;
-
-    pure callback tryboot(int);
 
     forward-focus: boot_list;
 
@@ -41,7 +40,7 @@ export component Ui inherits Window {
         listIdx <=> root.listIdx;
         spacing: Theme.spacing-medium;
         timeout <=> root.timeout;
-        tryboot(int) => { root.tryboot(int) }
+        now-booting <=> root.now_booting;
 
         for item[index] in root.items : Card {
             is-selected: index == root.listIdx;

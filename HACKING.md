@@ -32,6 +32,20 @@ boot itself is structured into 5 submodules, those being:
 * loader (provides EFI loader and EFI over TFTP loader)
 * secure_boot (provides `SecurityOverrideGuard`, which may install security protocol overrides for Shim)
 
+The general flow of a program with this crate is as follows:
+
+1. The `BootMgr` struct is created. This will call `parse_all_configs`, which collects every available scanned `Config` into `BootMgr`, as well as special boot options.
+2. The frontend will poll for inputs or have some other way of selecting the boot option.
+3. Once a boot option is selected (through its index), the `load` method is called on the `BootMgr`.
+    * This will call `boot::loader::load_boot_option` on the boot option's `Config`, which delegates to the `run` method of the `Config`'s `action` field.
+    * Depending on the boot option, this will lead to the following loaders: If it is a special boot option, it will be reboot, shutdown, or reset to firmware. If the action indicates that it's a normal boot program (`BootAction::BootEfi`), then it will lead to the EFI loader being used. Otherwise, if it's a EFI over TFTP program (`BootAction::BootTftp`). For simplicity, this will focus on the EFI loader.
+    * The handle is unwrapped from the `Config`'s `fs_handle`, and opened into a filesystem. This handle is how the filesystem from which the `Config` originates is tracked. Afterwards, the image specified by the `Config` through `efi_path` is converted into a `DevicePath`.
+    * `shim_load_image` is then called, specifying the `DevicePath` as the source. Depending on if Shim is installed, this will either install the necessary security overrides, or load the image through UEFI as is.
+    * The image returned is then setup, with devicetree installations, and LoadOptions being set as needed if specified.
+    * Finally, the setup image is returned through `load_boot_option`, which is returned to the program.
+4. The frontend will now break out of its poll loop, returning back into the entry function with the image `Handle`.
+5. Finally, the image is started in the entry function. The reason why the image is not started in the `BootMgr`'s `load` method is to ensure that every protocol is properly dropped and closed before control is handed off to the next image.
+
 # Writing a parser
 
 In order to create a parser, it must first implement `ConfigParser`, which can be done by detecting if a file exists for example, then using the `ConfigBuilder` in order to create a `Config` that will then be pushed into the `configs` parameter. Then, add it as a module in `bootmgr-rs-core/src/config/parsers.rs` as well as to the `Parsers` enum. Afterwards, add it to `bootmgr-rs-core/src/features.rs` using the `optional_config!` macro, then add it as a feature flag in the `Cargo.toml`.
@@ -85,15 +99,15 @@ A notable exception to this is `to_owned`, which might be necessary if you want 
 
 Always prefer borrowed types as arguments, and owned types as return values. This is unless you are planning to consume the owned type in the argument (if you are cloning immediately after, you should be using a reference). 
 
-`unwrap()` should never be used, except in examples. If a certain call is infallible, using `unwrap_or_else(|_| unreachable!("message"))` is a little bit more clear in intent than using unwrap. Always use `map_err()` instead, or at the very least `expect()`.
+`unwrap()` should never be used, except in examples. If a certain call is infallible, using `expect("why this is infallible")` is a little bit more clear in intent than using unwrap. Always use `map_err()` instead, or at the very least `expect()`.
 
 Try to use `Result` types if possible instead of silently swallowing up errors, or panicking.
 
-Every single unsafe block that is used must be preceded by a `// SAFETY:` comment that explains why it is safe, or in what situations it may be unsafe. This is enforced using the `unsafe_op_in_unsafe_fn` lint. Unsafe should only be used when strictly necessary. If a safe alternative can be used (i.e. `Cell`/`OnceCell`/`RefCell` over `UnsafeCell`), then it should be used.
+Every single unsafe block that is used must be preceded by a `// SAFETY:` comment that explains why it is safe, or in what situations it may be unsafe. This is enforced using the `unsafe_op_in_unsafe_fn` lint. In addition to this, every module must have a `Safety` section, listing every usage of unsafe in the module and why it is safe, or why it may be unsafe. Unsafe should only be used when strictly necessary. If a safe alternative can be used (i.e. `Cell`/`OnceCell`/`RefCell` over `UnsafeCell`), then it should be used.
 
 Every module and item should be documented. Using `cargo xtask test` should fail in case a public item is undocumented, and warn in case a private item is undocumented.
 
-Patterns such as `Rc<RefCell<T>>` are highly discouraged. This is a very easy way to enter the dreaded "type hell." Only do this if you are in a frontend and are practically forced to do this (for example, with the `bootmgr-rs-slint` frontend).
+Patterns such as `Rc<RefCell<T>>` are highly discouraged. This is a very easy way to enter the dreaded "type hell." Only do this if you are in a frontend and are practically forced to do this.
 
 Generally speaking, you should not try to disable the clippy lints if possible. This is especially the case if there are obvious ways to resolve the lint without disabling it (for example, instead of casting with `as`, use `try_from` and `unwrap_or` with a default value). However, if a clippy lint simply cannot stay enabled (like with the slint frontend, where the autogenerated slint code produces false warns), then the clippy lint is fine to disable. Ensure that the reason is specified for this as well.
 

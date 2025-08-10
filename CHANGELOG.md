@@ -8,6 +8,13 @@ All notable changes to this project will be documented in this file.
 
 - Improved documentation.
 
+## bootmgr-rs-slint - [0.2.1] - 2025-08-09
+
+### Changed
+
+- Slightly improved program flow.
+- Sleep when there are no active animations to save cycles.
+
 ## bootmgr-rs-minimal - [0.2.0] - 2025-08-08
 
 ### Changed

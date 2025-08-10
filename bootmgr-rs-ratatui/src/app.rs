@@ -2,6 +2,13 @@
 //!
 //! This is where the main loop of the whole application is located, and is where terminal, boot manager,
 //! and editor interact.
+//!
+//! # Safety
+//!
+//! This uses one unsafe block for creating the timer event.
+//!
+//! 1. Events require unsafe to be used because of how callbacks may not handle exiting from booting services well.
+//!    Because this event has no callbacks, this is safe.
 
 use bootmgr_rs_core::{boot::BootMgr, error::BootError};
 use log::error;
