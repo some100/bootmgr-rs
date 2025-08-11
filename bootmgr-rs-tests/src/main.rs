@@ -73,9 +73,9 @@ fn read_key() -> anyhow::Result<Key> {
     let mut input = locate_protocol::<Input>()?;
     let key_event = input
         .wait_for_key_event()
-        .ok_or(anyhow!("Input device not present"))?;
+        .ok_or_else(|| anyhow!("Input device not present"))?;
     let mut events = [key_event];
     boot::wait_for_event(&mut events).discard_errdata()?;
     let key = input.read_key()?;
-    key.ok_or(anyhow!("Input device not present"))
+    key.ok_or_else(|| anyhow!("Input device not present"))
 }

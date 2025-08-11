@@ -74,15 +74,15 @@ pub enum Parsers {
 impl Parsers {
     /// Convert a [`Parsers`] type into an [`&str`].
     #[must_use = "Has no effect if the result is unused"]
-    pub fn as_str(self) -> &'static str {
+    pub const fn as_str(self) -> &'static str {
         match self {
-            Parsers::Bls => "bls",
-            Parsers::Fallback => "fallback",
-            Parsers::Osx => "osx",
-            Parsers::Shell => "shell",
-            Parsers::Uki => "uki",
-            Parsers::Windows => "windows",
-            Parsers::Special => "special",
+            Self::Bls => "bls",
+            Self::Fallback => "fallback",
+            Self::Osx => "osx",
+            Self::Shell => "shell",
+            Self::Uki => "uki",
+            Self::Windows => "windows",
+            Self::Special => "special",
         }
     }
 }

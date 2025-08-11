@@ -44,7 +44,7 @@ slint::include_modules!();
 pub struct SlintBltPixel(BltPixel);
 
 impl SlintBltPixel {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self(BltPixel::new(0, 0, 0))
     }
 }
@@ -58,7 +58,7 @@ impl TargetPixel for SlintBltPixel {
     }
 
     fn from_rgb(red: u8, green: u8, blue: u8) -> Self {
-        SlintBltPixel(BltPixel::new(red, green, blue))
+        Self(BltPixel::new(red, green, blue))
     }
 }
 

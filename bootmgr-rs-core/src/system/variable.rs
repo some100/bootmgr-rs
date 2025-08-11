@@ -56,10 +56,7 @@ impl UefiVariableStorage for RuntimeUefiVariableStorage {
         attributes: VariableAttributes,
         num: Option<T>,
     ) -> BootResult<()> {
-        let num = match num {
-            Some(num) => num.to_bytes(),
-            None => Vec::with_capacity(0), // a zero sized array will delete the variable. this will not allocate
-        };
+        let num = num.map_or_else(|| Vec::with_capacity(0), UefiVariable::to_bytes);
         Ok(runtime::set_variable(name, vendor, attributes, &num)?)
     }
 }

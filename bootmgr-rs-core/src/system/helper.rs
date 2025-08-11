@@ -193,7 +193,7 @@ pub(crate) fn normalize_path(path: &str) -> String {
 }
 
 /// Converts a byte slice into an `&mut [MaybeUninit<u8>]`.
-pub(crate) fn slice_to_maybe_uninit<T>(slice: &mut [T]) -> &mut [MaybeUninit<T>] {
+pub(crate) const fn slice_to_maybe_uninit<T>(slice: &mut [T]) -> &mut [MaybeUninit<T>] {
     // SAFETY: this is essentially equivalent to reconstructing an &mut [MaybeUninit<u8>] from a mutable slice.
     // because slices are always valid as pointers, and the length of the two slices are the same, this is safe.
     unsafe {

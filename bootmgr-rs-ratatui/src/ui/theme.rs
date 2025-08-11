@@ -18,7 +18,7 @@ pub struct Theme {
 impl Theme {
     /// Create a new [`Theme`] from a [`BootConfig`].
     #[must_use = "Has no effect if the result is unused"]
-    pub fn new(config: &BootConfig) -> Self {
+    pub const fn new(config: &BootConfig) -> Self {
         Self {
             base: Style::new()
                 .fg(uefi_to_ansi_color_fg(config.fg))

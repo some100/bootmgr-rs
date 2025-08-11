@@ -72,10 +72,7 @@ impl LoadOptions {
     fn set_load_options(&self, image: &mut ScopedProtocol<LoadedImage>) {
         if let Some(ptr) = self.get() {
             // it is quite unlikely that the load options will literally exceed 4 gb in length, so its safe to truncate
-            let size = match u32::try_from(self.size()) {
-                Ok(size) => size,
-                _ => u32::MAX,
-            };
+            let size = u32::try_from(self.size()).unwrap_or(u32::MAX);
             // SAFETY: this should ONLY be used with a static cell, as the pointer must last long enough for the loaded image to use it
             unsafe {
                 image.set_load_options(ptr, size);

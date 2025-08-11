@@ -97,35 +97,40 @@ impl MouseState {
         }
     }
 
-    /// Draw the current position of the cursor to the screen given a framebuffer, width, and height.
-    ///
-    /// This will draw a white pixel at the logical position of the cursor.
-    pub fn draw_cursor(&self, fb: &mut [BltPixel], w: usize, h: usize) {
-        if !self.disabled {
-            for x in 0..CURSOR_SIZE {
-                #[allow(
-                    clippy::cast_possible_truncation,
-                    reason = "The value of the position is unlikely to be high enough to matter"
-                )]
-                #[allow(
-                    clippy::cast_sign_loss,
-                    reason = "position.x and position.y are clamped to be always greater than 0.0 beforehand"
-                )]
-                for y in 0..CURSOR_SIZE {
-                    let cursor_x = self.position.x as usize + x;
-                    let cursor_y = self.position.y as usize + y;
-                    if cursor_x < w && cursor_y < h {
-                        fb[cursor_x + cursor_y * w] = BltPixel::new(255, 255, 255);
-                    }
-                }
-            }
-        }
+    /// Get the color of the cursor.
+    pub const fn color(&self) -> BltPixel {
+        let _ = self;
+        BltPixel::new(255, 255, 255)
+    }
+
+    /// Get the current position of the cursor.
+    #[allow(
+        clippy::cast_possible_truncation,
+        reason = "The value of the position is unlikely to be high enough to matter"
+    )]
+    #[allow(
+        clippy::cast_sign_loss,
+        reason = "position.x and position.y are clamped to be always greater than 0.0 beforehand"
+    )]
+    pub const fn position(&self) -> (usize, usize) {
+        (self.position.x as usize, self.position.y as usize)
+    }
+
+    /// Get the size of the cursor in dimensions.
+    pub const fn dims(&self) -> (usize, usize) {
+        let _ = self;
+        (CURSOR_SIZE, CURSOR_SIZE)
+    }
+
+    /// Check if the cursor is enabled or not.
+    pub const fn enabled(&self) -> bool {
+        !self.disabled
     }
 
     /// Return an event that waits for the pointer to move.
     ///
     /// This simply delegates to the inner `pointer`.
-    pub fn wait_for_input_event(&mut self) -> Option<Event> {
+    pub fn wait_for_input_event(&self) -> Option<Event> {
         self.pointer.wait_for_input_event()
     }
 }

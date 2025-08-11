@@ -45,20 +45,13 @@ fn main_func() -> Result<Option<Handle>, MainError> {
     let mut terminal = Terminal::new(backend)?;
     let mut app = App::new()?;
 
-    match app.run(&mut terminal)? {
-        Some(image) => {
-            app.close(terminal);
-            Ok(Some(image))
-        }
-        None => Ok(None),
-    }
+    let image = app.run(&mut terminal)?;
+
+    image.map_or(Ok(None), |image| Ok(Some(image)))
 }
 
 #[entry]
 fn main() -> Status {
     let image = main_func().unwrap_or_else(|e| panic!("Error occurred while running: {e}")); // panic on critical error
-    match image {
-        Some(image) => start_image(image).status(),
-        None => Status::SUCCESS, // this means the program was exited naturally
-    }
+    image.map_or(Status::SUCCESS, |image| start_image(image).status())
 }

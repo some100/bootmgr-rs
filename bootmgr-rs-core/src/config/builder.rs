@@ -174,7 +174,7 @@ impl ConfigBuilder {
     /// Sets the origin of a [`Config`].
     ///
     /// This is one of the parsers that generate [`Config`]s.
-    pub fn origin(mut self, origin: Parsers) -> Self {
+    pub const fn origin(mut self, origin: Parsers) -> Self {
         self.config.origin = Some(origin);
         self
     }
@@ -212,24 +212,18 @@ impl ConfigBuilder {
 
 impl From<&Config> for ConfigBuilder {
     fn from(value: &Config) -> Self {
-        ConfigBuilder::new(&value.filename, &value.suffix)
+        Self::new(&value.filename, &value.suffix)
             .set_bad(value.bad)
-            .assign_if_some(value.title.as_ref(), ConfigBuilder::title)
-            .assign_if_some(value.version.as_ref(), ConfigBuilder::version)
-            .assign_if_some(value.machine_id.as_deref(), ConfigBuilder::machine_id)
-            .assign_if_some(value.sort_key.as_deref(), ConfigBuilder::sort_key)
-            .assign_if_some(value.options.as_ref(), ConfigBuilder::options)
-            .assign_if_some(
-                value.devicetree_path.as_deref(),
-                ConfigBuilder::devicetree_path,
-            )
-            .assign_if_some(value.architecture.as_deref(), ConfigBuilder::architecture)
-            .assign_if_some(value.efi_path.as_deref(), ConfigBuilder::efi_path)
-            .assign_if_some(
-                value.fs_handle.as_deref().copied(),
-                ConfigBuilder::fs_handle,
-            )
-            .assign_if_some(value.origin, ConfigBuilder::origin)
+            .assign_if_some(value.title.as_ref(), Self::title)
+            .assign_if_some(value.version.as_ref(), Self::version)
+            .assign_if_some(value.machine_id.as_deref(), Self::machine_id)
+            .assign_if_some(value.sort_key.as_deref(), Self::sort_key)
+            .assign_if_some(value.options.as_ref(), Self::options)
+            .assign_if_some(value.devicetree_path.as_deref(), Self::devicetree_path)
+            .assign_if_some(value.architecture.as_deref(), Self::architecture)
+            .assign_if_some(value.efi_path.as_deref(), Self::efi_path)
+            .assign_if_some(value.fs_handle.as_deref().copied(), Self::fs_handle)
+            .assign_if_some(value.origin, Self::origin)
     }
 }
 

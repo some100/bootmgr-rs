@@ -121,7 +121,7 @@ impl SecurityArch {
 
     /// Get a clone of the inner raw [`SecurityArchProtocol`].
     #[must_use = "Has no effect if the result is unused"]
-    pub(crate) fn get_inner(&self) -> &SecurityArchProtocol {
+    pub(crate) const fn get_inner(&self) -> &SecurityArchProtocol {
         &self.0
     }
 
@@ -197,7 +197,7 @@ impl Security2Arch {
 
     /// Get a shared reference to the inner raw [`Security2ArchProtocol`].
     #[must_use = "Has no effect if the result is unused"]
-    pub(crate) fn get_inner(&self) -> &Security2ArchProtocol {
+    pub(crate) const fn get_inner(&self) -> &Security2ArchProtocol {
         &self.0
     }
 

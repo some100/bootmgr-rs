@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-ratatui - [0.4.0] - 2025-08-11
+
+### Changed
+
+- Const-ified `Theme::new`.
+- Internal code improvements.
+
+### Removed
+
+- Removed redundant `App::close` method.
+
+## bootmgr-rs-slint - [0.5.0] - 2025-08-11
+
+### Changed
+
+- Const-ified a few functions that were eligible.
+- Cursor is no longer directly drawn to framebuffer, but now directly uses GOP BLT.
+- Internal code improvements and optimizations.
+
+## bootmgr-rs-core - [0.9.0] - 2025-08-11
+
+### Changed
+
+- Const-ified many functions that were eligible.
+- Internal code improvements.
+- Clarify current MSRV in crate-level documentation.
+
 ## bootmgr-rs-core - [0.8.0] - 2025-08-10
 
 ### Added

@@ -79,7 +79,7 @@ impl SecurityOverride {
     /// This will panic if the [`Cell`] is not yet initialized.
     /// However, this is not possible since the [`Cell`] is always initalized at the start
     /// of the program as a static. Therefore, this method cannot actually panic.
-    fn get(&self) -> SecurityOverrideInner {
+    const fn get(&self) -> SecurityOverrideInner {
         self.inner
             .get()
             .expect("The static Cell should always be initialized at the start of the programming")

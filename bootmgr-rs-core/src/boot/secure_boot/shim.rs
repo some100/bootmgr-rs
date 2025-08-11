@@ -35,7 +35,7 @@ use crate::{
 /// or the system does not support `DevicePathToText`, or the file does not exist in the filesystem.
 fn validate_from_device_path(
     mut device_path: &DevicePath,
-    shim: &mut ScopedProtocol<ShimLock>,
+    shim: &ScopedProtocol<ShimLock>,
 ) -> BootResult<()> {
     let handle = boot::locate_device_path::<SimpleFileSystem>(&mut device_path)?;
     let mut fs = UefiFileSystem::from_handle(handle)?;
@@ -67,14 +67,14 @@ fn shim_validate(
     file_buffer: Option<&mut [u8]>,
     _file_size: usize,
 ) -> BootResult<()> {
-    let mut shim = locate_protocol::<ShimLock>()?;
+    let shim = locate_protocol::<ShimLock>()?;
 
     if let Some(file_buffer) = file_buffer {
         return Ok(shim.verify(file_buffer)?);
     }
 
     if let Some(device_path) = device_path {
-        return validate_from_device_path(device_path, &mut shim);
+        return validate_from_device_path(device_path, &shim);
     }
 
     Err(SecureBootError::NoDevicePathOrFile.into())

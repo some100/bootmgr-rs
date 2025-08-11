@@ -17,7 +17,7 @@ use bootmgr_rs_core::{
     system::helper::locate_protocol,
 };
 use slint::{
-    Image, Model, ModelRc, PhysicalSize, SharedString, ToSharedString, VecModel,
+    Image, Model, ModelRc, PhysicalSize, SharedString, ToSharedString,
     platform::{
         WindowEvent,
         software_renderer::{MinimalSoftwareWindow, SoftwareRenderer},
@@ -136,7 +136,7 @@ impl App {
                 if let Some(key) = self.handle_key() {
                     let str = SharedString::from(key);
                     window
-                        .try_dispatch_event(WindowEvent::KeyPressed { text: str.clone() })
+                        .try_dispatch_event(WindowEvent::KeyPressed { text: str.clone() }) // clones with SharedString are cheap
                         .map_err(MainError::SlintError)?;
                     window
                         .try_dispatch_event(WindowEvent::KeyReleased { text: str })
@@ -239,8 +239,7 @@ impl App {
             .collect();
 
         // slint requires that they be in ModelRc, for some reason
-        let items_rc = Rc::new(VecModel::from(items));
-        let boot_items = ModelRc::from(items_rc.clone());
+        let boot_items = ModelRc::from(&*items);
 
         // applying theme
         let boot_config = &self.boot_mgr.boot_config;
@@ -257,7 +256,7 @@ impl App {
         ui.set_highlight_bg(h_background);
 
         // set up the rest of properties
-        ui.set_items(boot_items.clone());
+        ui.set_items(boot_items);
         ui.set_listIdx(i32::try_from(self.idx).unwrap_or(0));
         ui.set_timeout(i32::try_from(self.timeout).unwrap_or(-1));
 
@@ -280,14 +279,20 @@ impl App {
             core::slice::from_raw_parts_mut(fb.as_mut_ptr().cast::<BltPixel>(), fb.len())
         };
 
-        self.mouse.draw_cursor(blt_fb, w, h);
-
         let _ = self.gop.blt(BltOp::BufferToVideo {
             buffer: blt_fb,
             src: BltRegion::Full,
             dest: (0, 0),
             dims: (w, h),
         });
+
+        if self.mouse.enabled() {
+            let _ = self.gop.blt(BltOp::VideoFill {
+                color: self.mouse.color(),
+                dest: self.mouse.position(),
+                dims: self.mouse.dims(),
+            });
+        }
     }
 }
 

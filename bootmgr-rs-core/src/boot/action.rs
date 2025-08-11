@@ -45,11 +45,11 @@ impl BootAction {
     /// May return an `Error` if any of the actions fail.
     pub fn run(&self, config: &Config) -> BootResult<Handle> {
         match self {
-            BootAction::Reboot => reboot::reset(),
-            BootAction::Shutdown => shutdown::shutdown(),
-            BootAction::ResetToFirmware => firmware::reset_to_firmware(),
-            BootAction::BootEfi => loader::efi::load_boot_option(config),
-            BootAction::BootTftp => loader::tftp::load_boot_option(config),
+            Self::Reboot => reboot::reset(),
+            Self::Shutdown => shutdown::shutdown(),
+            Self::ResetToFirmware => firmware::reset_to_firmware(),
+            Self::BootEfi => loader::efi::load_boot_option(config),
+            Self::BootTftp => loader::tftp::load_boot_option(config),
         }
     }
 }

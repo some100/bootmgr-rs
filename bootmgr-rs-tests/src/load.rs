@@ -61,7 +61,7 @@ pub fn test_loading() -> anyhow::Result<()> {
         let loaded_image = boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle())?;
         let device_handle = loaded_image
             .device()
-            .ok_or(anyhow!("Image handle was not loaded from a storage device"))?;
+            .ok_or_else(|| anyhow!("Image handle was not loaded from a storage device"))?;
         let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle)?;
         boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path)?
     }; // so that the handle will be able to be opened for loading the boot option

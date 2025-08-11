@@ -43,8 +43,5 @@ fn main_func() -> Result<Option<Handle>, MainError> {
 #[entry]
 fn main() -> Status {
     let image = main_func().unwrap_or_else(|e| panic!("Error occurred while running: {e}"));
-    match image {
-        Some(image) => start_image(image).status(),
-        None => Status::SUCCESS,
-    }
+    image.map_or(Status::SUCCESS, |image| start_image(image).status())
 }

@@ -118,7 +118,7 @@ impl SecurityOverrideInner {
     /// If the validators are exactly the same (function pointer addresses are equal), or secure boot
     /// is not enabled, then it returns [`false`].
     fn should_skip_install(
-        &mut self,
+        &self,
         validator: Validator,
         validator_ctx: Option<NonNull<u8>>,
     ) -> bool {
@@ -149,18 +149,18 @@ impl SecurityOverrideInner {
         device_path: Option<&DevicePath>,
         file_buffer: Option<&mut [u8]>,
     ) -> BootResult<()> {
-        if let Some(validator) = self.validator {
-            let validator_ctx = self.validator_ctx;
+        self.validator.map_or_else(
+            || Err(SecureBootError::NoValidator.into()),
+            |validator| {
+                let validator_ctx = self.validator_ctx;
 
-            let file_size = match file_buffer {
-                Some(ref file_buffer) => file_buffer.len(),
-                None => 0,
-            };
+                let file_size = file_buffer
+                    .as_ref()
+                    .map_or(0, |file_buffer| file_buffer.len());
 
-            validator(validator_ctx, device_path, file_buffer, file_size)
-        } else {
-            Err(SecureBootError::NoValidator.into())
-        }
+                validator(validator_ctx, device_path, file_buffer, file_size)
+            },
+        )
     }
 
     /// Calls the original hook for [`SecurityArchProtocol`] that was there previously before the custom validator was installed.
@@ -179,14 +179,12 @@ impl SecurityOverrideInner {
         auth_status: u32,
         file: *const FfiDevicePath,
     ) -> Status {
-        match self.original_hook {
-            Some(original_hook) => {
-                // SAFETY: the main caller of this method should be UEFI LoadImage, which (dependent on firmware)
-                // should pass safe and valid pointers. therefore this is safe in that case
-                unsafe { original_hook(this, auth_status, file) }
-            }
-            None => Status::SUCCESS,
-        }
+        // SAFETY: the main caller of this method should be UEFI LoadImage, which (dependent on firmware)
+        // should pass safe and valid pointers. therefore this is safe in that case
+        self.original_hook
+            .map_or(Status::SUCCESS, |original_hook| unsafe {
+                original_hook(this, auth_status, file)
+            })
     }
 
     /// Calls the original hook for [`Security2ArchProtocol`] that was there previously before the custom validator was installed.
@@ -207,13 +205,11 @@ impl SecurityOverrideInner {
         file_size: usize,
         boot_policy: u8,
     ) -> Status {
-        match self.original_hook2 {
-            Some(original_hook2) => {
-                // SAFETY: the main caller of this method should be UEFI LoadImage, which (dependent on firmware)
-                // should pass safe and valid pointers. therefore this is safe in that case
-                unsafe { original_hook2(this, device_path, file_buffer, file_size, boot_policy) }
-            }
-            None => Status::SUCCESS,
-        }
+        // SAFETY: the main caller of this method should be UEFI LoadImage, which (dependent on firmware)
+        // should pass safe and valid pointers. therefore this is safe in that case
+        self.original_hook2
+            .map_or(Status::SUCCESS, |original_hook2| unsafe {
+                original_hook2(this, device_path, file_buffer, file_size, boot_policy)
+            })
     }
 }

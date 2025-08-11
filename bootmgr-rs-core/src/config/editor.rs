@@ -36,7 +36,7 @@ impl ConfigEditor {
 
     /// Get the current index.
     #[must_use = "Has no effect if the result is unused"]
-    pub fn idx(&self) -> usize {
+    pub const fn idx(&self) -> usize {
         self.idx
     }
 
@@ -47,7 +47,7 @@ impl ConfigEditor {
     }
 
     /// Move to the previous field of the editor.
-    pub fn prev_field(&mut self) {
+    pub const fn prev_field(&mut self) {
         if self.idx > 0 {
             self.idx -= 1;
         }

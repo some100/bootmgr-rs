@@ -70,13 +70,13 @@ impl BootMgr {
 
     /// Returns a reference to the inner [`Vec<Config>`].
     #[must_use = "Has no effect if the result is unused"]
-    pub fn list(&self) -> &Vec<Config> {
+    pub const fn list(&self) -> &Vec<Config> {
         &self.configs
     }
 
     /// Returns a mutable reference to the inner [`Vec<Config>`].
     #[must_use = "Has no effect if the result is unused"]
-    pub fn list_mut(&mut self) -> &mut Vec<Config> {
+    pub const fn list_mut(&mut self) -> &mut Vec<Config> {
         &mut self.configs
     }
 

@@ -18,7 +18,7 @@ macro_rules! optional_config {
         /// The parser for $config
         #[cfg(feature = $feature)]
         pub(crate) mod $name {
-            pub(crate) use crate::config::parsers::$name::$config;
+            pub use crate::config::parsers::$name::$config;
         }
 
         /// The disabled parser for $config

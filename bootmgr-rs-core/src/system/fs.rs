@@ -91,7 +91,7 @@ pub struct UefiFileSystem(ScopedProtocol<SimpleFileSystem>);
 impl UefiFileSystem {
     /// Create a new [`UefiFileSystem`].
     #[must_use = "Has no effect if the result is unused"]
-    pub fn new(fs: ScopedProtocol<SimpleFileSystem>) -> Self {
+    pub const fn new(fs: ScopedProtocol<SimpleFileSystem>) -> Self {
         Self(fs)
     }
 
