@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.11.1] - 2025-08-11
+
+### Added
+
+- Added a new `create_timer` function for reducing boilerplate of timeout creation.
+
+### Changed
+
+- Devicetree struct now contains `&'a [u8]` rather than `&'static [u8]`.
+- Devicetree logic is now slightly safer (1 unsafe usage removed).
+
+## bootmgr-rs-ratatui - [0.4.1] - 2025-08-11
+
+### Changed
+
+- Now uses `create_timer` function for timeout handling.
+
+## bootmgr-rs-slint - [0.5.1] - 2025-08-11
+
+### Changed
+
+- `TransparentWrapper` from bytemuck is now used to safely convert between `SlintBltPixel` and `BltPixel`.
+- Now uses `create_timer` function for timeout handling.
+
 ## bootmgr-rs-core - [0.11.0] - 2025-08-11
 
 ### Changed

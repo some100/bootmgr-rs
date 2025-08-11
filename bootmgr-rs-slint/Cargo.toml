@@ -1,10 +1,11 @@
 [package]
 name = "bootmgr-rs-slint"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 
 [dependencies]
 bootmgr-rs-core = { path = "../bootmgr-rs-core" }
+bytemuck = "1.23.2"
 log = "0.4.27"
 slint = { version = "1.12.1", default-features = false, features = ["compat-1-2", "unsafe-single-threaded", "libm", "renderer-software"] }
 thiserror = { version = "2.0.12", default-features = false }

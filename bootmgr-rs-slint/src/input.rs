@@ -3,24 +3,20 @@
 //! This will expose printable keys as well as a subset of special keys to Slint, as well
 //! as the state of the mouse. In addition, it also provides a helper method
 //! [`MouseState::draw_cursor`].
-//!
-//! # Safety
-//!
-//! This module uses unsafe in 1 place.
-//!
-//! 1. Events must be created using unsafe because of how callbacks may not be able to handle exiting from boot services well.
-//!    Because the timer event has no callbacks, this is safe.
 
 use core::time::Duration;
 
-use bootmgr_rs_core::{BootResult, system::helper::locate_protocol};
+use bootmgr_rs_core::{
+    BootResult,
+    system::helper::{create_timer, locate_protocol},
+};
 use slint::{
     LogicalPosition,
     platform::{Key as SlintKey, PointerEventButton},
 };
 use uefi::{
     Event, ResultExt,
-    boot::{self, EventType, ScopedProtocol, TimerTrigger, Tpl},
+    boot::{self, ScopedProtocol, TimerTrigger},
     proto::console::{
         gop::BltPixel,
         pointer::{Pointer, PointerMode},
@@ -164,14 +160,8 @@ impl App {
     /// This will also clear the event queue every time it is called, because the duration may be different between calls.
     pub fn wait_for_events(&mut self, duration: Option<Duration>) -> BootResult<()> {
         if let Some(duration) = duration {
-            let duration_time = duration.as_nanos() / 100;
-            // SAFETY: there are no callbacks, so this is safe
-            let timer =
-                unsafe { boot::create_event(EventType::TIMER, Tpl::APPLICATION, None, None)? };
-            boot::set_timer(
-                &timer,
-                TimerTrigger::Relative(u64::try_from(duration_time).unwrap_or(u64::MAX)),
-            )?;
+            let duration_time = u64::try_from(duration.as_nanos() / 100).unwrap_or(u64::MAX);
+            let timer = create_timer(TimerTrigger::Relative(duration_time))?;
             self.events.push(timer);
         }
 

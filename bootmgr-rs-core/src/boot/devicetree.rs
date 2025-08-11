@@ -10,20 +10,17 @@
 //! This module uses unsafe in 4 places currently. This is obviously not preferable since unsafe blocks can destroy
 //! the guarantees that safe Rust carries, however the places where this module uses unsafe are completely safe.
 //!
-//! 1. In the call to [`copy_nonoverlapping`], the destination pointer was freshly allocated, and the source pointer
-//!    was derived from a byte slice reference, which is guaranteed to be non-null and aligned. In addition, they are
-//!    guaranteed to be the same size as [`boot::allocate_pool`] allocated the length of the source slice, so it is safe.
-//! 2. [`copy_nonoverlapping`] preserves the content essentially exactly, so the call to [`core::slice::from_raw_parts`]
-//!    is simply reconstructing the slice from its raw parts. Therefore, it is safe.
-//! 3. Unsafe is required to install the configuration table, because of two conditions that are upheld by the program.
+//! 1. The "size" passed to `from_raw_parts_mut` is guaranteed to be the size of the allocated memory. In addition, since
+//!    we have just allocated that memory, it is guaranteed to be non-null and safe to use.
+//! 2. Unsafe is required to install the configuration table, because of two conditions that are upheld by the program.
 //!    The first is that the data must not be freed, which is ensured by `DevicetreeGuard` leaking the memory after
 //!    installation. The second is that the data must not be modified, which is similarly ensured by `DevicetreeGuard`
 //!    consuming the inner devicetree.
-//! 4. Unsafe is required to free the allocated memory from [`boot::allocate_pool`]. It is called only when dropped, so
+//! 3. Unsafe is required to free the allocated memory from [`boot::allocate_pool`]. It is called only when dropped, so
 //!    there cannot possibly be any remaining references to the inner pointer after it goes out of scope.
 
 use core::ffi::c_void;
-use core::ptr::{NonNull, copy_nonoverlapping};
+use core::ptr::NonNull;
 
 use thiserror::Error;
 use uefi::boot::ScopedProtocol;
@@ -52,7 +49,7 @@ pub enum DevicetreeError {
     DevicetreeGuardConsumed,
 }
 
-struct Devicetree {
+struct Devicetree<'a> {
     /// The size of the devicetree blob.
     size: usize,
 
@@ -60,34 +57,35 @@ struct Devicetree {
     ptr: NonNull<u8>,
 
     /// The devicetree blob as a slice.
-    slice: &'static [u8],
+    slice: &'a [u8],
 }
 
 /// A RAII guard for [`Devicetree`] that leaks upon installation, in order to
 /// safely install the devicetree blob to the configuration table.
 #[must_use = "Will drop the inner Devicetree if immediately dropped"]
-struct DevicetreeGuard {
+struct DevicetreeGuard<'a> {
     /// The inner [`Devicetree`].
-    devicetree: Option<Devicetree>,
+    devicetree: Option<Devicetree<'a>>,
 }
 
-impl Devicetree {
+impl Devicetree<'_> {
     /// Get a new [`Devicetree`] given a byte slice of a devicetree blob, and optionally its size which is
     /// determined from the content length if excluded.
+    ///
+    /// If the size provided is smaller than the content length, then the content length will be used.
+    /// This ensures that both enough memory can be allocated and the slice can be constructed safely.
     fn new(content: &[u8], size: Option<usize>) -> BootResult<Self> {
         let size = size.unwrap_or(content.len()).min(content.len());
 
         // ptr must be an allocation of type ACPI_RECLAIM, because dtb data must be ACPI_RECLAIM
-        let ptr = boot::allocate_pool(boot::MemoryType::ACPI_RECLAIM, size)?;
-
-        // SAFETY: ptr is at least the same length as size, so this is safe
-        unsafe {
-            copy_nonoverlapping(content.as_ptr(), ptr.as_ptr(), content.len());
-        }
+        let mut ptr = boot::allocate_pool(boot::MemoryType::ACPI_RECLAIM, size)?;
 
         // SAFETY: size should be at most the size of the actual content. ptr is valid for at least
         // the length of size, as we have allocated that many bytes, so this is safe.
-        let slice = unsafe { core::slice::from_raw_parts(ptr.as_ptr(), size) }; // store the slice in the struct
+        let slice = unsafe { core::slice::from_raw_parts_mut(ptr.as_mut(), size) };
+
+        slice.copy_from_slice(content);
+
         Ok(Self { size, ptr, slice })
     }
 
@@ -119,7 +117,7 @@ impl Devicetree {
     }
 }
 
-impl Drop for Devicetree {
+impl Drop for Devicetree<'_> {
     fn drop(&mut self) {
         // SAFETY: if the devicetree is out of scope, it will not be used again, so this is safe
         // this will only error if the ptr is invalid (such as if it wasn't allocated by allocate_pool)
@@ -129,7 +127,7 @@ impl Drop for Devicetree {
     }
 }
 
-impl DevicetreeGuard {
+impl DevicetreeGuard<'_> {
     /// Get a new [`DevicetreeGuard`] given a byte slice to a devicetree blob and optionally its size.
     /// This delegates to the inner [`Devicetree`] constructor.
     fn new(content: &[u8], size: Option<usize>) -> BootResult<Self> {
@@ -184,7 +182,7 @@ impl DevicetreeGuard {
     }
 }
 
-impl Drop for DevicetreeGuard {
+impl Drop for DevicetreeGuard<'_> {
     fn drop(&mut self) {
         self.devicetree.take();
     }

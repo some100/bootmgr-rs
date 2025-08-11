@@ -16,6 +16,7 @@ use bootmgr_rs_core::{
     config::{Config, parsers::Parsers},
     system::helper::locate_protocol,
 };
+use bytemuck::TransparentWrapper;
 use slint::{
     Image, Model, ModelRc, PhysicalSize, SharedString, ToSharedString,
     platform::{
@@ -27,7 +28,7 @@ use uefi::{
     Event, Handle,
     boot::ScopedProtocol,
     proto::console::{
-        gop::{BltOp, BltPixel, BltRegion, GraphicsOutput},
+        gop::{BltOp, BltRegion, GraphicsOutput},
         text::Input,
     },
 };
@@ -275,8 +276,7 @@ impl App {
 
         // SAFETY: fb is guaranteed nonnull, slintbltpixel is a repr(transparent) type of bltpixel,
         // and len is guaranteed to be the same as the actual len
-        let blt_fb =
-            unsafe { core::slice::from_raw_parts(fb.as_ptr().cast::<BltPixel>(), fb.len()) };
+        let blt_fb = TransparentWrapper::peel_slice(fb);
 
         let _ = self.gop.blt(BltOp::BufferToVideo {
             buffer: blt_fb,

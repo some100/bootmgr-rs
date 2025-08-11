@@ -2,11 +2,13 @@
 //!
 //! # Safety
 //!
-//! This module uses unsafe in 1 place.
+//! This module uses unsafe in 2 places.
 //!
 //! 1. `MaybeUninit<T>` provides guarantees that its size and layout will be exactly the same as `T`. Because of this, it is
 //!    safe to interpret a pointer of type `T` as a pointer of type `MaybeUninit<T>` (note: the opposite is not always true).
 //!    Because of this, this is essentially reconstructing a pointer from itself, which is safe.
+//! 2. The timer is created with no callbacks. This means that it is safe, since there are no callbacks that need to specially
+//!    handle `ExitBootServices`.
 
 use core::mem::MaybeUninit;
 
@@ -15,9 +17,9 @@ use alloc::ffi::CString;
 use alloc::string::String;
 use smallvec::SmallVec;
 use thiserror::Error;
-use uefi::CStr8;
 use uefi::boot::ScopedProtocol;
 use uefi::proto::ProtocolPointer;
+use uefi::{CStr8, Event};
 use uefi::{
     CStr16, CString16, boot,
     data_types::PoolString,
@@ -210,6 +212,20 @@ pub(crate) const fn slice_to_maybe_uninit<T>(slice: &mut [T]) -> &mut [MaybeUnin
 pub fn locate_protocol<P: ProtocolPointer>() -> BootResult<ScopedProtocol<P>> {
     let handle = boot::get_handle_for_protocol::<P>()?;
     Ok(boot::open_protocol_exclusive(handle)?)
+}
+
+/// Create a timer that will fire every duration in milliseconds.
+///
+/// # Errors
+///
+/// May return an `Error` if the timer event could not be created. This would probably be
+/// because allocation for the event failed.
+pub fn create_timer(trigger: boot::TimerTrigger) -> BootResult<Event> {
+    // SAFETY: there are no callbacks, so this is safe.
+    let timer =
+        unsafe { boot::create_event(boot::EventType::TIMER, boot::Tpl::APPLICATION, None, None)? };
+    boot::set_timer(&timer, trigger)?;
+    Ok(timer)
 }
 
 #[cfg(test)]

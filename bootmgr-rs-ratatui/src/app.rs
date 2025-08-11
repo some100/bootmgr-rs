@@ -2,21 +2,18 @@
 //!
 //! This is where the main loop of the whole application is located, and is where terminal, boot manager,
 //! and editor interact.
-//!
-//! # Safety
-//!
-//! This uses one unsafe block for creating the timer event.
-//!
-//! 1. Events require unsafe to be used because of how callbacks may not handle exiting from booting services well.
-//!    Because this event has no callbacks, this is safe.
 
-use bootmgr_rs_core::{boot::BootMgr, error::BootError, system::helper::locate_protocol};
+use bootmgr_rs_core::{
+    boot::BootMgr,
+    error::BootError,
+    system::helper::{create_timer, locate_protocol},
+};
 use log::error;
 use ratatui_core::terminal::Terminal;
 use thiserror::Error;
 use uefi::{
     Event, Handle,
-    boot::{self, ScopedProtocol},
+    boot::{self, ScopedProtocol, TimerTrigger},
     proto::console::text::{Input, Key, ScanCode},
 };
 
@@ -282,7 +279,7 @@ impl App {
             self.input
                 .wait_for_key_event()
                 .ok_or(AppError::InputClosed)?,
-            Self::get_timer_event()?,
+            create_timer(TimerTrigger::Periodic(TIMER_INTERVAL))?,
         ]);
         Ok(())
     }
@@ -341,21 +338,5 @@ impl App {
             _ => (),
         }
         self.timeout = -1;
-    }
-
-    /// Create a timer event.
-    ///
-    /// # Errors
-    ///
-    /// May return an `Error` if there was not enough memory for the timer to be allocated.
-    fn get_timer_event() -> Result<Event, MainError> {
-        // SAFETY: this is completely safe as callbacks are not used
-        let timer_event = unsafe {
-            boot::create_event(boot::EventType::TIMER, boot::Tpl::APPLICATION, None, None)
-                .map_err(BootError::Uefi)?
-        };
-        boot::set_timer(&timer_event, boot::TimerTrigger::Periodic(TIMER_INTERVAL))
-            .map_err(BootError::Uefi)?;
-        Ok(timer_event)
     }
 }

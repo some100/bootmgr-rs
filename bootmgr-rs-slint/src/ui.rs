@@ -23,6 +23,7 @@
 use core::time::Duration;
 
 use alloc::{boxed::Box, rc::Rc};
+use bytemuck::TransparentWrapper;
 use slint::{
     Color as SlintColor,
     platform::{
@@ -40,7 +41,7 @@ slint::include_modules!();
 
 /// A thin wrapper around [`BltPixel`] that implements [`TargetPixel`].
 #[repr(transparent)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, TransparentWrapper)]
 pub struct SlintBltPixel(BltPixel);
 
 impl SlintBltPixel {
