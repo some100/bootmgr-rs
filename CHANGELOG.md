@@ -142,7 +142,7 @@ All notable changes to this project will be documented in this file.
 
 - Editor state is now tracked with an enum instead of bools.
 
-## bootmgr-rs-slint - [0.2.0] - 2025-08-08
+## bootmgr-rs-slint - [0.2.0] - 2025-08-07
 
 ### Added
 
@@ -153,7 +153,7 @@ All notable changes to this project will be documented in this file.
 - Greatly improved structuring and main loop.
 - Adjust animation timings.
 
-## bootmgr-rs-core - [0.4.0] - 2025-07-08
+## bootmgr-rs-core - [0.4.0] - 2025-08-07
 
 ### Added
 
@@ -167,7 +167,7 @@ All notable changes to this project will be documented in this file.
 
 - Bug with `boot/loader/efi.rs` where load options would be set for all images (even if empty).
 
-## bootmgr-rs-core - [0.3.0] - 2025-06-08
+## bootmgr-rs-core - [0.3.0] - 2025-08-06
 
 ### Added
 
@@ -179,14 +179,14 @@ All notable changes to this project will be documented in this file.
 - Use Shim to load drivers instead of the default UEFI LoadImage.
 - Privatize `install_security_override` and `uninstall_security_override`.
 
-## bootmgr-rs-slint - [0.1.0] - 2025-06-08
+## bootmgr-rs-slint - [0.1.0] - 2025-08-06
 
 ### Added
 
 - Slint UI frontend, a carousel graphical frontend to `bootmgr-rs-core`.
 - Images of this frontend.
 
-## bootmgr-rs-core - [0.2.0] - 2025-05-08
+## bootmgr-rs-core - [0.2.0] - 2025-08-05
 
 ### Added
 
@@ -198,13 +198,13 @@ All notable changes to this project will be documented in this file.
 - Tighter lints for clippy and cargo.
 - Update naming of some fields.
 
-## bootmgr-rs-minimal - [0.1.0] - 2025-05-02
+## bootmgr-rs-minimal - [0.1.0] - 2025-08-02
 
 ### Changed
 
 - `bootmgr-rs-basic` renamed to `bootmgr-rs-minimal`.
 
-## [0.5.0] - 2025-01-08
+## [0.5.0] - 2025-08-01
 
 ### Added
 
@@ -217,7 +217,7 @@ All notable changes to this project will be documented in this file.
 - Formatting.
 - Improved documentation.
 
-## [0.4.1] - 2025-01-08
+## [0.4.1] - 2025-08-01
 
 ### Changed
 
@@ -230,7 +230,7 @@ All notable changes to this project will be documented in this file.
 
 - Bug with fuzzing that prevented it from working on release profile with lto enabled.
 
-## [0.4.0] - 2025-01-08
+## [0.4.0] - 2025-08-01
 
 ### Added
 
@@ -243,7 +243,7 @@ All notable changes to this project will be documented in this file.
 - `reset_to_firmware` now returns `!` instead of `BootResult<!>`.
 - Improved documentation.
 
-## [0.3.3] - 2025-31-07
+## [0.3.3] - 2025-07-31
 
 ### Added
 
@@ -257,14 +257,14 @@ All notable changes to this project will be documented in this file.
 
 - Fixed an issue with xtasks where the release flag was not applying.
 
-## [0.3.2] - 2025-31-07
+## [0.3.2] - 2025-07-31
 
 ### Changed
 
 - Store a static slice inside of the Devicetree struct, and initialize it once on `Devicetree::new`.
 - `DevicetreeFixup::fixup` is now safe due to no longer taking raw pointers as parameters.
 
-## [0.3.1] - 2025-31-07
+## [0.3.1] - 2025-07-31
 
 ### Changed
 
@@ -273,7 +273,7 @@ All notable changes to this project will be documented in this file.
 - Use `Cell` instead of `OnceCell` for security override.
 - Removed even more usages of `unwrap`.
 
-## [0.3.0] - 2025-31-07
+## [0.3.0] - 2025-07-31
 
 ### Added
 
@@ -292,7 +292,7 @@ All notable changes to this project will be documented in this file.
 
 - `read_to_string` function (use `str::from_utf8(read())) instead`).
 
-## [0.2.1] - 2025-29-07
+## [0.2.1] - 2025-07-31
 
 ### Changed
 
@@ -300,7 +300,7 @@ All notable changes to this project will be documented in this file.
 - Use `BootResult<T>` more extensively.
 - Improved testing.
 
-## [0.2.0] - 2025-28-07
+## [0.2.0] - 2025-07-31
 
 ### Added
 
