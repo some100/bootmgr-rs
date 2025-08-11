@@ -2,13 +2,6 @@
 //!
 //! This provides callbacks from the Rust side of the UI, as well
 //! as a way to get the UI.
-//!
-//! # Safety
-//!
-//! This uses unsafe blocks in 1 place.
-//!
-//! 1. [`SlintBltPixel`] is simply a `repr(transparent)` wrapper around [`BltPixel`]. Therefore, the components of this type
-//!    are identical and therefore can be safely reinterpreted as [`BltPixel`].
 
 use alloc::{rc::Rc, vec, vec::Vec};
 use bootmgr_rs_core::{
@@ -119,9 +112,8 @@ impl App {
     /// # Errors
     ///
     /// May return an `Error` if the state of the keyboard could not be successfully communicated to the slint Window,
-    /// such as if `try_dispatch_event` failed. Error handling isn't too useful here, as it will simply result in a
-    /// reboot on key press. Additionally, if there was an error loading an image, it will result in simply exiting the
-    /// application.
+    /// such as if `try_dispatch_event` failed. Additionally, if there was an error loading an image, the error will
+    /// be displayed as a popup that can be exited.
     pub fn run(mut self) -> Result<Option<Handle>, MainError> {
         let (w, h) = self.gop.current_mode_info().resolution();
 
@@ -173,9 +165,8 @@ impl App {
                     self.state = AppState::Booting;
                 }
 
-                match self.state {
-                    AppState::Booting => break Ok(self.maybe_boot(self.idx)),
-                    AppState::Running => (),
+                if let Some(handle) = self.maybe_boot(&ui) {
+                    break Ok(Some(handle));
                 }
 
                 if !window.has_active_animations() {
@@ -187,7 +178,7 @@ impl App {
 
         match handle {
             Err(e) => {
-                ui.invoke_display_err(e.to_shared_string());
+                ui.invoke_display_fatal_err(e.to_shared_string());
                 window.request_redraw();
                 window.draw_if_needed(|renderer| self.draw_frame(renderer, &mut fb, w, h));
                 Err(e)
@@ -199,10 +190,21 @@ impl App {
     /// Might try to boot the currently selected boot option, probably. Will return a handle to the loaded image
     /// if the image is loaded.
     ///
-    /// This will return [`None`] if the image could not be loaded. In the context of the main loop, this will
-    /// essentially result in the application exiting, or shutting down.
-    fn maybe_boot(&mut self, idx: usize) -> Option<Handle> {
-        self.boot_mgr.load(idx).ok()
+    /// This will return [`None`] if the image could not be loaded.
+    fn maybe_boot(&mut self, ui: &Ui) -> Option<Handle> {
+        if self.state != AppState::Booting {
+            return None;
+        }
+
+        match self.boot_mgr.load(self.idx) {
+            Ok(handle) => Some(handle),
+            Err(e) => {
+                ui.invoke_display_err(e.to_shared_string());
+                self.state = AppState::Running;
+                self.timeout = -1;
+                None
+            }
+        }
     }
 
     /// Get an instance of the Slint UI.
@@ -274,8 +276,6 @@ impl App {
     ) {
         renderer.render(fb, w);
 
-        // SAFETY: fb is guaranteed nonnull, slintbltpixel is a repr(transparent) type of bltpixel,
-        // and len is guaranteed to be the same as the actual len
         let blt_fb = TransparentWrapper::peel_slice(fb);
 
         let _ = self.gop.blt(BltOp::BufferToVideo {

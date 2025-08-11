@@ -1,7 +1,7 @@
 //! The boot loader for network executables (really EFI loaded over network)
 //!
 //! It downloads a file from a TFTP server, then uses that file buffer as an EFI executable.
-//! The current support for PXE is insanely basic, and any more complex configurations (such as HTTP boot)
+//! The current support for PXE is basic, and any more complex configurations (such as HTTP boot)
 //! should use a more comprehensive PXE loader such as `iPXE` instead. This should be preferred even if your
 //! configuration is very simple.
 //!

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.6.0] - 2025-08-11
+
+### Added
+
+- Added non-fatal error popup for load errors.
+
+### Changed
+
+- Removed redundant safety comment.
+
 ## bootmgr-rs-core - [0.11.2] - 2025-08-11
 
 ### Changed

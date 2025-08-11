@@ -34,6 +34,12 @@ export component Ui inherits Window {
         error-popup.show();
     }
 
+    callback display_fatal_err(err: string);
+    display_fatal_err(err) => {
+        root.error = err;
+        fatal-popup.show();
+    }
+
     forward-focus: boot_list;
 
     default-font-family: Theme.font-family;
@@ -74,8 +80,29 @@ export component Ui inherits Window {
         Rectangle {
             background: root.highlight_bg;
             border-radius: Theme.radius-regular;
-            label := TitleLabel {
-                text: "Failed to boot: \{error}.\n\nPlease press any key to restart.";
+            error-label := TitleLabel {
+                text: "Failed to boot: \{error}.\n\nClick anywhere or press ESC to continue.";
+                font-size: Theme.font-size-medium;
+                height: 100%;
+                width: 100%;
+                wrap: word-wrap;
+                color: root.highlight_fg;
+                vertical-alignment: center;
+            }
+        }
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        height: root.height / 4;
+        width: root.width / 4;
+        close-policy: close-on-click;
+    }
+
+    fatal-popup := PopupWindow {
+        Rectangle {
+            background: root.highlight_bg;
+            border-radius: Theme.radius-regular;
+            fatal-label := TitleLabel {
+                text: "Fatal error occurred: \{error}.\n\nPlease press any key to restart.";
                 font-size: Theme.font-size-medium;
                 height: 100%;
                 width: 100%;
