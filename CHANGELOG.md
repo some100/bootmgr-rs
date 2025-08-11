@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.11.0] - 2025-08-11
+
+### Changed
+
+- Tighten visibility on two previously public members `scan_configs` and `is_target_partition`. (BREAKING)
+
+### Fixed
+
+- Resolved proptest regression for BLS parser.
+
 ## bootmgr-rs-core - [0.10.0] - 2025-08-11
 
 ### Changed

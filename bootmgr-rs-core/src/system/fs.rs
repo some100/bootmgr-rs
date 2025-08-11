@@ -397,7 +397,7 @@ impl UefiFileSystem {
 /// This will only work if the handle supports [`PartitionInfo`], else it will return
 /// [`true`] for every partition.
 #[must_use = "Has no effect if the result is unused"]
-pub fn is_target_partition(handle: Handle) -> bool {
+pub(crate) fn is_target_partition(handle: Handle) -> bool {
     // for filesystems that support partitioninfo, filter partitions by guid
     if let Ok(info) = boot::open_protocol_exclusive::<PartitionInfo>(handle) {
         let Some(entry) = info.gpt_partition_entry() else {

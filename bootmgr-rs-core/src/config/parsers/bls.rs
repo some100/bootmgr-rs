@@ -428,10 +428,11 @@ mod tests {
 
         #[test]
         fn sets_title(x in any::<String>()) {
+            let x = x.trim();
             let title = format!("title {x}");
             let config = BlsConfig::new(title.as_bytes(), None);
             if !x.is_empty() {
-                prop_assert_eq!(config.title, Some(x.trim().to_owned()));
+                prop_assert_eq!(config.title, Some(x.to_owned()));
             }
         }
     }
