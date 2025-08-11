@@ -17,8 +17,11 @@ use bootmgr_rs_core::{
     error::BootError,
 };
 use slint::{
-    Image, Model, ModelRc, PhysicalSize, SharedString, VecModel,
-    platform::{WindowEvent, software_renderer::MinimalSoftwareWindow},
+    Image, Model, ModelRc, PhysicalSize, SharedString, ToSharedString, VecModel,
+    platform::{
+        WindowEvent,
+        software_renderer::{MinimalSoftwareWindow, SoftwareRenderer},
+    },
 };
 use uefi::{
     Event, Handle,
@@ -121,82 +124,77 @@ impl App {
     /// such as if `try_dispatch_event` failed. Error handling isn't too useful here, as it will simply result in a
     /// reboot on key press. Additionally, if there was an error loading an image, it will result in simply exiting the
     /// application.
-    pub fn run(&mut self) -> Result<Option<Handle>, MainError> {
+    pub fn run(mut self) -> Result<Option<Handle>, MainError> {
         let (w, h) = self.gop.current_mode_info().resolution();
 
         let (window, ui) = self.get_a_ui(w, h)?;
         let mut fb = vec![SlintBltPixel::new(); w * h];
 
-        loop {
-            slint::platform::update_timers_and_animations();
+        let handle = || -> Result<Option<Handle>, MainError> {
+            loop {
+                slint::platform::update_timers_and_animations();
 
-            self.create_events();
+                self.create_events();
 
-            if let Some(key) = self.handle_key() {
-                let str = SharedString::from(key);
-                window
-                    .try_dispatch_event(WindowEvent::KeyPressed { text: str.clone() })
-                    .map_err(MainError::SlintError)?;
-                window
-                    .try_dispatch_event(WindowEvent::KeyReleased { text: str })
-                    .map_err(MainError::SlintError)?;
+                if let Some(key) = self.handle_key() {
+                    let str = SharedString::from(key);
+                    window
+                        .try_dispatch_event(WindowEvent::KeyPressed { text: str.clone() })
+                        .map_err(MainError::SlintError)?;
+                    window
+                        .try_dispatch_event(WindowEvent::KeyReleased { text: str })
+                        .map_err(MainError::SlintError)?;
+                }
+
+                if let Some((position, button)) = self.mouse.get_state() {
+                    window
+                        .try_dispatch_event(WindowEvent::PointerMoved { position })
+                        .map_err(MainError::SlintError)?;
+                    window
+                        .try_dispatch_event(WindowEvent::PointerPressed { position, button })
+                        .map_err(MainError::SlintError)?;
+
+                    // normally this would be really bad, however it does not matter in a uefi bootloader where complex mouse
+                    // button usage is not required
+                    window
+                        .try_dispatch_event(WindowEvent::PointerReleased { position, button })
+                        .map_err(MainError::SlintError)?;
+
+                    window.request_redraw();
+                }
+
+                window.draw_if_needed(|renderer| self.draw_frame(renderer, &mut fb, w, h));
+
+                if let Ok(idx) = usize::try_from(ui.get_listIdx())
+                    && idx != self.idx
+                {
+                    self.idx = idx;
+                }
+
+                if ui.get_now_booting() {
+                    self.state = AppState::Booting;
+                }
+
+                match self.state {
+                    AppState::Booting => break Ok(self.maybe_boot(self.idx)),
+                    AppState::Running => (),
+                }
+
+                if !window.has_active_animations() {
+                    let duration = slint::platform::duration_until_next_timer_update();
+                    self.wait_for_events(duration)?; // try to go to sleep, until a key press, mouse move, or after the duration
+                }
             }
+        }();
 
-            if let Some((position, button)) = self.mouse.get_state() {
-                window
-                    .try_dispatch_event(WindowEvent::PointerMoved { position })
-                    .map_err(MainError::SlintError)?;
-                window
-                    .try_dispatch_event(WindowEvent::PointerPressed { position, button })
-                    .map_err(MainError::SlintError)?;
-
-                // normally this would be really bad, however it does not matter in a uefi bootloader where complex mouse
-                // button usage is not required
-                window
-                    .try_dispatch_event(WindowEvent::PointerReleased { position, button })
-                    .map_err(MainError::SlintError)?;
-
+        match handle {
+            Err(e) => {
+                ui.invoke_display_err(e.to_shared_string());
                 window.request_redraw();
+                window.draw_if_needed(|renderer| self.draw_frame(renderer, &mut fb, w, h));
+                Err(e)
             }
-
-            window.draw_if_needed(|renderer| {
-                renderer.render(&mut fb, w);
-
-                // SAFETY: fb is guaranteed nonnull, slintbltpixel is a repr(transparent) type of bltpixel,
-                // and len is guaranteed to be the same as the actual len
-                let blt_fb = unsafe {
-                    core::slice::from_raw_parts_mut(fb.as_mut_ptr().cast::<BltPixel>(), fb.len())
-                };
-
-                self.mouse.draw_cursor(blt_fb, w, h);
-
-                let _ = self.gop.blt(BltOp::BufferToVideo {
-                    buffer: blt_fb,
-                    src: BltRegion::Full,
-                    dest: (0, 0),
-                    dims: (w, h),
-                });
-            });
-
-            if let Ok(idx) = usize::try_from(ui.get_listIdx())
-                && idx != self.idx
-            {
-                self.idx = idx;
-            }
-
-            if ui.get_now_booting() {
-                self.state = AppState::Booting;
-            }
-
-            match self.state {
-                AppState::Booting => break Ok(self.maybe_boot(self.idx)),
-                AppState::Running => (),
-            }
-
-            if !window.has_active_animations() {
-                let duration = slint::platform::duration_until_next_timer_update();
-                self.wait_for_events(duration)?; // try to go to sleep, until a key press, mouse move, or after the duration
-            }
+            image => image,
         }
     }
 
@@ -267,6 +265,32 @@ impl App {
         ui.set_timeout(i32::try_from(self.timeout).unwrap_or(-1));
 
         Ok((window, ui))
+    }
+
+    /// Draws a frame to the screen.
+    pub fn draw_frame(
+        &mut self,
+        renderer: &SoftwareRenderer,
+        fb: &mut [SlintBltPixel],
+        w: usize,
+        h: usize,
+    ) {
+        renderer.render(fb, w);
+
+        // SAFETY: fb is guaranteed nonnull, slintbltpixel is a repr(transparent) type of bltpixel,
+        // and len is guaranteed to be the same as the actual len
+        let blt_fb = unsafe {
+            core::slice::from_raw_parts_mut(fb.as_mut_ptr().cast::<BltPixel>(), fb.len())
+        };
+
+        self.mouse.draw_cursor(blt_fb, w, h);
+
+        let _ = self.gop.blt(BltOp::BufferToVideo {
+            buffer: blt_fb,
+            src: BltRegion::Full,
+            dest: (0, 0),
+            dims: (w, h),
+        });
     }
 }
 

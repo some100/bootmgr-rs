@@ -37,6 +37,11 @@ use uefi::{
 
 use crate::{BootResult, system::helper::str_to_cstr};
 
+/// The size of one gigabyte in bytes. This is the default value if a file is too big to be read.
+///
+/// This is also a reasonable maximum size for files that may be read.
+pub(crate) const ONE_GIGABYTE: usize = 1024 * 1024 * 1024;
+
 /// The partition GUID of an `XBOOTLDR` partition.
 const XBOOTLDR_PARTITION: uefi::Guid = guid!("bc13c2ff-59e6-4262-a352-b275fd6f7172");
 
@@ -206,7 +211,7 @@ impl UefiFileSystem {
             .get_boxed_info::<FileInfo>()
             .map_err(|e| FsError::ReadErr(e.status()))?;
 
-        let size = usize::try_from(info.file_size()).unwrap_or(usize::MAX);
+        let size = usize::try_from(info.file_size()).unwrap_or(ONE_GIGABYTE);
 
         let read = file.read(buf).map_err(|e| FsError::ReadErr(e.status()))?;
         if read != size {
@@ -231,7 +236,7 @@ impl UefiFileSystem {
             .get_boxed_info::<FileInfo>()
             .map_err(|e| FsError::ReadErr(e.status()))?;
 
-        let size = usize::try_from(info.file_size()).unwrap_or(usize::MAX);
+        let size = usize::try_from(info.file_size()).unwrap_or(ONE_GIGABYTE);
 
         let mut buf = vec![0; size];
         file.read(&mut buf)

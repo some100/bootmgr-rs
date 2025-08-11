@@ -20,7 +20,6 @@ resolver = "3"
 [profile.release]
 strip = true
 opt-level = "z"
-panic = "abort"
 codegen-units = 1
 
 # fuzzing breaks completely when lto is enabled. so create a separate profile

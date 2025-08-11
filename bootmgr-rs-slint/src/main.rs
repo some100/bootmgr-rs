@@ -36,13 +36,13 @@ fn main_func() -> Result<Option<Handle>, MainError> {
     // If the image was simply booted directly from the tryboot function, then it would result in this program
     // still holding on to GOP and other protocols, which in the case of loading this program again, would result
     // in a panic.
-    let mut app = App::new()?;
+    let app = App::new()?;
     app.run()
 }
 
 #[entry]
 fn main() -> Status {
-    let image = main_func().unwrap_or_else(|e| panic!("Error occurred while running: {e}")); // panic on critical error
+    let image = main_func().unwrap_or_else(|e| panic!("Error occurred while running: {e}"));
     match image {
         Some(image) => start_image(image).status(),
         None => Status::SUCCESS,

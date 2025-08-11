@@ -39,12 +39,10 @@ pub enum SecureBootError {
     /// Neither a device path nor a file buffer were specified to the image.
     #[error("DevicePath and file buffer were both None")]
     NoDevicePathOrFile,
+
     /// A validator was not installed, but the security hooks were installed.
     #[error("Validator was not installed")]
     NoValidator,
-    /// The security override was already installed.
-    #[error("Security override already installed")]
-    AlreadyInstalled,
 }
 
 /// The function signature for a validator.

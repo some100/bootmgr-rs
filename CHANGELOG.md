@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.7.0] - 2025-08-10
+
+### Changed
+
+- Uses of `usize::MAX` replaced with safer `ONE_GIGABYTE` constant.
+- Improved documentation.
+
+### Removed
+
+- `SecureBootError::AlreadyInstalled` error variant removed.
+
+## bootmgr-rs-slint - [0.4.0] - 2025-08-10
+
+### Added
+
+- Added proper-er error handling (errors are now displayed as a popup).
+
+### Changed
+
+- `App::run()` now consumes `self` rather than a mutable reference to `self`.
+
 ## bootmgr-rs-slint - [0.3.0] - 2025-08-10
 
 ### Changed

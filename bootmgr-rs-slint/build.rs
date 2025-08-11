@@ -16,7 +16,8 @@ const REQUIRED_FILES: [&str; 7] = [
 ];
 
 fn main() {
-    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let manifest_dir =
+        PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR variable not set"));
 
     for file in REQUIRED_FILES {
         let file = manifest_dir.join(file);

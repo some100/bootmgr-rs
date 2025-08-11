@@ -6,6 +6,4 @@ The default icons are public domain icons from Wikimedia Commons. To swap these 
 
 Do note that this frontend, even if it is usable, is not yet as feature-complete as the ratatui frontend. The feature that it is missing is the `Config` editor. This should be somewhat trivial to implement as Slint already has a TextEdit widget.
 
-Another feature that it is missing is richer error handling. A panic will simply cause a reboot on key press. This is more so a side effect of the user interface style, as poorer error handling is inevitable when using a GUI, and especially when using the default `bootmgr-rs-core` panic handler.
-
 ![rEFInd-ish carousel boot manager](/images/bootmgr-rs-slint.gif)

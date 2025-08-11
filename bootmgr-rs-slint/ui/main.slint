@@ -1,3 +1,4 @@
+import { TextEdit } from "std-widgets.slint";
 import { BootList } from "boot_list.slint";
 import { Card } from "card.slint";
 import { Theme } from "theme.slint";
@@ -20,11 +21,18 @@ export component Ui inherits Window {
     in-out property <int> listIdx;
     in-out property <int> timeout;
     in-out property <bool> now_booting;
+    in-out property <string> error;
 
     in-out property <color> fg;
     in-out property <color> bg;
     in-out property <color> highlight_fg;
     in-out property <color> highlight_bg;
+
+    callback display_err(err: string);
+    display_err(err) => {
+        root.error = err;
+        error-popup.show();
+    }
 
     forward-focus: boot_list;
 
@@ -41,6 +49,7 @@ export component Ui inherits Window {
         spacing: Theme.spacing-medium;
         timeout <=> root.timeout;
         now-booting <=> root.now_booting;
+
 
         for item[index] in root.items : Card {
             is-selected: index == root.listIdx;
@@ -59,5 +68,26 @@ export component Ui inherits Window {
         y: ((root.height - self.height) * (5 / 6));
         font-size: Theme.font-size-medium;
         color: root.fg;
+    }
+
+    error-popup := PopupWindow {
+        Rectangle {
+            background: root.highlight_bg;
+            border-radius: Theme.radius-regular;
+            label := TitleLabel {
+                text: "Failed to boot: \{error}.\n\nPlease press any key to restart.";
+                font-size: Theme.font-size-medium;
+                height: root.height / 4;
+                width: root.width / 4;
+                wrap: word-wrap;
+                color: root.highlight_fg;
+                vertical-alignment: center;
+            }
+        }
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        height: root.height / 4;
+        width: root.width / 4;
+        close-policy: no-auto-close;
     }
 }

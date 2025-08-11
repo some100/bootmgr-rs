@@ -23,7 +23,10 @@ use crate::{
         secure_boot::shim::shim_load_image,
     },
     config::Config,
-    system::helper::{bytes_to_cstr8, str_to_cstring},
+    system::{
+        fs::ONE_GIGABYTE,
+        helper::{bytes_to_cstr8, str_to_cstring},
+    },
 };
 
 /// Loads a boot option from a given [`Config`] through TFTP.
@@ -55,8 +58,8 @@ pub(crate) fn load_boot_option(config: &Config) -> BootResult<Handle> {
 
     // if its too big, its due to 32 bit platform limitations, and it would not be possible to allocate a buffer
     // greater than the pointer width max either way. truncating should generally be fine on 64 bit platforms though
-    let size =
-        usize::try_from(base_code.tftp_get_file_size(&addr, filename_cstr)?).unwrap_or(usize::MAX);
+    let size = usize::try_from(base_code.tftp_get_file_size(&addr, filename_cstr)?)
+        .unwrap_or(ONE_GIGABYTE);
 
     let mut vec = vec![0; size];
     base_code.tftp_read_file(&addr, filename_cstr, Some(&mut vec))?;

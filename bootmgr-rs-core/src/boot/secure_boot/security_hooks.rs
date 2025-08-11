@@ -147,7 +147,11 @@ unsafe extern "efiapi" fn auth_state_hook(
 ///
 /// The parameters to this function take raw pointers. The caller must ensure that the pointers are valid, and non null.
 /// Even then, it should still be relatively safe because of checks for invalid pointers. However, if `file_size` is not
-/// the exact length of `file_buffer`, then undefined behavior will result.
+/// the exact length of `file_buffer`, then undefined behavior will result. In basically every case, firmware will call
+/// this function with the correct values.
+///
+/// If the firmware passed incorrect values, that would be a catastrophic issue on the firmware's side, and probably would
+/// not even boot at all with Secure Boot enabled.
 unsafe extern "efiapi" fn authentication_hook(
     this: *const Security2ArchProtocol,
     device_path: *const FfiDevicePath,
