@@ -276,7 +276,7 @@ impl App {
         // SAFETY: fb is guaranteed nonnull, slintbltpixel is a repr(transparent) type of bltpixel,
         // and len is guaranteed to be the same as the actual len
         let blt_fb = unsafe {
-            core::slice::from_raw_parts_mut(fb.as_mut_ptr().cast::<BltPixel>(), fb.len())
+            core::slice::from_raw_parts(fb.as_ptr().cast::<BltPixel>(), fb.len())
         };
 
         let _ = self.gop.blt(BltOp::BufferToVideo {

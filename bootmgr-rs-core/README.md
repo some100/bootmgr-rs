@@ -7,7 +7,11 @@ A framework for creating boot managers in Rust. Has support for Windows, BLS, an
 #![no_main]
 #![no_std]
 
-use bootmgr_rs_core::{boot::BootMgr, error::BootError, system::log_backend::UefiLogger};
+use bootmgr_rs_core::{
+    boot::BootMgr,
+    error::BootError,
+    system::{helper::locate_protocol, log_backend::UefiLogger}
+};
 use uefi::{
     prelude::*,
     println,
@@ -28,8 +32,7 @@ fn main_func() -> anyhow::Result<Handle> {
     }
     println!("Enter the preferred boot option here:");
 
-    let handle = boot::get_handle_for_protocol::<Input>()?;
-    let mut input = boot::open_protocol_exclusive::<Input>(handle)?;
+    let mut input = locate_protocol::<Input>()?;
 
     let mut events = [input.wait_for_key_event().expect("Failed to create key event")];
     loop {
