@@ -21,11 +21,7 @@ impl<'a> FromIterator<&'a Config> for BootList {
         let items = iter
             .into_iter()
             .enumerate()
-            .map(|(i, config)| {
-                let mut name = config.get_preferred_title(Some(i));
-                mark_if_bad(config, &mut name);
-                name
-            })
+            .map(|(i, config)| config.get_preferred_title(Some(i)))
             .collect();
         let state = ListState::default();
         Self { items, state }
@@ -42,12 +38,5 @@ impl BootList {
         let mut boot_list = Self::from_iter(boot_mgr.list());
         boot_list.state.select(Some(boot_mgr.get_default()));
         boot_list
-    }
-}
-
-/// Marks a configuration in the boot list as bad, if it is bad.
-fn mark_if_bad(config: &Config, name: &mut String) {
-    if config.bad {
-        name.push_str(" (Bad)");
     }
 }

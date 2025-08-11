@@ -166,7 +166,7 @@ impl Config {
     /// the boot option from other boot options is required. This will only be the case if the index is provided.
     #[must_use = "Has no effect if the result is unused"]
     pub fn get_preferred_title(&self, option: Option<usize>) -> String {
-        self.title.clone().unwrap_or_else(|| {
+        let mut title = self.title.clone().unwrap_or_else(|| {
             if self.filename.is_empty()
                 && let Some(option) = option
             {
@@ -174,7 +174,11 @@ impl Config {
             } else {
                 self.filename.clone()
             }
-        })
+        });
+        if self.bad {
+            title.push_str(" (Bad)");
+        }
+        title
     }
 
     /// Validate an architecture by checking if it is the same as the system architecture.
