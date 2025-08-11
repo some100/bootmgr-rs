@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.8.0] - 2025-08-10
+
+### Added
+
+- `locate_protocol` helper for getting a protocol.
+
+### Changed
+
+- Mark "bad" entries when getting preferred title.
+
 ## bootmgr-rs-core - [0.7.0] - 2025-08-10
 
 ### Changed

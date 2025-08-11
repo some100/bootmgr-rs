@@ -14,7 +14,7 @@ use alloc::{rc::Rc, vec, vec::Vec};
 use bootmgr_rs_core::{
     boot::BootMgr,
     config::{Config, parsers::Parsers},
-    error::BootError,
+    system::helper::locate_protocol,
 };
 use slint::{
     Image, Model, ModelRc, PhysicalSize, SharedString, ToSharedString, VecModel,
@@ -25,7 +25,7 @@ use slint::{
 };
 use uefi::{
     Event, Handle,
-    boot::{self, ScopedProtocol},
+    boot::ScopedProtocol,
     proto::console::{
         gop::{BltOp, BltPixel, BltRegion, GraphicsOutput},
         text::Input,
@@ -83,14 +83,11 @@ impl App {
 
         let timeout = boot_mgr.boot_config.timeout;
 
-        let handle = boot::get_handle_for_protocol::<Input>().map_err(BootError::Uefi)?;
-        let input = boot::open_protocol_exclusive::<Input>(handle).map_err(BootError::Uefi)?;
+        let input = locate_protocol::<Input>()?;
 
         let mouse = MouseState::new()?;
 
-        let handle = boot::get_handle_for_protocol::<GraphicsOutput>().map_err(BootError::Uefi)?;
-        let gop =
-            boot::open_protocol_exclusive::<GraphicsOutput>(handle).map_err(BootError::Uefi)?;
+        let gop = locate_protocol::<GraphicsOutput>()?;
 
         let events = Vec::new();
 

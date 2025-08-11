@@ -10,7 +10,7 @@
 //! 1. Events require unsafe to be used because of how callbacks may not handle exiting from booting services well.
 //!    Because this event has no callbacks, this is safe.
 
-use bootmgr_rs_core::{boot::BootMgr, error::BootError};
+use bootmgr_rs_core::{boot::BootMgr, error::BootError, system::helper::locate_protocol};
 use log::error;
 use ratatui_core::terminal::Terminal;
 use thiserror::Error;
@@ -117,8 +117,7 @@ impl App {
 
         let timeout = boot_mgr.boot_config.timeout;
 
-        let handle = boot::get_handle_for_protocol::<Input>().map_err(BootError::Uefi)?;
-        let input = boot::open_protocol_exclusive::<Input>(handle).map_err(BootError::Uefi)?;
+        let input = locate_protocol::<Input>()?;
 
         let editor = Editor::new(&input, theme, persist)?;
         Ok(Self {

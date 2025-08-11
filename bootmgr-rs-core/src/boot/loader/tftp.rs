@@ -25,7 +25,7 @@ use crate::{
     config::Config,
     system::{
         fs::ONE_GIGABYTE,
-        helper::{bytes_to_cstr8, str_to_cstring},
+        helper::{bytes_to_cstr8, locate_protocol, str_to_cstring},
     },
 };
 
@@ -37,8 +37,7 @@ use crate::{
 /// EFI executable is not a valid Latin-1 string, or the filename is not a valid
 /// IP address, or [`boot::load_image`] fails.
 pub(crate) fn load_boot_option(config: &Config) -> BootResult<Handle> {
-    let handle = boot::get_handle_for_protocol::<BaseCode>()?;
-    let mut base_code = boot::open_protocol_exclusive::<BaseCode>(handle)?;
+    let mut base_code = locate_protocol::<BaseCode>()?;
 
     let addr_as_octets = Ipv4Addr::from_str(&config.filename)
         .map_err(LoadError::IpParse)?

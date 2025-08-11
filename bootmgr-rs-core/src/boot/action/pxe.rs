@@ -3,15 +3,13 @@
 use core::{ffi::CStr, net::Ipv4Addr};
 
 use alloc::{format, string::ToString};
-use uefi::{
-    boot,
-    proto::network::pxe::{BaseCode, BootstrapType, DhcpV4Packet},
-};
+use uefi::proto::network::pxe::{BaseCode, BootstrapType, DhcpV4Packet};
 
 use crate::{
     BootResult,
     boot::action::BootAction,
     config::{Config, builder::ConfigBuilder, parsers::Parsers},
+    system::helper::locate_protocol,
 };
 
 /// Attempts to obtain a response through PXE DHCP. If one is obtained, create a [`Config`] for it.
@@ -30,8 +28,7 @@ use crate::{
 ///
 /// May return an `Error` if the firmware does not support [`BaseCode`].
 pub fn get_pxe_offer() -> BootResult<Option<Config>> {
-    let handle = boot::get_handle_for_protocol::<BaseCode>()?;
-    let mut base_code = boot::open_protocol_exclusive::<BaseCode>(handle)?;
+    let mut base_code = locate_protocol::<BaseCode>()?;
     if !base_code.mode().started() {
         base_code.start(false)?;
     }

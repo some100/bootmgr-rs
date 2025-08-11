@@ -16,6 +16,8 @@ use alloc::string::String;
 use smallvec::SmallVec;
 use thiserror::Error;
 use uefi::CStr8;
+use uefi::boot::ScopedProtocol;
+use uefi::proto::ProtocolPointer;
 use uefi::{
     CStr16, CString16, boot,
     data_types::PoolString,
@@ -89,8 +91,7 @@ pub(crate) fn check_machine_id_valid(machine_id: &str) -> bool {
 ///
 /// May return an `Error` if the system does not support [`DevicePathToText`], or there is not enough memory.
 pub(crate) fn device_path_to_text(device_path: &DevicePath) -> BootResult<PoolString> {
-    let handle = boot::get_handle_for_protocol::<DevicePathToText>()?;
-    let device_path_to_text = boot::open_protocol_exclusive::<DevicePathToText>(handle)?;
+    let device_path_to_text = locate_protocol::<DevicePathToText>()?;
     Ok(device_path_to_text.convert_device_path_to_text(
         device_path,
         DisplayOnly(true),
@@ -198,6 +199,17 @@ pub(crate) fn slice_to_maybe_uninit<T>(slice: &mut [T]) -> &mut [MaybeUninit<T>]
     unsafe {
         core::slice::from_raw_parts_mut(slice.as_mut_ptr().cast::<MaybeUninit<T>>(), slice.len())
     }
+}
+
+/// Open a protocol given a type implementing [`ProtocolPointer`].
+///
+/// # Errors
+///
+/// May return an `Error` if there are no handles supporting that protocol on that system,
+/// or the protocol was already opened on the system.
+pub fn locate_protocol<P: ProtocolPointer>() -> BootResult<ScopedProtocol<P>> {
+    let handle = boot::get_handle_for_protocol::<P>()?;
+    Ok(boot::open_protocol_exclusive(handle)?)
 }
 
 #[cfg(test)]

@@ -13,7 +13,7 @@
 
 use core::time::Duration;
 
-use bootmgr_rs_core::BootResult;
+use bootmgr_rs_core::{BootResult, system::helper::locate_protocol};
 use slint::{
     LogicalPosition,
     platform::{Key as SlintKey, PointerEventButton},
@@ -54,8 +54,7 @@ pub struct MouseState {
 impl MouseState {
     /// Get a new [`MouseState`].
     pub fn new() -> BootResult<Self> {
-        let handle = boot::get_handle_for_protocol::<Pointer>()?;
-        let mut pointer = boot::open_protocol_exclusive::<Pointer>(handle)?;
+        let mut pointer = locate_protocol::<Pointer>()?;
         let mode = *pointer.mode();
         let position = LogicalPosition::new(0.0, 0.0);
 

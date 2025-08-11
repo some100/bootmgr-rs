@@ -20,7 +20,11 @@ use uefi::{
 use crate::{
     BootResult,
     boot::secure_boot::{SecureBootError, SecurityOverrideGuard, secure_boot_enabled},
-    system::{fs::UefiFileSystem, helper::device_path_to_text, protos::ShimImageLoader},
+    system::{
+        fs::UefiFileSystem,
+        helper::{device_path_to_text, locate_protocol},
+        protos::ShimImageLoader,
+    },
 };
 
 /// Checks an image using [`ShimLock`] protocol when provided the [`DevicePath`].
@@ -63,8 +67,7 @@ fn shim_validate(
     file_buffer: Option<&mut [u8]>,
     _file_size: usize,
 ) -> BootResult<()> {
-    let handle = boot::get_handle_for_protocol::<ShimLock>()?;
-    let mut shim = boot::open_protocol_exclusive::<ShimLock>(handle)?;
+    let mut shim = locate_protocol::<ShimLock>()?;
 
     if let Some(file_buffer) = file_buffer {
         return Ok(shim.verify(file_buffer)?);

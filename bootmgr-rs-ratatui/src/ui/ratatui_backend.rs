@@ -2,7 +2,7 @@
 
 use core::fmt::Write;
 
-use bootmgr_rs_core::{BootResult, error::BootError};
+use bootmgr_rs_core::{BootResult, error::BootError, system::helper::locate_protocol};
 use ratatui_core::{
     backend::{Backend, ClearType, WindowSize},
     buffer::Cell,
@@ -11,7 +11,7 @@ use ratatui_core::{
 };
 use uefi::{
     Status,
-    boot::{self, ScopedProtocol},
+    boot::ScopedProtocol,
     proto::console::text::{Color as UefiColor, Output},
 };
 
@@ -75,8 +75,7 @@ impl UefiBackend {
     ///
     /// May return an `Error` if the system does not support an [`Output`].
     pub fn new() -> BootResult<Self> {
-        let handle = boot::get_handle_for_protocol::<Output>()?;
-        let output = boot::open_protocol_exclusive(handle)?;
+        let output = locate_protocol::<Output>()?;
         Ok(Self {
             output,
             fg: UefiColor::White,

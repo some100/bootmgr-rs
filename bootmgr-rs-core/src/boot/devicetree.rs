@@ -32,7 +32,7 @@ use uefi::{guid, prelude::*};
 use crate::BootResult;
 use crate::error::BootError;
 use crate::system::fs::UefiFileSystem;
-use crate::system::helper::{get_arch, normalize_path, str_to_cstr};
+use crate::system::helper::{get_arch, locate_protocol, normalize_path, str_to_cstr};
 use crate::system::protos::DevicetreeFixup;
 
 /// GUID for the configuration table for devicetree blobs.
@@ -202,8 +202,7 @@ impl Drop for DevicetreeGuard {
 /// May return an `Error` if the firmware does not support [`DevicetreeFixup`], or the devicetree could not be converted into a slice,
 /// or the devicetree failed to fixup after resizing the buffer.
 fn fixup_devicetree(devicetree: &mut DevicetreeGuard) -> BootResult<()> {
-    let fixup = boot::get_handle_for_protocol::<DevicetreeFixup>()?;
-    let mut fixup = boot::open_protocol_exclusive(fixup)?;
+    let mut fixup = locate_protocol::<DevicetreeFixup>()?;
 
     let slice = devicetree.slice()?.to_vec();
 

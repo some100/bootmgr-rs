@@ -6,7 +6,10 @@
 // DISCLAIMER: This code extensively uses unwrap and expect, as any errors in testing should be treated as fatal.
 
 use anyhow::anyhow;
-use bootmgr_rs_core::{boot::action::reboot, system::log_backend::UefiLogger};
+use bootmgr_rs_core::{
+    boot::action::reboot,
+    system::{helper::locate_protocol, log_backend::UefiLogger},
+};
 use uefi::{
     prelude::*,
     println,
@@ -67,8 +70,7 @@ fn press_for_reboot() -> ! {
 }
 
 fn read_key() -> anyhow::Result<Key> {
-    let handle = boot::get_handle_for_protocol::<Input>()?;
-    let mut input = boot::open_protocol_exclusive::<Input>(handle)?;
+    let mut input = locate_protocol::<Input>()?;
     let key_event = input
         .wait_for_key_event()
         .ok_or(anyhow!("Input device not present"))?;
