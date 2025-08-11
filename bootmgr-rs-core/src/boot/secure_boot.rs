@@ -46,7 +46,7 @@ pub enum SecureBootError {
 }
 
 /// The function signature for a validator.
-pub(crate) type Validator = fn(
+pub(super) type Validator = fn(
     ctx: Option<NonNull<u8>>,
     device_path: Option<&DevicePath>,
     file_buffer: Option<&mut [u8]>,
@@ -116,7 +116,7 @@ impl Drop for SecurityOverrideGuard {
 
 /// Tests if secure boot is enabled through a UEFI variable.
 #[must_use = "Has no effect if the result is unused"]
-pub fn secure_boot_enabled() -> bool {
+fn secure_boot_enabled() -> bool {
     matches!(
         get_variable::<u8>(cstr16!("SecureBoot"), Some(VariableVendor::GLOBAL_VARIABLE)),
         Ok(1)

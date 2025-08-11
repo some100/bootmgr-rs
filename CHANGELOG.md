@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.10.0] - 2025-08-11
+
+### Changed
+
+- Tighten visibility on multiple members. (BREAKING)
+
 ## bootmgr-rs-ratatui - [0.4.0] - 2025-08-11
 
 ### Changed

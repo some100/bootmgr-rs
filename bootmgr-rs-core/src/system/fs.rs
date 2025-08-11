@@ -418,7 +418,7 @@ pub fn is_target_partition(handle: Handle) -> bool {
 /// If a path contains any one of the characters: `"`, `*`, `/`, `:`, `<`, `>`, `?`, and `|`,
 /// this will return false. It will also return false if the path consists only of `..` or `.`.
 #[must_use = "Has no effect if the result is unused"]
-pub fn check_path_valid(path: &str) -> bool {
+pub(crate) fn check_path_valid(path: &str) -> bool {
     path.chars()
         .all(|x| Char16::try_from(x).is_ok_and(|x| !CHARACTER_DENY_LIST.contains(&x) || x == '\\'))
         && path != ".."

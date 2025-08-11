@@ -46,7 +46,7 @@ impl SecurityOverrideInner {
     /// Installs the security hook for [`SecurityArch`].
     ///
     /// It will only install the hook if the firmware supports [`SecurityArch`].
-    pub(crate) fn install_security1_hook(&mut self) {
+    pub(super) fn install_security1_hook(&mut self) {
         if let Ok(handle) = boot::get_handle_for_protocol::<SecurityArch>()
             && let Ok(mut security) = boot::open_protocol_exclusive::<SecurityArch>(handle)
         {
@@ -59,7 +59,7 @@ impl SecurityOverrideInner {
     /// Installs the security hook for [`Security2Arch`].
     ///
     /// It will only install the hook if the firmware supports [`Security2Arch`].
-    pub(crate) fn install_security2_hook(&mut self) {
+    pub(super) fn install_security2_hook(&mut self) {
         if let Ok(handle) = boot::get_handle_for_protocol::<Security2Arch>()
             && let Ok(mut security) = boot::open_protocol_exclusive::<Security2Arch>(handle)
         {
@@ -77,7 +77,7 @@ impl SecurityOverrideInner {
     /// - Firmware supports [`SecurityArch`].
     ///
     /// Otherwise, this method will do nothing.
-    pub(crate) fn uninstall_security1_hook(&self) {
+    pub(super) fn uninstall_security1_hook(&self) {
         if let Some(original_hook) = self.original_hook
             && let Some(handle) = self.security
             && let Ok(mut security) = boot::open_protocol_exclusive::<SecurityArch>(handle)
@@ -94,7 +94,7 @@ impl SecurityOverrideInner {
     /// - Firmware supports [`Security2Arch`].
     ///
     /// Otherwise, this method will do nothing.
-    pub(crate) fn uninstall_security2_hook(&self) {
+    pub(super) fn uninstall_security2_hook(&self) {
         if let Some(original_hook2) = self.original_hook2
             && let Some(handle) = self.security2
             && let Ok(mut security) = boot::open_protocol_exclusive::<Security2Arch>(handle)

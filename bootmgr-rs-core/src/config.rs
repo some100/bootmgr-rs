@@ -134,7 +134,7 @@ impl Config {
     /// 1. Non matching architecture with system
     /// 2. Nonexistent EFI executable if [`BootAction`] is [`BootAction::BootEfi`] or [`BootAction::BootTftp`]
     /// 3. (if applicable) Nonexistent devicetree
-    pub fn validate(&self) -> Result<(), ConfigError> {
+    fn validate(&self) -> Result<(), ConfigError> {
         self.validate_arch()?;
         self.validate_efi()?;
         self.validate_paths()?;
@@ -144,7 +144,7 @@ impl Config {
 
     /// Lints a [`Config`], logging a warning if there is something that is wrong
     /// with the [`Config`], but is not fatal.
-    pub fn lint(&self) {
+    fn lint(&self) {
         if self.title.as_ref().is_none_or(|x| x.trim().is_empty()) {
             if self.filename.is_empty() {
                 warn!(

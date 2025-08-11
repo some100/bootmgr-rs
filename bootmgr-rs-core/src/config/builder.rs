@@ -37,7 +37,7 @@ use crate::{
 #[must_use = "Has no effect if the result is unused"]
 pub struct ConfigBuilder {
     /// The inner [`Config`] that the builder operates on.
-    pub(super) config: Config,
+    config: Config,
 }
 
 impl ConfigBuilder {
