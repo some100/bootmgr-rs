@@ -7,9 +7,9 @@
 //! frontends or an even more minimal user interface.
 //!
 //! An example basic frontend of this bootloader core can be found in [bootmgr-rs-minimal](https://github.com/some100/bootmgr-rs/tree/main/bootmgr-rs-minimal).
-//! 
+//!
 //! ## MSRV
-//! 
+//!
 //! The minimum supported rust version is 1.88.0.
 
 #![cfg_attr(not(any(fuzzing, test, doctest)), no_std)]
