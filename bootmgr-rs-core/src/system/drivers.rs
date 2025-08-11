@@ -83,9 +83,11 @@ pub(crate) fn load_drivers(drivers: bool, driver_path: &str) -> BootResult<()> {
     // dir will be an alphanumeric sorted directory. if any drivers have dependencies on another drivers,
     // it should be named such that it will be loaded after that driver.
     for file in dir {
-        load_driver(&driver_path, &file, &mut buf)?;
-
-        driver_loaded = true;
+        if let Err(e) = load_driver(&driver_path, &file, &mut buf) {
+            error!("Failed to load driver {}: {e}", file.file_name());
+        } else {
+            driver_loaded = true;
+        }
     }
     if driver_loaded {
         reconnect_drivers()?; // only reconnect drivers when a driver was loaded

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.11.2] - 2025-08-11
+
+### Changed
+
+- An individual driver failing to load is no longer a fatal error.
+
 ## bootmgr-rs-core - [0.11.1] - 2025-08-11
 
 ### Added
