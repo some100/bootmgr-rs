@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-use bootmgr_rs_core::{error::BootError, system::log_backend::UefiLogger};
+use bootmgr_rs_core::system::log_backend::UefiLogger;
 
 use ratatui_core::terminal::Terminal;
 use thiserror::Error;
@@ -25,6 +25,9 @@ mod ui;
 #[cfg(feature = "editor")]
 mod editor;
 
+/// The global logging instance.
+static LOGGER: UefiLogger = UefiLogger::new();
+
 /// An error that may occur when running the application.
 #[derive(Error, Debug)]
 pub enum MainError {
@@ -37,9 +40,7 @@ pub enum MainError {
 }
 
 fn main_func() -> Result<Option<Handle>, MainError> {
-    uefi::helpers::init().map_err(BootError::Uefi)?;
-    let _ = log::set_logger(UefiLogger::static_new())
-        .map(|()| log::set_max_level(log::LevelFilter::Warn)); // if the logger was already set, then ignore it
+    let _ = log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Warn)); // if the logger was already set, then ignore it
 
     let backend = UefiBackend::new()?;
     let mut terminal = Terminal::new(backend)?;

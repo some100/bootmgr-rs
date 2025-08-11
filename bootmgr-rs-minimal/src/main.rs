@@ -23,14 +23,16 @@ use uefi::{
     system::with_stdout,
 };
 
+/// The global logging instance.
+static LOGGER: UefiLogger = UefiLogger::new();
+
 /// The actual main function of the program, which returns a [`Result`].
 ///
 /// `Box<dyn core::error::Error>` is used here mainly for simplicity purposes (we simply will propagate all these errors).
 fn main_func() -> Result<Handle, Box<dyn core::error::Error>> {
     uefi::helpers::init().map_err(BootError::Uefi)?; // initialize helpers (for print)
     with_stdout(Output::clear)?;
-    let _ = log::set_logger(UefiLogger::static_new())
-        .map(|()| log::set_max_level(log::LevelFilter::Warn));
+    let _ = log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Warn));
 
     let mut boot_mgr = BootMgr::new()?;
 

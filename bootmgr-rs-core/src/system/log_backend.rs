@@ -18,6 +18,8 @@ impl UefiLogger {
     }
 
     /// Constructs a new [`UefiLogger`], then immediately leaks it so that it can be used with `set_logger`.
+    ///
+    /// This is a possibly simpler alternative to using a global static logger.
     #[must_use = "Has no effect if the result is unused"]
     pub fn static_new() -> &'static Self {
         Box::leak(Box::new(Self::new()))

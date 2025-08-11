@@ -28,10 +28,11 @@ mod fs;
 mod load;
 mod variables;
 
+static LOGGER: UefiLogger = UefiLogger::new();
+
 fn main_func() -> anyhow::Result<()> {
     uefi::helpers::init()?;
-    let _ = log::set_logger(UefiLogger::static_new())
-        .map(|()| log::set_max_level(log::LevelFilter::Info));
+    let _ = log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Info));
 
     check_loaded()?;
     check_variable()?;
