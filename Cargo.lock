@@ -448,14 +448,14 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-core"
-version = "0.11.4"
+version = "0.11.5"
 dependencies = [
  "log",
  "nt-hive",
  "object",
  "proptest",
- "smallvec",
  "thiserror 2.0.12",
+ "tinyvec",
  "uefi",
 ]
 
@@ -486,8 +486,8 @@ dependencies = [
  "ratatui-core",
  "ratatui-widgets",
  "serde",
- "smallvec",
  "thiserror 2.0.12",
+ "tinyvec",
  "uefi",
 ]
 

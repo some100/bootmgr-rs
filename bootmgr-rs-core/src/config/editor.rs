@@ -1,7 +1,7 @@
 //! The configuration editor.
 
 use alloc::{borrow::ToOwned, string::String};
-use smallvec::SmallVec;
+use tinyvec::ArrayVec;
 
 use crate::config::{Config, builder::ConfigBuilder};
 
@@ -15,7 +15,7 @@ pub struct ConfigEditor {
     idx: usize,
 
     /// Stores the editable fields that are in the [`Config`].
-    fields: SmallVec<[(&'static str, String); 8]>,
+    fields: ArrayVec<[(&'static str, String); 8]>,
 }
 
 impl ConfigEditor {

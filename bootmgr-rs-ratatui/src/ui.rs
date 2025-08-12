@@ -22,7 +22,7 @@ use ratatui_widgets::{
     list::{List, ListItem},
     paragraph::Paragraph,
 };
-use smallvec::{SmallVec, smallvec};
+use tinyvec::ArrayVec;
 
 use crate::{MainError, app::App, ui::ratatui_backend::UefiBackend};
 
@@ -76,13 +76,14 @@ impl App {
 
     /// Renders the help bar at the bottom of the screen.
     pub fn render_help(&self, area: Rect, buf: &mut Buffer) {
-        let mut keys: SmallVec<[_; 6]> = smallvec![
+        let mut keys: ArrayVec<[_; 6]> = ArrayVec::new();
+        keys.extend([
             ("↑/W", "Up"),
             ("↓/S", "Down"),
             ("Return", "Start"),
             ("ESC", "Exit"),
             ("+/=", "Toggle Default"),
-        ];
+        ]);
 
         #[cfg(feature = "editor")]
         if self.boot_mgr.boot_config.editor {
@@ -105,7 +106,7 @@ impl App {
 
     /// Renders a status, which is currently used only for indicating setting default.
     pub fn render_status(&self, area: Rect, buf: &mut Buffer) {
-        let mut lines: SmallVec<[_; 2]> = SmallVec::new();
+        let mut lines: ArrayVec<[_; 2]> = ArrayVec::new();
         if self.set_default {
             let line = Line::raw("Setting default boot option")
                 .style(self.theme.base)

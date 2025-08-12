@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.11.5] - 2025-08-12
+
+### Changed
+
+- Now uses the safer `tinyvec` instead of `smallvec`.
+
 ## bootmgr-rs-core - [0.11.4] - 2025-08-12
 
 ### Changed

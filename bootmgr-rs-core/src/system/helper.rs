@@ -15,8 +15,8 @@ use core::mem::MaybeUninit;
 use alloc::ffi::CString;
 
 use alloc::string::String;
-use smallvec::SmallVec;
 use thiserror::Error;
+use tinyvec::TinyVec;
 use uefi::boot::ScopedProtocol;
 use uefi::proto::ProtocolPointer;
 use uefi::{CStr8, Event};
@@ -118,8 +118,8 @@ pub(crate) fn str_to_cstr(str: &str) -> Result<CString16, StrError> {
 /// May return an `Error` if the finalized string could not be converted into a [`CString16`]. This should be
 /// impossible because of the fact that validation is already done through the parameters being [`CStr16`].
 pub(crate) fn get_path_cstr(prefix: &CStr16, filename: &CStr16) -> Result<CString16, StrError> {
-    let mut path_buf: SmallVec<[_; MAX_PATH]> = // this will spill onto heap if the path is longer than 256 chars
-        SmallVec::with_capacity(prefix.as_slice().len() + 1 + filename.as_slice().len());
+    let mut path_buf: TinyVec<[_; MAX_PATH]> = // this will spill onto heap if the path is longer than 256 chars
+        TinyVec::with_capacity(prefix.as_slice().len() + 1 + filename.as_slice().len());
 
     path_buf.extend_from_slice(prefix.to_u16_slice());
     path_buf.push(u16::from(b'\\'));

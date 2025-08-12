@@ -7,8 +7,8 @@ use alloc::{
     vec::Vec,
 };
 use log::{error, warn};
-use smallvec::{SmallVec, smallvec};
 use thiserror::Error;
+use tinyvec::ArrayVec;
 use uefi::{
     boot::{self, SearchType},
     proto::media::fs::SimpleFileSystem,
@@ -104,7 +104,7 @@ impl Config {
     /// Returns an iterator over every [`String`] struct field that should be edited
     #[must_use = "Has no effect if the result is unused"]
     pub fn get_str_fields(&self) -> impl Iterator<Item = (&'static str, Option<&String>)> {
-        let vec: SmallVec<[_; 8]> = smallvec![
+        let vec: ArrayVec<[_; 8]> = ArrayVec::from([
             ("title", self.title.as_ref()),
             ("version", self.version.as_ref()),
             ("machine_id", self.machine_id.as_deref()),
@@ -113,7 +113,7 @@ impl Config {
             ("devicetree", self.devicetree_path.as_deref()),
             ("architecture", self.architecture.as_deref()),
             ("efi", self.efi_path.as_deref()),
-        ];
+        ]);
         vec.into_iter()
     }
 
