@@ -23,10 +23,10 @@ use crate::{
 ///
 /// let handle = {
 ///     let loaded_image =
-///         boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle()).unwrap();
+///         boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle()).expect("Failed to open LoadedImage on image");
 ///     let device_handle = loaded_image.device().expect("Image was not loaded from a filesystem");
-///     let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle).unwrap();
-///     boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path).unwrap()
+///     let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle).expect("Failed to get device path from image filesystem");
+///     boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path).expect("Failed to get SimpleFileSystem on image filesystem")
 /// };
 ///
 /// let config = ConfigBuilder::new("foo.conf", ".conf")

@@ -82,7 +82,7 @@ impl SecurityOverride {
     const fn get(&self) -> SecurityOverrideInner {
         self.inner
             .get()
-            .expect("The static Cell should always be initialized at the start of the programming")
+            .expect("The static Cell should always be initialized at the start of the program")
     }
 }
 

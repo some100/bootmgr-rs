@@ -58,17 +58,17 @@ pub enum LoadError {
 ///
 /// let handle = {
 ///     let loaded_image =
-///         boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle()).unwrap();
+///         boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle()).expect("Failed to open LoadedImage protocol on image");
 ///     let device_handle = loaded_image.device().expect("Image was not loaded from a filesystem");
-///     let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle).unwrap();
-///     boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path).unwrap()
+///     let device_path = boot::open_protocol_exclusive::<DevicePath>(device_handle).expect("Failed to get device path from image filesystem");
+///     boot::locate_device_path::<SimpleFileSystem>(&mut &*device_path).expect("Failed to get SimpleFileSystem protocol from image filesystem")
 /// }; // so that the handle will be able to be opened for loading the boot option
 ///
 /// let config = ConfigBuilder::new("foo.bar", ".bar").efi_path("/efi/boot/bootx64.efi").fs_handle(handle).build();
 ///
-/// let image = load_boot_option(&config).unwrap();
+/// let image = load_boot_option(&config).expect("Failed to load boot option");
 ///
-/// boot::start_image(image).unwrap();
+/// boot::start_image(image).expect("Failed to start image");
 /// ```
 pub fn load_boot_option(config: &Config) -> BootResult<Handle> {
     config.action.run(config)
