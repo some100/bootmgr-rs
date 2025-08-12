@@ -1,9 +1,7 @@
+//! Integration tests for bootmgr-rs.
+
 #![no_main]
 #![no_std]
-
-// Integration tests for bootmgr-rs.
-
-// DISCLAIMER: This code extensively uses unwrap and expect, as any errors in testing should be treated as fatal.
 
 use anyhow::anyhow;
 use bootmgr_rs_core::{

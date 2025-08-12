@@ -99,7 +99,7 @@ A notable exception to this is `to_owned`, which might be necessary if you want 
 
 Always prefer borrowed types as arguments, and owned types as return values. This is unless you are planning to consume the owned type in the argument (if you are cloning immediately after, you should be using a reference). 
 
-`unwrap()` should never be used, except in examples. If a certain call is infallible, using `expect("why this is infallible")` is a little bit more clear in intent than using unwrap. Always use `map_err()` instead, or at the very least `expect()`.
+`unwrap()` should never be used. If a certain call is infallible, using `expect("why this is infallible")` is a little bit more clear in intent than using unwrap. Always use `map_err()` instead, or at the very least `expect()` specifically for infallible operations.
 
 Try to use `Result` types if possible instead of silently swallowing up errors, or panicking.
 
