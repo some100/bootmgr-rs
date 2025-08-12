@@ -16,6 +16,10 @@
     reason = "Slint auto generated files produce false lint warnings by the hundreds"
 )]
 #![allow(
+    clippy::unwrap_used,
+    reason = "Slint auto generated files produce false lint warnings by the hundreds"
+)]
+#![allow(
     clippy::cast_precision_loss,
     reason = "f64 is exactly precise up to 2^53, which is more than enough"
 )]

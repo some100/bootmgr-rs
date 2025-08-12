@@ -13,7 +13,7 @@ pub fn build_all_crates(
     }
 
     let mut all_features = vec!["global_allocator,panic_handler,"];
-    if let Some(ref extra_features) = features {
+    if let Some(extra_features) = &features {
         all_features.extend(extra_features.iter().map(String::as_str));
     }
 

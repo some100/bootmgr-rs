@@ -166,35 +166,39 @@ impl BlsConfig {
                     continue;
                 }
 
-                if let Some((key, value)) = line.split_once(' ') {
-                    let value = value.trim().to_owned();
-                    match &*key.to_ascii_lowercase() {
-                        "title" => config.title = Some(value),
-                        "version" => config.version = Some(value),
-                        "machine_id" => config.machine_id = Some(value),
-                        "sort_key" => config.sort_key = Some(value),
-                        "linux" => config.linux = Some(value),
-                        "initrd" => {
-                            if let Some(mut initrd) = config.initrd {
-                                initrd.push(' ');
-                                initrd.push_str(&value);
-                                config.initrd = Some(initrd);
-                            } else {
-                                config.initrd = Some(value);
-                            }
-                        }
-                        "efi" => config.efi = Some(value),
-                        "options" => config.options = Some(value),
-                        "devicetree" => config.devicetree = Some(value),
-                        "devicetree_overlay" => config.devicetree_overlay = Some(value),
-                        "architecture" => config.architecture = Some(value.to_ascii_lowercase()),
-                        _ => warn!("[BLS PARSER]: Found unrecognized key {key} with value {value}"),
-                    }
-                }
+                config.assign_to_field(line);
             }
         }
 
         config
+    }
+
+    /// Assign a field to the [`BlsConfig`] given a line containing the key and value.
+    fn assign_to_field(&mut self, line: &str) {
+        if let Some((key, value)) = line.split_once(' ') {
+            let value = value.trim().to_owned();
+            match &*key.to_ascii_lowercase() {
+                "title" => self.title = Some(value),
+                "version" => self.version = Some(value),
+                "machine_id" => self.machine_id = Some(value),
+                "sort_key" => self.sort_key = Some(value),
+                "linux" => self.linux = Some(value),
+                "initrd" => {
+                    if let Some(initrd) = &mut self.initrd {
+                        initrd.push(' ');
+                        initrd.push_str(&value);
+                    } else {
+                        self.initrd = Some(value);
+                    }
+                }
+                "efi" => self.efi = Some(value),
+                "options" => self.options = Some(value),
+                "devicetree" => self.devicetree = Some(value),
+                "devicetree_overlay" => self.devicetree_overlay = Some(value),
+                "architecture" => self.architecture = Some(value.to_ascii_lowercase()),
+                _ => warn!("[BLS PARSER]: Found unrecognized key {key} with value {value}"),
+            }
+        }
     }
 
     /// Joins both options and initrd options
@@ -316,13 +320,12 @@ mod tests {
 
     #[test]
     fn test_basic_config() {
-        let config = r"
+        let config = b"
             title Linux
             linux /vmlinuz-linux
             initrd /initramfs-linux.img
             options root=PARTUUID=1234abcd-56ef-78gh-90ij-klmnopqrstuv rw
-        "
-        .as_bytes();
+        ";
         let bls_config = BlsConfig::new(config, None);
         assert_eq!(bls_config.title, Some("Linux".to_owned()));
         assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()));
@@ -340,14 +343,13 @@ mod tests {
 
     #[test]
     fn test_multiple_initrd() {
-        let config = r"
+        let config = b"
             title Linux
             linux /vmlinuz-linux
             initrd /intel-ucode.img
             initrd /initramfs-linux.img
             options root=PARTUUID=dcba4321-fe65-hg87-ji09-vutsrqponmlk ro
-        "
-        .as_bytes();
+        ";
         let bls_config = BlsConfig::new(config, None);
         assert_eq!(
             bls_config.initrd,
@@ -358,12 +360,11 @@ mod tests {
 
     #[test]
     fn test_comment() {
-        let config = r"
+        let config = b"
             # A comment that should be ignored.
             title Linux
             linux /vmlinuz-linux
-        "
-        .as_bytes();
+        ";
         let bls_config = BlsConfig::new(config, None);
         assert_eq!(bls_config.title, Some("Linux".to_owned()));
         assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()));
@@ -371,12 +372,11 @@ mod tests {
 
     #[test]
     fn test_duplicate() {
-        let config = r"
+        let config = b"
             title Linux
             title Linux 2
             linux /vmlinuz-linux
-        "
-        .as_bytes();
+        ";
         let bls_config = BlsConfig::new(config, None);
         // the last title in sequence takes priority. not based on any kind of rule or specification but a side effect of the parser implementation
         assert_eq!(bls_config.title, Some("Linux 2".to_owned()));
@@ -385,12 +385,11 @@ mod tests {
 
     #[test]
     fn test_invalid_keys() {
-        let config = r"
+        let config = b"
             title Linux
             invalid invalid
             someother invalid
-        "
-        .as_bytes();
+        ";
         let bls_config = BlsConfig::new(config, None);
         assert_eq!(bls_config.title, Some("Linux".to_owned())); // valid keys should still be parsed
     }

@@ -250,10 +250,9 @@ impl Config {
 /// May return an `Error` if there are no handles in the system that support [`SimpleFileSystem`].
 pub(crate) fn scan_configs() -> BootResult<Vec<Config>> {
     let mut configs = Vec::with_capacity(4); // a system is likely to have up to 4 configs
-    let handles =
-        boot::locate_handle_buffer(SearchType::from_proto::<SimpleFileSystem>())?.to_vec();
+    let handles = boot::locate_handle_buffer(SearchType::from_proto::<SimpleFileSystem>())?;
 
-    for handle in handles {
+    for &handle in handles.iter() {
         if !is_target_partition(handle) {
             continue;
         }

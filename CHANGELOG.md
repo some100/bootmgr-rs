@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.11.4] - 2025-08-12
+
+### Changed
+
+- Tightened clippy lints.
+- Internal code cleanup and improvements.
+
 ## bootmgr-rs-core - [0.11.3] - 2025-08-11
 
 ### Changed
@@ -251,13 +258,19 @@ All notable changes to this project will be documented in this file.
 
 - `bootmgr-rs-basic` renamed to `bootmgr-rs-minimal`.
 
+## bootmgr-rs-ratatui - [0.1.0] - 2025-08-01
+
+### Changed
+
+- `bootmgr-rs` renamed to `bootmgr-rs-ratatui`.
+
 ## [0.5.0] - 2025-08-01
 
 ### Added
 
 - `bootmgr-rs-basic` crate, which is a skeleton frontend for `bootmgr-rs-core`.
 - `bootmgr-rs-core` crate, which is the UEFI logic separated from `bootmgr-rs`.
-- `bootmgr-rs` now simply holds the ratatui frontend for `bootmgr-rs-core`.
+- `bootmgr-rs` crate, which is the ratatui frontend for `bootmgr-rs-core`.
 
 ### Changed
 
@@ -339,7 +352,7 @@ All notable changes to this project will be documented in this file.
 
 - `read_to_string` function (use `str::from_utf8(read())) instead`).
 
-## [0.2.1] - 2025-07-31
+## [0.2.1] - 2025-07-29
 
 ### Changed
 
@@ -347,7 +360,7 @@ All notable changes to this project will be documented in this file.
 - Use `BootResult<T>` more extensively.
 - Improved testing.
 
-## [0.2.0] - 2025-07-31
+## [0.2.0] - 2025-07-28
 
 ### Added
 
@@ -367,3 +380,9 @@ All notable changes to this project will be documented in this file.
 - Use `DevicetreeGuard` for internally handling devicetree state.
 - Add type-based validation for some fields of `Config`.
 - General restructuring.
+
+## [0.1.0] - 2025-07-18
+
+### Added
+
+- Complete `bootmgr-rs` codebase with ratatui frontend.

@@ -123,49 +123,54 @@ impl BootConfig {
                     continue;
                 }
 
-                if let Some((key, value)) = line.split_once(' ') {
-                    let value = value.trim().to_owned();
-                    match &*key.to_ascii_lowercase() {
-                        "timeout" => {
-                            if let Ok(value) = value.parse() {
-                                config.timeout = value;
-                            }
-                        }
-                        "default" => {
-                            if let Ok(value) = value.parse() {
-                                config.default = Some(value);
-                            }
-                        }
-                        "drivers" => {
-                            if let Ok(value) = value.parse() {
-                                config.drivers = value;
-                            }
-                        }
-                        "driver_path" => {
-                            let value = normalize_path(&value);
-                            config.driver_path = value;
-                        }
-                        "editor" => {
-                            if let Ok(value) = value.parse() {
-                                config.editor = value;
-                            }
-                        }
-                        "pxe" => {
-                            if let Ok(value) = value.parse() {
-                                config.pxe = value;
-                            }
-                        }
-                        "background" => config.bg = match_str_color_bg(&value),
-                        "foreground" => config.fg = match_str_color_fg(&value),
-                        "highlight_background" => config.highlight_bg = match_str_color_bg(&value),
-                        "highlight_foreground" => config.highlight_fg = match_str_color_fg(&value),
-                        _ => (),
-                    }
-                }
+                config.assign_to_field(line);
             }
         }
 
         config
+    }
+
+    /// Assign a field to the [`BootConfig`] given a line containing the key and value.
+    fn assign_to_field(&mut self, line: &str) {
+        if let Some((key, value)) = line.split_once(' ') {
+            let value = value.trim().to_owned();
+            match &*key.to_ascii_lowercase() {
+                "timeout" => {
+                    if let Ok(value) = value.parse() {
+                        self.timeout = value;
+                    }
+                }
+                "default" => {
+                    if let Ok(value) = value.parse() {
+                        self.default = Some(value);
+                    }
+                }
+                "drivers" => {
+                    if let Ok(value) = value.parse() {
+                        self.drivers = value;
+                    }
+                }
+                "driver_path" => {
+                    let value = normalize_path(&value);
+                    self.driver_path = value;
+                }
+                "editor" => {
+                    if let Ok(value) = value.parse() {
+                        self.editor = value;
+                    }
+                }
+                "pxe" => {
+                    if let Ok(value) = value.parse() {
+                        self.pxe = value;
+                    }
+                }
+                "background" => self.bg = match_str_color_bg(&value),
+                "foreground" => self.fg = match_str_color_fg(&value),
+                "highlight_background" => self.highlight_bg = match_str_color_bg(&value),
+                "highlight_foreground" => self.highlight_fg = match_str_color_fg(&value),
+                _ => (),
+            }
+        }
     }
 }
 
@@ -232,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_full_config() {
-        let config = r"
+        let config = b"
             timeout 100
             default 2
             driver_path /efi/drivers
@@ -242,8 +247,7 @@ mod tests {
             foreground white
             highlight_background black
             highlight_foreground white
-        "
-        .as_bytes();
+        ";
 
         let config = BootConfig::get_boot_config(config, None);
         assert_eq!(config.timeout, 100);

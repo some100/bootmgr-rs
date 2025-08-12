@@ -448,7 +448,7 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-core"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "log",
  "nt-hive",

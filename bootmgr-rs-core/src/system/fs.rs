@@ -184,7 +184,7 @@ impl UefiFileSystem {
         path: &CStr16,
         ext: &'static str,
     ) -> impl Iterator<Item = Box<FileInfo>> + use<> {
-        // needed due to rust 2024
+        // use<> needed due to rust 2024
         self.read_dir(path)
             .into_iter()
             .flatten()

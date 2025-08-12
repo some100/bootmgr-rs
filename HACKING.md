@@ -99,9 +99,11 @@ A notable exception to this is `to_owned`, which might be necessary if you want 
 
 Always prefer borrowed types as arguments, and owned types as return values. This is unless you are planning to consume the owned type in the argument (if you are cloning immediately after, you should be using a reference). 
 
-`unwrap()` should never be used. If a certain call is infallible, using `expect("why this is infallible")` is a little bit more clear in intent than using unwrap. Always use `map_err()` instead, or at the very least `expect()` specifically for infallible operations.
+`unwrap()` should never be used (`unwrap_or` and `unwrap_or_else` are fine in some situations). If a certain call is infallible, using `expect("why this is infallible")` is a little bit more clear in intent than using unwrap. Always use `map_err()` instead, or at the very least `expect()` specifically for infallible operations.
 
 Try to use `Result` types if possible instead of silently swallowing up errors, or panicking.
+
+For truly irrecoverable situations, you should use `unwrap_or_else(|e| panic!("custom error message: {e}"))`, or use `expect("error occurred")` if you do not need a custom error message.
 
 Every single unsafe block that is used must be preceded by a `// SAFETY:` comment that explains why it is safe, or in what situations it may be unsafe. This is enforced using the `unsafe_op_in_unsafe_fn` lint. In addition to this, every module must have a `Safety` section, listing every usage of unsafe in the module and why it is safe, or why it may be unsafe. Unsafe should only be used when strictly necessary. If a safe alternative can be used (i.e. `Cell`/`OnceCell`/`RefCell` over `UnsafeCell`), then it should be used.
 
