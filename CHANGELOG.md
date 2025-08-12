@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.11.3] - 2025-08-11
+
+### Changed
+
+- Specified MSRV in Cargo.toml file.
+- `UefiFileSystem::rename` is now buffered.
+
 ## bootmgr-rs-slint - [0.6.0] - 2025-08-11
 
 ### Added

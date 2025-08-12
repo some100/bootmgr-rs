@@ -74,6 +74,10 @@ pub enum FsError {
     #[error("Failed to delete file")]
     DeleteErr(Status),
 
+    /// A file could not be flushed.
+    #[error("Failed to flush file")]
+    FlushErr(Status),
+
     /// A seek operation was attempted to be made on a deleted file
     #[error("Could not set position of a deleted file")]
     SeekErr,
@@ -247,8 +251,9 @@ impl UefiFileSystem {
 
     /// Renames a file into another file.
     ///
-    /// This essentially copies a file into another file, then deletes the original file. This copies the entire
-    /// content of the source file into memory, so it should not be used for very large files.
+    /// This essentially copies a file into another file, then deletes the original file. This implements buffered
+    /// reading and writing, with a fixed size of 64 KiB. This is small enough to fit the majority of cases this is
+    /// used (like for BLS boot counting).
     ///
     /// # Errors
     ///
@@ -257,15 +262,32 @@ impl UefiFileSystem {
     pub fn rename(&mut self, src: &CStr16, dst: &CStr16) -> Result<(), FsError> {
         let _ = self.delete(dst);
         let _ = self.create(dst); // this way if dst exists or not, it will be created anyways
-        let src_data = self.read(src)?;
 
-        let src = self.get_mut_file(src)?;
+        let mut src = self.get_mut_file(src)?;
         let mut dst = self.get_mut_file(dst)?;
 
-        dst.write(&src_data).map_err(|e| FsError::WriteErr {
-            status: e.status(),
-            bytes: *e.data(),
-        })?;
+        let mut chunk = vec![0; 64 * 1024]; // 64 kib buffer
+
+        let src_info = src
+            .get_boxed_info::<FileInfo>()
+            .map_err(|e| FsError::ReadErr(e.status()))?;
+        let mut remaining = src_info.file_size();
+
+        while remaining > 0 {
+            let bytes = src.read(&mut chunk).map_err(|e| FsError::ReadErr(e.status()))?;
+
+            if bytes == 0 {
+                return Err(FsError::ReadErr(Status::ABORTED));
+            }
+
+            dst.write(&chunk[..bytes]).map_err(|e| FsError::WriteErr {
+                status: e.status(),
+                bytes: *e.data(),
+            })?;
+
+            remaining -= u64::try_from(bytes).unwrap_or(u64::MAX);
+        }
+        dst.flush().map_err(|e| FsError::FlushErr(e.status()))?;
 
         src.delete().map_err(|e| FsError::DeleteErr(e.status()))?;
 
