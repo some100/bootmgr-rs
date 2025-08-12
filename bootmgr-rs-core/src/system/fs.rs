@@ -274,7 +274,9 @@ impl UefiFileSystem {
         let mut remaining = src_info.file_size();
 
         while remaining > 0 {
-            let bytes = src.read(&mut chunk).map_err(|e| FsError::ReadErr(e.status()))?;
+            let bytes = src
+                .read(&mut chunk)
+                .map_err(|e| FsError::ReadErr(e.status()))?;
 
             if bytes == 0 {
                 return Err(FsError::ReadErr(Status::ABORTED));
