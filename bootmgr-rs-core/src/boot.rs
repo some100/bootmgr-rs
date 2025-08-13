@@ -121,6 +121,6 @@ impl BootMgr {
     /// If any of the [`Config`]s are found to be invalid, then they will be
     /// filtered.
     pub fn validate(&mut self) {
-        self.configs.retain_mut(Config::is_good);
+        self.configs.retain(Config::is_good);
     }
 }

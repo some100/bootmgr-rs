@@ -4,6 +4,7 @@ export component BootList {
     in-out property <int> listIdx;
     in-out property <int> timeout;
     in-out property <bool> now-booting;
+    in-out property <bool> now-editing;
     in property <length> spacing;
     in property <length> itemWidth;
     in property <int> count: 0;
@@ -36,6 +37,16 @@ export component BootList {
             }
             if (event.text == Key.Return) {
                 root.now-booting = true;
+                return accept;
+            }
+            if (event.text == "e") {
+                root.now-editing = true;
+                return accept;
+            }
+            if (event.text == Key.Escape) {
+                if root.now-editing {
+                    root.now-editing = false;
+                }
                 return accept;
             }
             return accept;

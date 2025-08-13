@@ -1,0 +1,27 @@
+import { TitleLabel } from "title_label.slint";
+import { LineEdit } from "std-widgets.slint";
+
+export component EditorField {
+    in property <string> label;
+    in property <color> highlight-bg;
+    in property <color> highlight-fg;
+    in-out property <string> value;
+
+    HorizontalLayout {
+        Rectangle {
+            background: root.highlight-bg;
+            TitleLabel {
+                text: "\{label}";
+                color: root.highlight-fg;
+                vertical-alignment: center;
+            }
+        }
+        Rectangle {
+            background: root.highlight-bg;
+            LineEdit {
+                placeholder-text: "Input text here";
+                text <=> root.value;
+            }
+        }
+    }
+}

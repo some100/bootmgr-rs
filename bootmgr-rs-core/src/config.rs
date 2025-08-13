@@ -119,7 +119,8 @@ impl Config {
 
     /// Verifies if a [`Config`] is good. If the [`Config`] is good, then
     /// it will return true. Otherwise, it will return `false`.
-    pub fn is_good(&mut self) -> bool {
+    #[must_use = "Has no effect if the result is unused"]
+    pub fn is_good(&self) -> bool {
         self.lint();
         self.validate().map_err(|e| error!("{e}")).is_ok()
     }
@@ -262,7 +263,7 @@ pub(crate) fn scan_configs() -> BootResult<Vec<Config>> {
         parse_all_configs(&mut fs, handle, &mut configs);
     }
 
-    configs.retain_mut(Config::is_good);
+    configs.retain(Config::is_good);
 
     configs.sort_unstable_by(|a, b| {
         a.bad
@@ -295,7 +296,7 @@ mod tests {
         let machine_id = MachineId::new("1234567890abcdef1234567890abcdef")?;
         let sort_key = SortKey::new("linux")?;
         let efi_path = EfiPath::new("\\vmlinuz-linux")?;
-        let mut config = Config {
+        let config = Config {
             title: Some("Linux".to_owned()),
             version: Some("6.10.0".to_owned()),
             machine_id: Some(machine_id),

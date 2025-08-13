@@ -14,6 +14,7 @@ use uefi::{Handle, ResultExt, Status, boot::start_image, entry};
 use crate::app::App;
 
 mod app;
+mod editor;
 mod input;
 mod ui;
 

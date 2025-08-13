@@ -252,8 +252,8 @@ impl UefiFileSystem {
     /// Renames a file into another file.
     ///
     /// This essentially copies a file into another file, then deletes the original file. This implements buffered
-    /// reading and writing, with a fixed size of 64 KiB. This is small enough to fit the majority of cases this is
-    /// used (like for BLS boot counting).
+    /// reading and writing, with a fixed size of 4 KiB. This buffer is a stack allocated array that is small enough
+    /// to avoid stack overflow while still being suitable for operations like renaming boot counter files.
     ///
     /// # Errors
     ///
@@ -266,7 +266,7 @@ impl UefiFileSystem {
         let mut src = self.get_mut_file(src)?;
         let mut dst = self.get_mut_file(dst)?;
 
-        let mut chunk = vec![0; 64 * 1024]; // 64 kib buffer
+        let mut chunk = [0; 4 * 1024]; // 4 kib buffer
 
         let src_info = src
             .get_boxed_info::<FileInfo>()

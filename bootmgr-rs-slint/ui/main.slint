@@ -1,11 +1,9 @@
-import { TextEdit } from "std-widgets.slint";
+import { TextEdit, LineEdit, StandardButton } from "std-widgets.slint";
 import { BootList } from "boot_list.slint";
 import { Card } from "card.slint";
 import { Theme } from "theme.slint";
 import { TitleLabel } from "title_label.slint";
-struct BootOption {
-    image: image,
-}
+import { Editor } from "editor.slint";
 
 export component Ui inherits Window {
     in-out property <[{ parser: string, image: image }]> images: [
@@ -17,10 +15,21 @@ export component Ui inherits Window {
         { parser: "windows", image: @image-url("icons/windows.png") },
         { parser: "special", image: @image-url("icons/special.png") },
     ];
+    in-out property <[{ label: string, value: string }]> fields: [
+        { label: "title", value: "" },
+        { label: "version", value: "" },
+        { label: "machine_id", value: "" },
+        { label: "sort_key", value: "" },
+        { label: "options", value: "" },
+        { label: "devicetree", value: "" },
+        { label: "architecture", value: "" },
+        { label: "efi", value: "" },
+    ];
     in-out property <[{ title: string, image: image }]> items;
     in-out property <int> listIdx;
     in-out property <int> timeout;
     in-out property <bool> now_booting;
+    in-out property <bool> now_editing;
     in-out property <string> error;
 
     in-out property <color> fg;
@@ -40,6 +49,13 @@ export component Ui inherits Window {
         fatal-popup.show();
     }
 
+    callback fill_fields(fields: [{ label: string, value: string }]);
+    fill_fields(fields) => {
+        root.fields = fields;
+    }
+
+    callback save_changes(fields: [{ label: string, value: string }]);
+
     forward-focus: boot_list;
 
     default-font-family: Theme.font-family;
@@ -55,7 +71,7 @@ export component Ui inherits Window {
         spacing: Theme.spacing-medium;
         timeout <=> root.timeout;
         now-booting <=> root.now_booting;
-
+        now-editing <=> root.now_editing;
 
         for item[index] in root.items : Card {
             is-selected: index == root.listIdx;
@@ -116,5 +132,31 @@ export component Ui inherits Window {
         height: root.height / 4;
         width: root.width / 4;
         close-policy: no-auto-close;
+    }
+
+    editor-popup := Editor {
+        highlight-bg: root.highlight_bg;
+        highlight-fg: root.highlight_fg;
+        
+        fields <=> root.fields;
+        visible <=> root.now_editing;
+
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        height: root.height / 2;
+        width: root.width / 2;
+
+        StandardButton {
+            kind: close;
+            clicked => {
+                root.now_editing = false;
+            }
+        }
+        StandardButton {
+            kind: apply;
+            clicked => {
+                root.save-changes(fields);
+            }
+        }
     }
 }

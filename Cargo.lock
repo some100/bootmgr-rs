@@ -448,7 +448,7 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-core"
-version = "0.11.5"
+version = "0.11.6"
 dependencies = [
  "log",
  "nt-hive",
@@ -493,13 +493,14 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-slint"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "bootmgr-rs-core",
  "bytemuck",
  "log",
  "slint",
  "slint-build",
+ "smallvec",
  "thiserror 2.0.12",
  "uefi",
 ]

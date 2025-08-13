@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.7.0] - 2025-08-12
+
+### Added
+
+- Added a mouse-driven configuration editor with options for exiting and applying changes.
+
+### Changed
+
+- `SmallVec` used instead of `Vec` for storing `Event`s.
+
+## bootmgr-rs-core - [0.11.6] - 2025-08-12
+
+### Changed
+
+- `Config::is_good` now takes an `&self` instead of an `&mut self`.
+- `UefiFileSystem::rename` now operates on a stack buffer of 4 KiB.
+
 ## bootmgr-rs-core - [0.11.5] - 2025-08-12
 
 ### Changed

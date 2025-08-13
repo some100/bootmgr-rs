@@ -1,0 +1,27 @@
+import { Theme } from "theme.slint";
+import { TitleLabel } from "title_label.slint";
+import { LineEdit } from "std-widgets.slint";
+import { EditorField } from "editor_field.slint";
+
+export component Editor inherits Dialog {
+    in property <color> highlight-bg;
+    in property <color> highlight-fg;
+
+    in-out property <[ { label: string, value: string } ]> fields;
+
+    visible: false;
+    VerticalLayout {
+        spacing: Theme.spacing-regular;
+        for item[index] in root.fields : EditorField {
+            label: "\{item.label}";
+            highlight-bg: root.highlight-bg;
+            highlight-fg: root.highlight-fg;
+            value: "\{item.value}";
+        }
+    }
+
+    x: (root.width - self.width) / 2;
+    y: (root.height - self.height) / 2;
+    height: root.height / 2;
+    width: root.width / 2;
+}

@@ -3,6 +3,8 @@
 //! This provides callbacks from the Rust side of the UI, as well
 //! as a way to get the UI.
 
+use core::cell::RefCell;
+
 use alloc::{rc::Rc, vec, vec::Vec};
 use bootmgr_rs_core::{
     boot::BootMgr,
@@ -11,12 +13,13 @@ use bootmgr_rs_core::{
 };
 use bytemuck::TransparentWrapper;
 use slint::{
-    Image, Model, ModelRc, PhysicalSize, SharedString, ToSharedString,
+    ComponentHandle, Image, Model, ModelRc, PhysicalSize, SharedString, ToSharedString,
     platform::{
         WindowEvent,
         software_renderer::{MinimalSoftwareWindow, SoftwareRenderer},
     },
 };
+use smallvec::SmallVec;
 use uefi::{
     Event, Handle,
     boot::ScopedProtocol,
@@ -28,6 +31,7 @@ use uefi::{
 
 use crate::{
     MainError,
+    editor::Editor,
     input::MouseState,
     ui::{SlintBltPixel, Ui, create_window, ueficolor_to_slintcolor},
 };
@@ -46,7 +50,7 @@ pub enum AppState {
 /// The main application logic of the bootloader.
 pub struct App {
     /// The internal manager of `Config` files.
-    pub boot_mgr: BootMgr,
+    pub boot_mgr: Rc<RefCell<BootMgr>>,
 
     /// The timeout before the default boot entry is selected.
     pub timeout: i64,
@@ -61,13 +65,16 @@ pub struct App {
     pub gop: ScopedProtocol<GraphicsOutput>,
 
     /// The input events of the system.
-    pub events: Vec<Event>,
+    pub events: SmallVec<[Event; 3]>,
 
     /// The index, or the currently selected item.
     pub idx: usize,
 
     /// The current state of the [`App`].
     pub state: AppState,
+
+    /// The [`App`]'s editor, if included and enabled.
+    pub editor: Rc<RefCell<Editor>>,
 }
 
 impl App {
@@ -83,12 +90,13 @@ impl App {
 
         let gop = locate_protocol::<GraphicsOutput>()?;
 
-        let events = Vec::new();
+        let events = SmallVec::new();
 
         let idx = boot_mgr.get_default();
 
+        let editor = Editor::new();
         Ok(Self {
-            boot_mgr,
+            boot_mgr: Rc::new(RefCell::new(boot_mgr)),
             timeout,
             input,
             mouse,
@@ -96,6 +104,7 @@ impl App {
             events,
             idx,
             state: AppState::Running,
+            editor: Rc::new(RefCell::new(editor)),
         })
     }
 
@@ -119,6 +128,35 @@ impl App {
 
         let (window, ui) = self.get_a_ui(w, h)?;
         let mut fb = vec![SlintBltPixel::new(); w * h];
+
+        let boot_mgr_clone = self.boot_mgr.clone();
+        let editor_clone = self.editor.clone();
+        let ui_weak = ui.as_weak();
+        ui.on_save_changes(move |fields| {
+            if let Some(ui) = ui_weak.upgrade() {
+                let mut boot_mgr = boot_mgr_clone.borrow_mut();
+                let mut editor = editor_clone.borrow_mut();
+
+                let config = boot_mgr.get_config(self.idx);
+                editor.save_config(config, &fields);
+
+                let images = ui.get_images();
+                let items: Vec<_> = boot_mgr
+                    .list()
+                    .iter()
+                    .enumerate()
+                    .map(|(i, config)| {
+                        (
+                            choose_image(&images, config),
+                            config.get_preferred_title(Some(i)).into(),
+                        )
+                    })
+                    .collect();
+
+                let boot_items = ModelRc::from(&*items);
+                ui.set_items(boot_items);
+            }
+        });
 
         let handle = || -> Result<Option<Handle>, MainError> {
             loop {
@@ -169,6 +207,8 @@ impl App {
                     break Ok(Some(handle));
                 }
 
+                self.maybe_launch_editor(&ui);
+
                 if !window.has_active_animations() {
                     let duration = slint::platform::duration_until_next_timer_update();
                     self.wait_for_events(duration)?; // try to go to sleep, until a key press, mouse move, or after the duration
@@ -196,7 +236,7 @@ impl App {
             return None;
         }
 
-        match self.boot_mgr.load(self.idx) {
+        match self.boot_mgr.borrow_mut().load(self.idx) {
             Ok(handle) => Some(handle),
             Err(e) => {
                 ui.invoke_display_err(e.to_shared_string());
@@ -214,11 +254,7 @@ impl App {
     /// Then, it gets the images from the UI, and, for each [`Config`] in the [`BootMgr`], it will assign an image
     /// given the origin of the [`Config`], then put those items back into the UI. Then theme settings from `BootConfig`
     /// are applied. Finally, the list index and timeout are set to the application's values.
-    pub fn get_a_ui(
-        &self,
-        w: usize,
-        h: usize,
-    ) -> Result<(Rc<MinimalSoftwareWindow>, Ui), MainError> {
+    fn get_a_ui(&self, w: usize, h: usize) -> Result<(Rc<MinimalSoftwareWindow>, Ui), MainError> {
         let (window, ui) = create_window()?;
         window.set_size(PhysicalSize::new(
             u32::try_from(w).unwrap_or(0),
@@ -230,6 +266,7 @@ impl App {
 
         let items: Vec<_> = self
             .boot_mgr
+            .borrow()
             .list()
             .iter()
             .enumerate()
@@ -245,7 +282,7 @@ impl App {
         let boot_items = ModelRc::from(&*items);
 
         // applying theme
-        let boot_config = &self.boot_mgr.boot_config;
+        let boot_config = &self.boot_mgr.borrow().boot_config;
         let (fg, bg, h_foreground, h_background) = (
             ueficolor_to_slintcolor(boot_config.fg),
             ueficolor_to_slintcolor(boot_config.bg),
@@ -263,11 +300,14 @@ impl App {
         ui.set_listIdx(i32::try_from(self.idx).unwrap_or(0));
         ui.set_timeout(i32::try_from(self.timeout).unwrap_or(-1));
 
+        // this has to be explicitly set as false for some reason?
+        ui.set_now_editing(false);
+
         Ok((window, ui))
     }
 
     /// Draws a frame to the screen.
-    pub fn draw_frame(
+    fn draw_frame(
         &mut self,
         renderer: &SoftwareRenderer,
         fb: &mut [SlintBltPixel],
@@ -291,6 +331,20 @@ impl App {
                 dest: self.mouse.position(),
                 dims: self.mouse.dims(),
             });
+        }
+    }
+
+    /// Launch the editor.
+    fn maybe_launch_editor(&mut self, ui: &Ui) {
+        let mut boot_mgr = self.boot_mgr.borrow_mut();
+        let mut editor = self.editor.borrow_mut();
+        if ui.get_now_editing() && !editor.editing {
+            let config = boot_mgr.get_config(self.idx);
+            editor.load_config(config);
+
+            ui.invoke_fill_fields(editor.get_fields());
+        } else if editor.editing {
+            editor.editing = false;
         }
     }
 }
