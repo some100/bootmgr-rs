@@ -73,7 +73,9 @@ impl Platform for UefiPlatform {
     }
 
     fn duration_since_start(&self) -> Duration {
-        Duration::from_secs_f64((lossy_u64_to_f64(timer_tick()) - self.timer_start) / self.timer_freq)
+        Duration::from_secs_f64(
+            (lossy_u64_to_f64(timer_tick()) - self.timer_start) / self.timer_freq,
+        )
     }
 
     // run_event_loop intentionally not implemented
@@ -158,7 +160,10 @@ pub const fn ueficolor_to_slintcolor(color: UefiColor) -> SlintColor {
 }
 
 /// Convert a `u64` into an `f64`, with the possibility of precision loss when casting.
-#[allow(clippy::cast_precision_loss, reason = "f64 is exactly precise up to 2^53, which is more than enough")]
+#[allow(
+    clippy::cast_precision_loss,
+    reason = "f64 is exactly precise up to 2^53, which is more than enough"
+)]
 const fn lossy_u64_to_f64(num: u64) -> f64 {
     num as f64
 }
