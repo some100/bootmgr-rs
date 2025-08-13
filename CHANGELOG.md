@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.7.2] - 2025-08-13
+
+### Changed
+
+- Refactored some repeated logic for refreshing boot items into `refresh_boot_items`.
+- Refresh boot items after a failure in loading a boot option.
+
 ## bootmgr-rs-slint - [0.7.1] - 2025-08-13
 
 ### Changed

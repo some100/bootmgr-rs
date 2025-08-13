@@ -140,21 +140,7 @@ impl App {
                 let config = boot_mgr.get_config(self.idx);
                 editor.save_config(config, &fields);
 
-                let images = ui.get_images();
-                let items: Vec<_> = boot_mgr
-                    .list()
-                    .iter()
-                    .enumerate()
-                    .map(|(i, config)| {
-                        (
-                            choose_image(&images, config),
-                            config.get_preferred_title(Some(i)).into(),
-                        )
-                    })
-                    .collect();
-
-                let boot_items = ModelRc::from(&*items);
-                ui.set_items(boot_items);
+                Self::refresh_boot_items(&boot_mgr, &ui);
             }
         });
 
@@ -236,12 +222,14 @@ impl App {
             return None;
         }
 
-        match self.boot_mgr.borrow_mut().load(self.idx) {
+        let mut boot_mgr = self.boot_mgr.borrow_mut();
+        match boot_mgr.load(self.idx) {
             Ok(handle) => Some(handle),
             Err(e) => {
                 ui.invoke_display_err(e.to_shared_string());
                 self.state = AppState::Running;
                 self.timeout = -1;
+                Self::refresh_boot_items(&boot_mgr, ui);
                 None
             }
         }
@@ -261,25 +249,7 @@ impl App {
             u32::try_from(h).unwrap_or(0),
         ));
 
-        // this will return a list of every image and its associated parser, such as (img, bls).
-        let images = ui.get_images();
-
-        let items: Vec<_> = self
-            .boot_mgr
-            .borrow()
-            .list()
-            .iter()
-            .enumerate()
-            .map(|(i, config)| {
-                (
-                    choose_image(&images, config),
-                    config.get_preferred_title(Some(i)).into(),
-                )
-            })
-            .collect();
-
-        // slint requires that they be in ModelRc, for some reason
-        let boot_items = ModelRc::from(&*items);
+        Self::refresh_boot_items(&self.boot_mgr.borrow(), &ui);
 
         // applying theme
         let boot_config = &self.boot_mgr.borrow().boot_config;
@@ -296,7 +266,6 @@ impl App {
         ui.set_highlight_bg(h_background);
 
         // set up the rest of properties
-        ui.set_items(boot_items);
         ui.set_listIdx(i32::try_from(self.idx).unwrap_or(0));
         ui.set_timeout(i32::try_from(self.timeout).unwrap_or(-1));
 
@@ -346,6 +315,26 @@ impl App {
         } else if editor.editing {
             editor.editing = false;
         }
+    }
+
+    /// Refresh the available boot items given the list of configurations.
+    fn refresh_boot_items(boot_mgr: &BootMgr, ui: &Ui) {
+        let images = ui.get_images();
+
+        let items: Vec<_> = boot_mgr
+            .list()
+            .iter()
+            .enumerate()
+            .map(|(i, config)| {
+                (
+                    choose_image(&images, config),
+                    config.get_preferred_title(Some(i)).into(),
+                )
+            })
+            .collect();
+
+        let boot_items = ModelRc::from(&*items);
+        ui.set_items(boot_items);
     }
 }
 
