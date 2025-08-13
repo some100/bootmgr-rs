@@ -91,10 +91,7 @@ unsafe impl Sync for SecurityOverride {}
 
 /// A guard for [`SecurityOverride`]. When created, it will install a validator. When the
 /// override is eventually dropped, the validator will be uninstalled.
-pub(super) struct SecurityOverrideGuard {
-    /// If the validator is installed or not.
-    installed: bool,
-}
+pub(super) struct SecurityOverrideGuard;
 
 impl SecurityOverrideGuard {
     /// Create a new [`SecurityOverrideGuard`]. Installs a validator and returns the guard.
@@ -102,15 +99,13 @@ impl SecurityOverrideGuard {
     /// When the returned guard is dropped, the security override is automatically uninstalled.
     pub(super) fn new(validator: Validator, validator_ctx: Option<NonNull<u8>>) -> Self {
         install_security_override(validator, validator_ctx);
-        Self { installed: true }
+        Self
     }
 }
 
 impl Drop for SecurityOverrideGuard {
     fn drop(&mut self) {
-        if self.installed {
-            uninstall_security_override();
-        }
+        uninstall_security_override();
     }
 }
 

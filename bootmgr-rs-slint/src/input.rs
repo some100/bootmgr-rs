@@ -146,6 +146,8 @@ impl App {
                 match char {
                     ScanCode::LEFT => SlintKey::LeftArrow,
                     ScanCode::RIGHT => SlintKey::RightArrow,
+                    ScanCode::UP => SlintKey::UpArrow,
+                    ScanCode::DOWN => SlintKey::DownArrow,
                     ScanCode::ESCAPE => SlintKey::Escape,
                     _ => return None,
                 }

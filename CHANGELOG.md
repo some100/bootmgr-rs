@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.13.1] - 2025-08-13
+
+### Changed
+
+- Removed redundant `installed` field from `SecurityOverrideGuard`.
+
 ## bootmgr-rs-core - [0.13.0] - 2025-08-13
 
 ### Added
