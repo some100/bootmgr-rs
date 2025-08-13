@@ -24,7 +24,7 @@ impl ConfigEditor {
     pub fn new(config: &Config) -> Self {
         let fields = config
             .get_str_fields()
-            .map(|(k, v)| (k, v.cloned().unwrap_or_default()))
+            .map(|(k, v)| (k, v.map(ToOwned::to_owned).unwrap_or_default()))
             .collect();
         Self { idx: 0, fields }
     }

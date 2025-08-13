@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.12.0] - 2025-08-12
+
+### Changed
+
+- `BootAction::run` is now private to the crate (use `load_boot_option` or `BootMgr::load` instead). (BREAKING)
+- `get_str_fields` now returns an iterator of `(&'static str, Option<&str>)`. (BREAKING)
+
 ## bootmgr-rs-slint - [0.7.0] - 2025-08-12
 
 ### Added

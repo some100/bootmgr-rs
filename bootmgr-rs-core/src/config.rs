@@ -103,16 +103,16 @@ pub struct Config {
 impl Config {
     /// Returns an iterator over every [`String`] struct field that should be edited
     #[must_use = "Has no effect if the result is unused"]
-    pub fn get_str_fields(&self) -> impl Iterator<Item = (&'static str, Option<&String>)> {
+    pub fn get_str_fields(&self) -> impl Iterator<Item = (&'static str, Option<&str>)> {
         let vec: ArrayVec<[_; 8]> = ArrayVec::from([
-            ("title", self.title.as_ref()),
-            ("version", self.version.as_ref()),
-            ("machine_id", self.machine_id.as_deref()),
-            ("sort_key", self.sort_key.as_deref()),
-            ("options", self.options.as_ref()),
-            ("devicetree", self.devicetree_path.as_deref()),
-            ("architecture", self.architecture.as_deref()),
-            ("efi", self.efi_path.as_deref()),
+            ("title", self.title.as_deref()),
+            ("version", self.version.as_deref()),
+            ("machine_id", self.machine_id.as_deref().map(|x| &**x)),
+            ("sort_key", self.sort_key.as_deref().map(|x| &**x)),
+            ("options", self.options.as_deref()),
+            ("devicetree", self.devicetree_path.as_deref().map(|x| &**x)),
+            ("architecture", self.architecture.as_deref().map(|x| &**x)),
+            ("efi", self.efi_path.as_deref().map(|x| &**x)),
         ]);
         vec.into_iter()
     }

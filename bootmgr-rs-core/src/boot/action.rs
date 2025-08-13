@@ -43,7 +43,7 @@ impl BootAction {
     /// # Errors
     ///
     /// May return an `Error` if any of the actions fail.
-    pub fn run(&self, config: &Config) -> BootResult<Handle> {
+    pub(crate) fn run(self, config: &Config) -> BootResult<Handle> {
         match self {
             Self::Reboot => reboot::reset(),
             Self::Shutdown => shutdown::shutdown(),
