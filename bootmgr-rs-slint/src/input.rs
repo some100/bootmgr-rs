@@ -162,7 +162,7 @@ impl App {
         if let Some(duration) = duration {
             let duration_time = u64::try_from(duration.as_nanos() / 100).unwrap_or(u64::MAX);
             let timer = create_timer(TimerTrigger::Relative(duration_time))?;
-            self.events.push(timer);
+            let _ = self.events.push(timer);
         }
 
         boot::wait_for_event(&mut self.events).discard_errdata()?;
@@ -174,11 +174,11 @@ impl App {
     /// Create the input wait for key events.
     pub fn create_events(&mut self) {
         if let Some(event) = self.input.wait_for_key_event() {
-            self.events.push(event);
+            let _ = self.events.push(event);
         }
 
         if let Some(event) = self.mouse.wait_for_input_event() {
-            self.events.push(event);
+            let _ = self.events.push(event);
         }
     }
 }

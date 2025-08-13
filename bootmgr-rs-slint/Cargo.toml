@@ -1,14 +1,14 @@
 [package]
 name = "bootmgr-rs-slint"
-version = "0.7.2"
+version = "0.7.3"
 edition = "2024"
 
 [dependencies]
 bootmgr-rs-core = { path = "../bootmgr-rs-core" }
 bytemuck = "1.23.2"
+heapless = { version = "0.8.0", features = ["mpmc_large"] }
 log = "0.4.27"
 slint = { version = "1.12.1", default-features = false, features = ["compat-1-2", "unsafe-single-threaded", "libm", "renderer-software"] }
-smallvec = "1.15.1"
 thiserror = { version = "2.0.12", default-features = false }
 uefi = { version = "0.35.0", features = ["alloc"] }
 

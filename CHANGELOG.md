@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.7.3] - 2025-08-13
+
+### Changed
+
+- Uses heapless for message passing instead of sharing state of `BootMgr` and `Editor` through `Rc<RefCell<T>>`.
+- Uses heapless Vec instead of SmallVec for storing events.
+
 ## bootmgr-rs-core - [0.12.1] - 2025-08-13
 
 ### Changed

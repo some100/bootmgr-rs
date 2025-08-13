@@ -3,8 +3,6 @@
 //! This provides callbacks from the Rust side of the UI, as well
 //! as a way to get the UI.
 
-use core::cell::RefCell;
-
 use alloc::{rc::Rc, vec, vec::Vec};
 use bootmgr_rs_core::{
     boot::BootMgr,
@@ -12,14 +10,14 @@ use bootmgr_rs_core::{
     system::helper::locate_protocol,
 };
 use bytemuck::TransparentWrapper;
+use heapless::mpmc::Q8;
 use slint::{
-    ComponentHandle, Image, Model, ModelRc, PhysicalSize, SharedString, ToSharedString,
+    Image, Model, ModelRc, PhysicalSize, SharedString, ToSharedString,
     platform::{
         WindowEvent,
         software_renderer::{MinimalSoftwareWindow, SoftwareRenderer},
     },
 };
-use smallvec::SmallVec;
 use uefi::{
     Event, Handle,
     boot::ScopedProtocol,
@@ -36,6 +34,18 @@ use crate::{
     ui::{SlintBltPixel, create_window, slint_inc::Ui, ueficolor_to_slintcolor},
 };
 
+/// The possible commands that may be pushed through the Slint-Rust queue.
+pub enum Command {
+    /// Save the changes to a [`Config`] given the fields and index.
+    SaveChanges {
+        /// The fields that will be saved to the [`Config`].
+        fields: ModelRc<(slint::SharedString, slint::SharedString)>,
+
+        /// The index of the [`Config`] that is being saved.
+        idx: usize,
+    },
+}
+
 /// The current status of the [`App`].
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub enum AppState {
@@ -50,7 +60,7 @@ pub enum AppState {
 /// The main application logic of the bootloader.
 pub struct App {
     /// The internal manager of `Config` files.
-    pub boot_mgr: Rc<RefCell<BootMgr>>,
+    pub boot_mgr: BootMgr,
 
     /// The timeout before the default boot entry is selected.
     pub timeout: i64,
@@ -65,7 +75,7 @@ pub struct App {
     pub gop: ScopedProtocol<GraphicsOutput>,
 
     /// The input events of the system.
-    pub events: SmallVec<[Event; 3]>,
+    pub events: heapless::Vec<Event, 3>,
 
     /// The index, or the currently selected item.
     pub idx: usize,
@@ -74,7 +84,10 @@ pub struct App {
     pub state: AppState,
 
     /// The [`App`]'s editor, if included and enabled.
-    pub editor: Rc<RefCell<Editor>>,
+    pub editor: Editor,
+
+    /// The queue of editor changes.
+    pub queue: Rc<Q8<Command>>,
 }
 
 impl App {
@@ -90,13 +103,16 @@ impl App {
 
         let gop = locate_protocol::<GraphicsOutput>()?;
 
-        let events = SmallVec::new();
+        let events = heapless::Vec::new();
 
         let idx = boot_mgr.get_default();
 
         let editor = Editor::new();
+
+        let queue = Q8::new();
+
         Ok(Self {
-            boot_mgr: Rc::new(RefCell::new(boot_mgr)),
+            boot_mgr,
             timeout,
             input,
             mouse,
@@ -104,7 +120,8 @@ impl App {
             events,
             idx,
             state: AppState::Running,
-            editor: Rc::new(RefCell::new(editor)),
+            editor,
+            queue: Rc::new(queue),
         })
     }
 
@@ -129,19 +146,12 @@ impl App {
         let (window, ui) = self.get_a_ui(w, h)?;
         let mut fb = vec![SlintBltPixel::new(); w * h];
 
-        let boot_mgr_clone = self.boot_mgr.clone();
-        let editor_clone = self.editor.clone();
-        let ui_weak = ui.as_weak();
+        let tx = self.queue.clone();
         ui.on_save_changes(move |fields| {
-            if let Some(ui) = ui_weak.upgrade() {
-                let mut boot_mgr = boot_mgr_clone.borrow_mut();
-                let mut editor = editor_clone.borrow_mut();
-
-                let config = boot_mgr.get_config(self.idx);
-                editor.save_config(config, &fields);
-
-                Self::refresh_boot_items(&boot_mgr, &ui);
-            }
+            let _ = tx.enqueue(Command::SaveChanges {
+                fields,
+                idx: self.idx,
+            });
         });
 
         let handle = || -> Result<Option<Handle>, MainError> {
@@ -195,6 +205,16 @@ impl App {
 
                 self.maybe_launch_editor(&ui);
 
+                if let Some(message) = self.queue.dequeue() {
+                    match message {
+                        Command::SaveChanges { fields, idx } => {
+                            let config = self.boot_mgr.get_config(idx);
+                            self.editor.save_config(config, &fields);
+                            Self::refresh_boot_items(&self.boot_mgr, &ui);
+                        }
+                    }
+                }
+
                 if !window.has_active_animations() {
                     let duration = slint::platform::duration_until_next_timer_update();
                     self.wait_for_events(duration)?; // try to go to sleep, until a key press, mouse move, or after the duration
@@ -222,14 +242,13 @@ impl App {
             return None;
         }
 
-        let mut boot_mgr = self.boot_mgr.borrow_mut();
-        match boot_mgr.load(self.idx) {
+        match self.boot_mgr.load(self.idx) {
             Ok(handle) => Some(handle),
             Err(e) => {
                 ui.invoke_display_err(e.to_shared_string());
                 self.state = AppState::Running;
                 self.timeout = -1;
-                Self::refresh_boot_items(&boot_mgr, ui);
+                Self::refresh_boot_items(&self.boot_mgr, ui);
                 None
             }
         }
@@ -249,10 +268,10 @@ impl App {
             u32::try_from(h).unwrap_or(0),
         ));
 
-        Self::refresh_boot_items(&self.boot_mgr.borrow(), &ui);
+        Self::refresh_boot_items(&self.boot_mgr, &ui);
 
         // applying theme
-        let boot_config = &self.boot_mgr.borrow().boot_config;
+        let boot_config = &self.boot_mgr.boot_config;
         let (fg, bg, h_foreground, h_background) = (
             ueficolor_to_slintcolor(boot_config.fg),
             ueficolor_to_slintcolor(boot_config.bg),
@@ -305,15 +324,13 @@ impl App {
 
     /// Launch the editor.
     fn maybe_launch_editor(&mut self, ui: &Ui) {
-        let mut boot_mgr = self.boot_mgr.borrow_mut();
-        let mut editor = self.editor.borrow_mut();
-        if ui.get_now_editing() && !editor.editing {
-            let config = boot_mgr.get_config(self.idx);
-            editor.load_config(config);
+        if ui.get_now_editing() && !self.editor.editing {
+            let config = self.boot_mgr.get_config(self.idx);
+            self.editor.load_config(config);
 
-            ui.invoke_fill_fields(editor.get_fields());
-        } else if editor.editing {
-            editor.editing = false;
+            ui.invoke_fill_fields(self.editor.get_fields());
+        } else if self.editor.editing {
+            self.editor.editing = false;
         }
     }
 

@@ -54,7 +54,7 @@ export component Ui inherits Window {
         root.fields = fields;
     }
 
-    callback save_changes(fields: [{ label: string, value: string }]);
+    pure callback save_changes(fields: [{ label: string, value: string }]);
 
     forward-focus: boot_list;
 
