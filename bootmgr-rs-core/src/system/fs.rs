@@ -260,13 +260,15 @@ impl UefiFileSystem {
     /// May return an `Error` if the volume couldn't be opened, any of the two paths don't point to a valid file,
     /// the source file could not be read, or the source file could not be deleted.
     pub fn rename(&mut self, src: &CStr16, dst: &CStr16) -> Result<(), FsError> {
+        const CHUNK_SIZE: usize = 4 * 1024;
+
         let _ = self.delete(dst);
         let _ = self.create(dst); // this way if dst exists or not, it will be created anyways
 
         let mut src = self.get_mut_file(src)?;
         let mut dst = self.get_mut_file(dst)?;
 
-        let mut chunk = [0; 4 * 1024]; // 4 kib buffer
+        let mut chunk = [0; CHUNK_SIZE]; // 4 kib buffer
 
         let src_info = src
             .get_boxed_info::<FileInfo>()
@@ -287,7 +289,7 @@ impl UefiFileSystem {
                 bytes: *e.data(),
             })?;
 
-            remaining -= u64::try_from(bytes).unwrap_or(u64::MAX);
+            remaining -= u64::try_from(bytes).unwrap_or(CHUNK_SIZE as u64);
         }
         dst.flush().map_err(|e| FsError::FlushErr(e.status()))?;
 

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.13.2] - 2025-08-13
+
+### Changed
+
+- Changed setting load options to become a no-op when the size of the options is too large, and use CHUNK_SIZE constant for size of buffer in `UefiFileSystem::rename`.
+
 ## bootmgr-rs-core - [0.13.1] - 2025-08-13
 
 ### Changed
