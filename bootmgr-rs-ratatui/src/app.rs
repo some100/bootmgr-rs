@@ -4,7 +4,10 @@
 //! and editor interact.
 
 use bootmgr_rs_core::{
-    boot::BootMgr, config::editor::persist::PersistentConfig, error::BootError, system::helper::{create_timer, locate_protocol}
+    boot::BootMgr,
+    config::editor::persist::PersistentConfig,
+    error::BootError,
+    system::helper::{create_timer, locate_protocol},
 };
 use log::error;
 use ratatui_core::terminal::Terminal;

@@ -1,11 +1,11 @@
 //! A persistent [`Config`] overlay.
 
-use alloc::{borrow::ToOwned, collections::btree_map::BTreeMap, string::String};
 use crate::{
     BootResult,
     config::{Config, builder::ConfigBuilder, parsers::Parsers},
     system::fs::UefiFileSystem,
 };
+use alloc::{borrow::ToOwned, collections::btree_map::BTreeMap, string::String};
 use serde::{Deserialize, Serialize};
 use uefi::{CStr16, cstr16};
 
@@ -72,9 +72,9 @@ impl PersistentConfig {
     ///
     /// This will essentially read from the saved config path, deserialize each line into a [`Config`], then
     /// add that [`Config`] to the persistent config storage.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// May return an `Error` if the filesystem could not be opened.
     pub fn new() -> BootResult<Self> {
         let mut configs = Self::default();
@@ -102,9 +102,9 @@ impl PersistentConfig {
     }
 
     /// Save the [`Config`]s in the [`PersistentConfig`] to the filesystem.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// May return an `Error` if the filesystem could not be opened, or the file could not be
     /// created or written to.
     pub fn save_to_fs(&self) -> BootResult<()> {

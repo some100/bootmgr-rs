@@ -16,7 +16,11 @@ use uefi::{
 };
 
 use bootmgr_rs_core::{
-    config::{editor::{persist::PersistentConfig, ConfigEditor}, Config}, BootResult
+    BootResult,
+    config::{
+        Config,
+        editor::{ConfigEditor, persist::PersistentConfig},
+    },
 };
 
 use crate::{

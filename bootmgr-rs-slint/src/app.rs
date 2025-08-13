@@ -6,7 +6,7 @@
 use alloc::{rc::Rc, vec, vec::Vec};
 use bootmgr_rs_core::{
     boot::BootMgr,
-    config::{editor::persist::PersistentConfig, parsers::Parsers, Config},
+    config::{Config, editor::persist::PersistentConfig, parsers::Parsers},
     system::helper::locate_protocol,
 };
 use bytemuck::TransparentWrapper;
@@ -28,7 +28,10 @@ use uefi::{
 };
 
 use crate::{
-    editor::Editor, input::MouseState, ui::{create_window, slint_inc::Ui, ueficolor_to_slintcolor, SlintBltPixel}, MainError
+    MainError,
+    editor::Editor,
+    input::MouseState,
+    ui::{SlintBltPixel, create_window, slint_inc::Ui, ueficolor_to_slintcolor},
 };
 
 /// The possible commands that may be pushed through the Slint-Rust queue.
@@ -172,7 +175,9 @@ impl App {
 
         let tx = self.queue.clone();
         ui.on_remove_config(move |idx| {
-            let _ = tx.enqueue(Command::RemoveConfigFromFs(usize::try_from(idx).unwrap_or(0)));
+            let _ = tx.enqueue(Command::RemoveConfigFromFs(
+                usize::try_from(idx).unwrap_or(0),
+            ));
         });
 
         let handle = || -> Result<Option<Handle>, MainError> {
