@@ -33,7 +33,7 @@ use crate::{
     MainError,
     editor::Editor,
     input::MouseState,
-    ui::{SlintBltPixel, Ui, create_window, ueficolor_to_slintcolor},
+    ui::{SlintBltPixel, create_window, slint_inc::Ui, ueficolor_to_slintcolor},
 };
 
 /// The current status of the [`App`].

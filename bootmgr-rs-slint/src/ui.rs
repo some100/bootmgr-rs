@@ -11,19 +11,6 @@
 //!    which is the counter of the timer.
 //! 4. See point 3, but replace `CNTVCT_EL0` with `CNTFRQ_EL0` and "counter" with "frequency".
 
-#![allow(
-    clippy::missing_docs_in_private_items,
-    reason = "Slint auto generated files produce false lint warnings by the hundreds"
-)]
-#![allow(
-    clippy::unwrap_used,
-    reason = "Slint auto generated files produce false lint warnings by the hundreds"
-)]
-#![allow(
-    clippy::cast_precision_loss,
-    reason = "f64 is exactly precise up to 2^53, which is more than enough"
-)]
-
 use core::time::Duration;
 
 use alloc::{boxed::Box, rc::Rc};
@@ -39,9 +26,9 @@ use slint::{
 };
 use uefi::proto::console::{gop::BltPixel, text::Color as UefiColor};
 
-use crate::MainError;
+use crate::{MainError, ui::slint_inc::Ui};
 
-slint::include_modules!();
+pub mod slint_inc;
 
 /// A thin wrapper around [`BltPixel`] that implements [`TargetPixel`].
 #[repr(transparent)]
@@ -49,6 +36,7 @@ slint::include_modules!();
 pub struct SlintBltPixel(BltPixel);
 
 impl SlintBltPixel {
+    /// Create a new black [`SlintBltPixel`].
     pub const fn new() -> Self {
         Self(BltPixel::new(0, 0, 0))
     }
@@ -67,6 +55,7 @@ impl TargetPixel for SlintBltPixel {
     }
 }
 
+/// The UEFI backend for Slint.
 pub struct UefiPlatform {
     /// An instance of [`MinimalSoftwareWindow`], which renders with the software renderer.
     window: Rc<MinimalSoftwareWindow>,
@@ -84,7 +73,7 @@ impl Platform for UefiPlatform {
     }
 
     fn duration_since_start(&self) -> Duration {
-        Duration::from_secs_f64((timer_tick() as f64 - self.timer_start) / self.timer_freq)
+        Duration::from_secs_f64((lossy_u64_to_f64(timer_tick()) - self.timer_start) / self.timer_freq)
     }
 
     // run_event_loop intentionally not implemented
@@ -137,8 +126,8 @@ pub fn create_window() -> Result<(Rc<MinimalSoftwareWindow>, Ui), MainError> {
     let window = MinimalSoftwareWindow::new(RepaintBufferType::default());
     let _ = slint::platform::set_platform(Box::new(UefiPlatform {
         window: window.clone(),
-        timer_freq: timer_freq() as f64,
-        timer_start: timer_tick() as f64,
+        timer_freq: lossy_u64_to_f64(timer_freq()),
+        timer_start: lossy_u64_to_f64(timer_tick()),
     }));
 
     let ui = Ui::new().map_err(MainError::SlintError)?;
@@ -146,6 +135,7 @@ pub fn create_window() -> Result<(Rc<MinimalSoftwareWindow>, Ui), MainError> {
     Ok((window, ui))
 }
 
+/// Converts a UEFI color to a Slint color.
 pub const fn ueficolor_to_slintcolor(color: UefiColor) -> SlintColor {
     match color {
         UefiColor::Black => SlintColor::from_rgb_u8(0, 0, 0),
@@ -165,4 +155,10 @@ pub const fn ueficolor_to_slintcolor(color: UefiColor) -> SlintColor {
         UefiColor::Yellow => SlintColor::from_rgb_u8(255, 255, 0),
         UefiColor::White => SlintColor::from_rgb_u8(255, 255, 255),
     }
+}
+
+/// Convert a `u64` into an `f64`, with the possibility of precision loss when casting.
+#[allow(clippy::cast_precision_loss, reason = "f64 is exactly precise up to 2^53, which is more than enough")]
+const fn lossy_u64_to_f64(num: u64) -> f64 {
+    num as f64
 }
