@@ -1,6 +1,6 @@
 [package]
 name = "bootmgr-rs-core"
-version = "0.12.1"
+version = "0.13.0"
 rust-version = "1.88.0"
 edition = "2024"
 license = "MIT"
@@ -13,9 +13,11 @@ repository = "https://github.com/some100/bootmgr-rs"
 log = "0.4.27"
 nt-hive = { version = "0.3.0", default-features = false, features = ["alloc"], optional = true }
 object = { version = "0.37.1", default-features = false, features = ["pe", "read_core"], optional = true }
+postcard = { version = "1.1.3", default-features = false, features = ["alloc"] }
+serde = { version = "1.0.219", default-features = false, features = ["alloc", "derive"] }
 thiserror = { version = "2.0.12", default-features = false }
 tinyvec = { version = "1.9.0", features = ["alloc"] }
-uefi = "0.35.0"
+uefi = { version = "0.35.0", features = ["alloc"] }
 
 [features]
 default = ["all_parsers", "pxe"]

@@ -5,6 +5,8 @@ use tinyvec::ArrayVec;
 
 use crate::config::{Config, builder::ConfigBuilder};
 
+pub mod persist;
+
 /// The editor for [`Config`]s.
 ///
 /// An example of how to use this editor in a frontend can be found in `bootmgr-rs-ratatui`. This is intended

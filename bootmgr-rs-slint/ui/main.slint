@@ -1,4 +1,4 @@
-import { TextEdit, LineEdit, StandardButton } from "std-widgets.slint";
+import { TextEdit, LineEdit, StandardButton, Button } from "std-widgets.slint";
 import { BootList } from "boot_list.slint";
 import { Card } from "card.slint";
 import { Theme } from "theme.slint";
@@ -55,6 +55,8 @@ export component Ui inherits Window {
     }
 
     pure callback save_changes(fields: [{ label: string, value: string }]);
+    pure callback persist_config(idx: int);
+    pure callback remove_config(idx: int);
 
     forward-focus: boot_list;
 
@@ -157,6 +159,20 @@ export component Ui inherits Window {
             clicked => {
                 root.save-changes(fields);
             }
+        }
+        Button {
+            text: "Save Persistent Config to filesystem";
+            clicked => {
+                root.persist_config(root.listIdx);
+            }
+            dialog-button-role: action;
+        }
+        Button {
+            text: "Remove Persistent Config from filesystem";
+            clicked => {
+                root.remove_config(root.listIdx);
+            }
+            dialog-button-role: action;
         }
     }
 }

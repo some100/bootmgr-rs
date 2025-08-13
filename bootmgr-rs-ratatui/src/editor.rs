@@ -16,17 +16,13 @@ use uefi::{
 };
 
 use bootmgr_rs_core::{
-    BootResult,
-    config::{Config, editor::ConfigEditor},
+    config::{editor::{persist::PersistentConfig, ConfigEditor}, Config}, BootResult
 };
 
 use crate::{
     app::AppError,
-    editor::persist::PersistentConfig,
     ui::{ratatui_backend::UefiBackend, theme::Theme},
 };
-
-pub mod persist;
 
 mod ui;
 mod widget;

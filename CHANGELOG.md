@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.13.0] - 2025-08-13
+
+### Added
+
+- `PersistentConfig` which allows to save configurations to the filesystem.
+
+## bootmgr-rs-slint - [0.8.0] - 2025-08-13
+
+### Added
+
+- Now has support for persistent `Config` editing, similar to bootmgr-rs-ratatui.
+
 ## bootmgr-rs-slint - [0.7.3] - 2025-08-13
 
 ### Changed

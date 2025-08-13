@@ -3,7 +3,6 @@
 /// The editor feature.
 #[cfg(feature = "editor")]
 pub mod editor {
-    pub use crate::editor::persist::*;
     pub use crate::editor::*;
 }
 

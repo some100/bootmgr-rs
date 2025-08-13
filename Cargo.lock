@@ -448,12 +448,14 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-core"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "log",
  "nt-hive",
  "object",
+ "postcard",
  "proptest",
+ "serde",
  "thiserror 2.0.12",
  "tinyvec",
  "uefi",
@@ -482,10 +484,8 @@ version = "0.4.1"
 dependencies = [
  "bootmgr-rs-core",
  "log",
- "postcard",
  "ratatui-core",
  "ratatui-widgets",
- "serde",
  "thiserror 2.0.12",
  "tinyvec",
  "uefi",
@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-slint"
-version = "0.7.3"
+version = "0.8.0"
 dependencies = [
  "bootmgr-rs-core",
  "bytemuck",

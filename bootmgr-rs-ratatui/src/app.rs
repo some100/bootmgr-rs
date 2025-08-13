@@ -4,9 +4,7 @@
 //! and editor interact.
 
 use bootmgr_rs_core::{
-    boot::BootMgr,
-    error::BootError,
-    system::helper::{create_timer, locate_protocol},
+    boot::BootMgr, config::editor::persist::PersistentConfig, error::BootError, system::helper::{create_timer, locate_protocol}
 };
 use log::error;
 use ratatui_core::terminal::Terminal;
@@ -20,7 +18,6 @@ use uefi::{
 use crate::{
     MainError,
     editor::EditorState,
-    features::editor::PersistentConfig,
     ui::{boot_list::BootList, ratatui_backend::UefiBackend, theme::Theme},
 };
 

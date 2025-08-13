@@ -6,7 +6,7 @@
 use alloc::{rc::Rc, vec, vec::Vec};
 use bootmgr_rs_core::{
     boot::BootMgr,
-    config::{Config, parsers::Parsers},
+    config::{editor::persist::PersistentConfig, parsers::Parsers, Config},
     system::helper::locate_protocol,
 };
 use bytemuck::TransparentWrapper;
@@ -28,10 +28,7 @@ use uefi::{
 };
 
 use crate::{
-    MainError,
-    editor::Editor,
-    input::MouseState,
-    ui::{SlintBltPixel, create_window, slint_inc::Ui, ueficolor_to_slintcolor},
+    editor::Editor, input::MouseState, ui::{create_window, slint_inc::Ui, ueficolor_to_slintcolor, SlintBltPixel}, MainError
 };
 
 /// The possible commands that may be pushed through the Slint-Rust queue.
@@ -44,6 +41,12 @@ pub enum Command {
         /// The index of the [`Config`] that is being saved.
         idx: usize,
     },
+
+    /// Save a persistent [`Config`] to the filesystem.
+    SaveConfigToFs(usize),
+
+    /// Remove a persistent [`Config`] from the filesystem.
+    RemoveConfigFromFs(usize),
 }
 
 /// The current status of the [`App`].
@@ -88,12 +91,19 @@ pub struct App {
 
     /// The queue of editor changes.
     pub queue: Rc<Q8<Command>>,
+
+    /// Stores the collection of persistently saved [`Config`]s.
+    pub persist: PersistentConfig,
 }
 
 impl App {
     /// Initialize the state of the [`App`].
     pub fn new() -> Result<Self, MainError> {
-        let boot_mgr = BootMgr::new()?;
+        let mut boot_mgr = BootMgr::new()?;
+        let persist = PersistentConfig::new()?;
+        for config in boot_mgr.list_mut() {
+            persist.swap_config_in_persist(config);
+        }
 
         let timeout = boot_mgr.boot_config.timeout;
 
@@ -122,6 +132,7 @@ impl App {
             state: AppState::Running,
             editor,
             queue: Rc::new(queue),
+            persist,
         })
     }
 
@@ -152,6 +163,16 @@ impl App {
                 fields,
                 idx: self.idx,
             });
+        });
+
+        let tx = self.queue.clone();
+        ui.on_persist_config(move |idx| {
+            let _ = tx.enqueue(Command::SaveConfigToFs(usize::try_from(idx).unwrap_or(0)));
+        });
+
+        let tx = self.queue.clone();
+        ui.on_remove_config(move |idx| {
+            let _ = tx.enqueue(Command::RemoveConfigFromFs(usize::try_from(idx).unwrap_or(0)));
         });
 
         let handle = || -> Result<Option<Handle>, MainError> {
@@ -211,6 +232,18 @@ impl App {
                             let config = self.boot_mgr.get_config(idx);
                             self.editor.save_config(config, &fields);
                             Self::refresh_boot_items(&self.boot_mgr, &ui);
+                        }
+                        Command::SaveConfigToFs(idx) => {
+                            let config = self.boot_mgr.get_config(idx);
+                            if !self.persist.contains(config) {
+                                self.persist.add_config_to_persist(config);
+                            }
+                            let _ = self.persist.save_to_fs();
+                        }
+                        Command::RemoveConfigFromFs(idx) => {
+                            let config = self.boot_mgr.get_config(idx);
+                            self.persist.remove_config_from_persist(config);
+                            let _ = self.persist.save_to_fs();
                         }
                     }
                 }

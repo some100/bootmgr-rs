@@ -6,17 +6,15 @@ edition = "2024"
 [dependencies]
 bootmgr-rs-core = { path = "../bootmgr-rs-core" }
 log = "0.4.27"
-postcard = { version = "1.1.3", optional = true, default-features = false, features = ["alloc"] }
 ratatui-core = "0.1.0-alpha.6"
 ratatui-widgets = "0.3.0-alpha.5"
-serde = { version = "1.0.219", optional = true, default-features = false, features = ["alloc", "derive"] }
 thiserror = { version = "2.0.12", default-features = false }
 tinyvec = "1.9.0"
 uefi = "0.35.0"
 
 [features]
 default = ["editor"]
-editor = ["dep:serde", "dep:postcard"]
+editor = []
 
 [lints]
 workspace = true
