@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.12.1] - 2025-08-13
+
+### Changed
+
+- Now asks Shim to retain its protocol for subsequent boots.
+
 ## bootmgr-rs-slint - [0.7.2] - 2025-08-13
 
 ### Changed

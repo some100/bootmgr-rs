@@ -12,9 +12,11 @@
 use core::ptr::NonNull;
 
 use uefi::{
-    Handle,
+    Handle, Identify,
     boot::{self, ScopedProtocol},
+    cstr16,
     proto::{device_path::DevicePath, media::fs::SimpleFileSystem, shim::ShimLock},
+    runtime::VariableVendor,
 };
 
 use crate::{
@@ -24,6 +26,7 @@ use crate::{
         fs::UefiFileSystem,
         helper::{device_path_to_text, locate_protocol},
         protos::ShimImageLoader,
+        variable::{get_variable, set_variable},
     },
 };
 
@@ -80,6 +83,18 @@ fn shim_validate(
     Err(SecureBootError::NoDevicePathOrFile.into())
 }
 
+/// Ask Shim to keep its protocol around, in case we need to verify more images (for example, after loading drivers with Shim)
+fn shim_retain_protocol() -> BootResult<()> {
+    let vendor = VariableVendor(ShimLock::GUID);
+    if !matches!(
+        get_variable::<u8>(cstr16!("ShimRetainProtocol"), Some(vendor)),
+        Ok(1)
+    ) {
+        set_variable::<u8>(cstr16!("ShimRetainProtocol"), Some(vendor), None, Some(1))?;
+    }
+    Ok(())
+}
+
 /// Loads an image, optionally verifying it with Shim if it exists.
 ///
 /// `LoadImage` uses the `SecurityArch` or `Security2Arch` protocols when loading an image and secure boot is enabled.
@@ -101,6 +116,8 @@ pub(crate) fn shim_load_image(
     if !shim_loaded() || shim_is_recent() || !secure_boot_enabled() {
         return Ok(boot::load_image(parent, source)?);
     }
+
+    shim_retain_protocol()?;
 
     let _guard = SecurityOverrideGuard::new(shim_validate, None);
 
