@@ -6,7 +6,7 @@ import { TitleLabel } from "title_label.slint";
 import { Editor } from "editor.slint";
 
 export component Ui inherits Window {
-    in-out property <[{ parser: string, image: image }]> images: [
+    out property <[{ parser: string, image: image }]> images: [
         { parser: "bls", image: @image-url("icons/linux.png") },
         { parser: "fallback", image: @image-url("icons/fallback.png") },
         { parser: "osx", image: @image-url("icons/osx.png") },
@@ -15,7 +15,7 @@ export component Ui inherits Window {
         { parser: "windows", image: @image-url("icons/windows.png") },
         { parser: "special", image: @image-url("icons/special.png") },
     ];
-    in-out property <[{ label: string, value: string }]> fields: [
+    out property <[{ label: string, value: string }]> fields: [
         { label: "title", value: "" },
         { label: "version", value: "" },
         { label: "machine_id", value: "" },
@@ -25,17 +25,15 @@ export component Ui inherits Window {
         { label: "architecture", value: "" },
         { label: "efi", value: "" },
     ];
-    in-out property <[{ title: string, image: image }]> items;
     in-out property <int> listIdx;
     in-out property <int> timeout;
-    in-out property <bool> now_booting;
-    in-out property <bool> now_editing;
-    in-out property <string> error;
+    out property <string> error;
 
-    in-out property <color> fg;
-    in-out property <color> bg;
-    in-out property <color> highlight_fg;
-    in-out property <color> highlight_bg;
+    in property <[{ title: string, image: image }]> items;
+    in property <color> fg;
+    in property <color> bg;
+    in property <color> highlight_fg;
+    in property <color> highlight_bg;
 
     callback display_err(err: string);
     display_err(err) => {
@@ -54,7 +52,17 @@ export component Ui inherits Window {
         root.fields = fields;
     }
 
-    pure callback save_changes(fields: [{ label: string, value: string }]);
+    function close_edit() {
+        editor-popup.visible = false;
+    }
+
+    function show_edit() {
+        editor-popup.visible = true;
+    }
+
+    pure callback try_boot(idx: int);
+    pure callback try_edit(idx: int);
+    pure callback save_changes(fields: [{ label: string, value: string }], idx: int);
     pure callback persist_config(idx: int);
     pure callback remove_config(idx: int);
 
@@ -72,8 +80,10 @@ export component Ui inherits Window {
         listIdx <=> root.listIdx;
         spacing: Theme.spacing-medium;
         timeout <=> root.timeout;
-        now-booting <=> root.now_booting;
-        now-editing <=> root.now_editing;
+        try-boot(int) => { root.try_boot(int) }
+        try-edit(int) => { root.try_edit(int) }
+        close-edit() => { root.close_edit() }
+        show-edit() => { root.show_edit() }
 
         for item[index] in root.items : Card {
             is-selected: index == root.listIdx;
@@ -141,8 +151,8 @@ export component Ui inherits Window {
         highlight-fg: root.highlight_fg;
         
         fields <=> root.fields;
-        visible <=> root.now_editing;
 
+        visible: false;
         x: (root.width - self.width) / 2;
         y: (root.height - self.height) / 2;
         height: root.height / 2;
@@ -151,26 +161,26 @@ export component Ui inherits Window {
         StandardButton {
             kind: close;
             clicked => {
-                root.now_editing = false;
+                root.close_edit();
             }
         }
         StandardButton {
             kind: apply;
             clicked => {
-                root.save-changes(fields);
+                root.save-changes(fields, root.listIdx);
             }
         }
         Button {
             text: "Save Persistent Config to filesystem";
             clicked => {
-                root.persist_config(root.listIdx);
+                root.persist-config(root.listIdx);
             }
             dialog-button-role: action;
         }
         Button {
             text: "Remove Persistent Config from filesystem";
             clicked => {
-                root.remove_config(root.listIdx);
+                root.remove-config(root.listIdx);
             }
             dialog-button-role: action;
         }

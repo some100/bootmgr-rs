@@ -50,17 +50,12 @@ pub enum Command {
 
     /// Remove a persistent [`Config`] from the filesystem.
     RemoveConfigFromFs(usize),
-}
 
-/// The current status of the [`App`].
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
-pub enum AppState {
-    /// The app is currently booting an image.
-    Booting,
+    /// Try to boot an entry.
+    TryBoot(usize),
 
-    /// The app is currently running in its main loop.
-    #[default]
-    Running,
+    /// Try to edit an entry.
+    TryEdit(usize),
 }
 
 /// The main application logic of the bootloader.
@@ -82,12 +77,6 @@ pub struct App {
 
     /// The input events of the system.
     pub events: heapless::Vec<Event, 3>,
-
-    /// The index, or the currently selected item.
-    pub idx: usize,
-
-    /// The current state of the [`App`].
-    pub state: AppState,
 
     /// The [`App`]'s editor, if included and enabled.
     pub editor: Editor,
@@ -118,11 +107,9 @@ impl App {
 
         let events = heapless::Vec::new();
 
-        let idx = boot_mgr.get_default();
-
         let editor = Editor::new();
 
-        let queue = Q8::new();
+        let queue = Rc::new(Q8::new());
 
         Ok(Self {
             boot_mgr,
@@ -131,10 +118,8 @@ impl App {
             mouse,
             gop,
             events,
-            idx,
-            state: AppState::Running,
             editor,
-            queue: Rc::new(queue),
+            queue,
             persist,
         })
     }
@@ -146,7 +131,7 @@ impl App {
     ///
     /// This also handles the graphical drawing. It maintains a framebuffer the size of the screen, and blits those pixels
     /// onto the screen every frame. This is not hardware accelerated, mainly because GOP is the only available, truly cross
-    /// platform and firmware protocol that we have. For the purposes of rendering a graphical boot picker UI, hardware
+    /// platform firmware protocol that we have. For the purposes of rendering a graphical boot picker UI, hardware
     /// acceleration is not necessary. The animations will still look smooth.
     ///
     /// # Errors
@@ -160,78 +145,20 @@ impl App {
         let (window, ui) = self.get_a_ui(w, h)?;
         let mut fb = vec![SlintBltPixel::new(); w * h];
 
-        let tx = self.queue.clone();
-        ui.on_save_changes(move |fields| {
-            let _ = tx.enqueue(Command::SaveChanges {
-                fields,
-                idx: self.idx,
-            });
-        });
+        self.setup_callbacks(&ui);
 
-        let tx = self.queue.clone();
-        ui.on_persist_config(move |idx| {
-            let _ = tx.enqueue(Command::SaveConfigToFs(usize::try_from(idx).unwrap_or(0)));
-        });
-
-        let tx = self.queue.clone();
-        ui.on_remove_config(move |idx| {
-            let _ = tx.enqueue(Command::RemoveConfigFromFs(
-                usize::try_from(idx).unwrap_or(0),
-            ));
-        });
-
+        let mut skip_wait = false;
         let handle = || -> Result<Option<Handle>, MainError> {
             loop {
                 slint::platform::update_timers_and_animations();
 
                 self.create_events();
 
-                if let Some(key) = self.handle_key() {
-                    let str = SharedString::from(key);
-                    window
-                        .try_dispatch_event(WindowEvent::KeyPressed { text: str.clone() }) // clones with SharedString are cheap
-                        .map_err(MainError::SlintError)?;
-                    window
-                        .try_dispatch_event(WindowEvent::KeyReleased { text: str })
-                        .map_err(MainError::SlintError)?;
-                }
-
-                if let Some((position, button)) = self.mouse.get_state() {
-                    window
-                        .try_dispatch_event(WindowEvent::PointerMoved { position })
-                        .map_err(MainError::SlintError)?;
-                    window
-                        .try_dispatch_event(WindowEvent::PointerPressed { position, button })
-                        .map_err(MainError::SlintError)?;
-
-                    // normally this would be really bad, however it does not matter in a uefi bootloader where complex mouse
-                    // button usage is not required
-                    window
-                        .try_dispatch_event(WindowEvent::PointerReleased { position, button })
-                        .map_err(MainError::SlintError)?;
-
-                    window.request_redraw();
-                }
+                self.handle_input_events(&window)?;
 
                 window.draw_if_needed(|renderer| self.draw_frame(renderer, &mut fb, w, h));
 
-                if let Ok(idx) = usize::try_from(ui.get_listIdx())
-                    && idx != self.idx
-                {
-                    self.idx = idx;
-                }
-
-                if ui.get_now_booting() {
-                    self.state = AppState::Booting;
-                }
-
-                if let Some(handle) = self.maybe_boot(&ui) {
-                    break Ok(Some(handle));
-                }
-
-                self.maybe_launch_editor(&ui);
-
-                if let Some(message) = self.queue.dequeue() {
+                while let Some(message) = self.queue.dequeue() {
                     match message {
                         Command::SaveChanges { fields, idx } => {
                             let config = self.boot_mgr.get_config(idx);
@@ -250,12 +177,27 @@ impl App {
                             self.persist.remove_config_from_persist(config);
                             let _ = self.persist.save_to_fs();
                         }
+                        Command::TryBoot(idx) => {
+                            if let Some(handle) = self.maybe_boot(idx, &ui) {
+                                return Ok(Some(handle));
+                            }
+                            skip_wait = true; // skip wait so that state changes take place immediately
+                        }
+                        Command::TryEdit(idx) => {
+                            let config = self.boot_mgr.get_config(idx);
+                            self.editor.load_config(config);
+
+                            ui.invoke_fill_fields(self.editor.get_fields());
+                            skip_wait = true;
+                        }
                     }
                 }
 
-                if !window.has_active_animations() {
+                if !window.has_active_animations() && !skip_wait {
                     let duration = slint::platform::duration_until_next_timer_update();
                     self.wait_for_events(duration)?; // try to go to sleep, until a key press, mouse move, or after the duration
+                } else if skip_wait {
+                    skip_wait = false;
                 }
             }
         }();
@@ -271,20 +213,106 @@ impl App {
         }
     }
 
+    /// Set up the interactions between Slint and Rust.
+    ///
+    /// The UI and the main loop communicate through a [`Command`] queue, where changes
+    /// such as trying to boot an entry, saving changes, or persisting entries are sent one
+    /// way to the main loop.
+    ///
+    /// This message-passing architecture is used over simply wrapping [`BootMgr`] and [`Editor`] in
+    /// `Rc<RefCell>`s, due to the cleaner separation between UI and main loop.
+    fn setup_callbacks(&self, ui: &Ui) {
+        let tx = Rc::downgrade(&self.queue);
+        ui.on_save_changes(move |fields, idx| {
+            if let Some(tx) = tx.upgrade()
+                && let Ok(idx) = usize::try_from(idx)
+            {
+                let _ = tx.enqueue(Command::SaveChanges { fields, idx });
+            }
+        });
+
+        let tx = Rc::downgrade(&self.queue);
+        ui.on_persist_config(move |idx| {
+            if let Some(tx) = tx.upgrade()
+                && let Ok(idx) = usize::try_from(idx)
+            {
+                let _ = tx.enqueue(Command::SaveConfigToFs(idx));
+            }
+        });
+
+        let tx = Rc::downgrade(&self.queue);
+        ui.on_remove_config(move |idx| {
+            if let Some(tx) = tx.upgrade()
+                && let Ok(idx) = usize::try_from(idx)
+            {
+                let _ = tx.enqueue(Command::RemoveConfigFromFs(idx));
+            }
+        });
+
+        let tx = Rc::downgrade(&self.queue);
+        ui.on_try_boot(move |idx| {
+            if let Some(tx) = tx.upgrade()
+                && let Ok(idx) = usize::try_from(idx)
+            {
+                let _ = tx.enqueue(Command::TryBoot(idx));
+            }
+        });
+
+        let tx = Rc::downgrade(&self.queue);
+        ui.on_try_edit(move |idx| {
+            if let Some(tx) = tx.upgrade()
+                && let Ok(idx) = usize::try_from(idx)
+            {
+                let _ = tx.enqueue(Command::TryEdit(idx));
+            }
+        });
+    }
+
+    /// Handle any input events that may have occurred.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the key event could not be dispatched to the window.
+    fn handle_input_events(&mut self, window: &Rc<MinimalSoftwareWindow>) -> Result<(), MainError> {
+        while let Some(key) = self.handle_key() {
+            let str = SharedString::from(key);
+            window
+                .try_dispatch_event(WindowEvent::KeyPressed { text: str.clone() }) // clones with SharedString are cheap
+                .map_err(MainError::SlintError)?;
+            window
+                .try_dispatch_event(WindowEvent::KeyReleased { text: str })
+                .map_err(MainError::SlintError)?;
+        }
+
+        while let Some((position, button)) = self.mouse.get_state() {
+            window
+                .try_dispatch_event(WindowEvent::PointerMoved { position })
+                .map_err(MainError::SlintError)?;
+            window
+                .try_dispatch_event(WindowEvent::PointerPressed { position, button })
+                .map_err(MainError::SlintError)?;
+
+            // normally this would be really bad, however it does not matter in a uefi bootloader where complex mouse
+            // button usage is not required
+            window
+                .try_dispatch_event(WindowEvent::PointerReleased { position, button })
+                .map_err(MainError::SlintError)?;
+
+            window.request_redraw();
+        }
+
+        Ok(())
+    }
+
     /// Might try to boot the currently selected boot option, probably. Will return a handle to the loaded image
     /// if the image is loaded.
     ///
     /// This will return [`None`] if the image could not be loaded.
-    fn maybe_boot(&mut self, ui: &Ui) -> Option<Handle> {
-        if self.state != AppState::Booting {
-            return None;
-        }
-
-        match self.boot_mgr.load(self.idx) {
+    fn maybe_boot(&mut self, idx: usize, ui: &Ui) -> Option<Handle> {
+        match self.boot_mgr.load(idx) {
             Ok(handle) => Some(handle),
             Err(e) => {
                 ui.invoke_display_err(e.to_shared_string());
-                self.state = AppState::Running;
                 self.timeout = -1;
                 Self::refresh_boot_items(&self.boot_mgr, ui);
                 None
@@ -323,11 +351,8 @@ impl App {
         ui.set_highlight_bg(h_background);
 
         // set up the rest of properties
-        ui.set_listIdx(i32::try_from(self.idx).unwrap_or(0));
+        ui.set_listIdx(i32::try_from(self.boot_mgr.get_default()).unwrap_or(0));
         ui.set_timeout(i32::try_from(self.timeout).unwrap_or(-1));
-
-        // this has to be explicitly set as false for some reason?
-        ui.set_now_editing(false);
 
         Ok((window, ui))
     }
@@ -357,18 +382,6 @@ impl App {
                 dest: self.mouse.position(),
                 dims: self.mouse.dims(),
             });
-        }
-    }
-
-    /// Launch the editor.
-    fn maybe_launch_editor(&mut self, ui: &Ui) {
-        if ui.get_now_editing() && !self.editor.editing {
-            let config = self.boot_mgr.get_config(self.idx);
-            self.editor.load_config(config);
-
-            ui.invoke_fill_fields(self.editor.get_fields());
-        } else if self.editor.editing {
-            self.editor.editing = false;
         }
     }
 

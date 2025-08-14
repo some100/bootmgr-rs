@@ -7,9 +7,6 @@ use slint::{Model, ModelRc, SharedString, ToSharedString};
 /// The basic editor
 #[derive(Default)]
 pub struct Editor {
-    /// If the editor is currently editing.
-    pub editing: bool,
-
     /// The [`ConfigEditor`].
     pub edit: ConfigEditor,
 }
@@ -23,7 +20,6 @@ impl Editor {
     /// Load an editor from a config.
     pub fn load_config(&mut self, config: &Config) {
         self.edit = ConfigEditor::new(config);
-        self.editing = true;
     }
 
     /// Save an editor to a config.
@@ -34,7 +30,6 @@ impl Editor {
     ) {
         self.save_fields(fields);
         self.edit.build(config);
-        self.editing = false;
     }
 
     /// Get the fields of the config.

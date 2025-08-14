@@ -3,14 +3,17 @@ import { Theme } from "theme.slint";
 export component BootList {
     in-out property <int> listIdx;
     in-out property <int> timeout;
-    in-out property <bool> now-booting;
-    in-out property <bool> now-editing;
     in property <length> spacing;
     in property <length> itemWidth;
     in property <int> count: 0;
 
     callback move-right();
     callback move-left();
+    callback try-boot(idx: int);
+    callback try-edit(idx: int);
+
+    callback close-edit();
+    callback show-edit();
 
     move-right => {
         root.listIdx = min(root.listIdx + 1, root.count - 1);
@@ -36,17 +39,16 @@ export component BootList {
                 return accept;
             }
             if (event.text == Key.Return) {
-                root.now-booting = true;
+                root.try-boot(root.listIdx);
                 return accept;
             }
             if (event.text == "e") {
-                root.now-editing = true;
+                root.try-edit(root.listIdx);
+                root.show-edit();
                 return accept;
             }
             if (event.text == Key.Escape) {
-                if root.now-editing {
-                    root.now-editing = false;
-                }
+                root.close-edit();
                 return accept;
             }
             return accept;
@@ -58,7 +60,7 @@ export component BootList {
         running: true;
         triggered() => {
             if timeout == 0 {
-                root.now-booting = true;
+                root.try-boot(root.listIdx);
             } else if timeout > 0 {
                 timeout -= 1;
             }
@@ -82,7 +84,7 @@ export component BootList {
                 focus-scope.focus();
             }
             double-clicked => {
-                root.now-booting = true;
+                root.try-boot(root.listIdx);
             }
         }
 

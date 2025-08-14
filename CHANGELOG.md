@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.9.0] - 2025-08-14
+
+### Changed
+
+- Significantly refactor internal architecture to be more callback-based.
+- Remove `AppState` enum and make it so that the Slint UI manages state by itself.
+
 ## bootmgr-rs-core - [0.13.2] - 2025-08-13
 
 ### Changed
