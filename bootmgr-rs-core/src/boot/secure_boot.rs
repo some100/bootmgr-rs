@@ -113,8 +113,8 @@ impl Drop for SecurityOverrideGuard {
 #[must_use = "Has no effect if the result is unused"]
 fn secure_boot_enabled() -> bool {
     matches!(
-        get_variable::<u8>(cstr16!("SecureBoot"), Some(VariableVendor::GLOBAL_VARIABLE)),
-        Ok(1)
+        get_variable::<bool>(cstr16!("SecureBoot"), Some(VariableVendor::GLOBAL_VARIABLE)),
+        Ok(true)
     )
 }
 

@@ -83,16 +83,6 @@ impl UefiBackend {
         })
     }
 
-    /// Create a new ratatui UEFI backend given an [`Output`].
-    #[must_use = "Has no effect if the result is unused"]
-    pub const fn with_output(output: ScopedProtocol<Output>) -> Self {
-        Self {
-            output,
-            fg: UefiColor::White,
-            bg: UefiColor::Black,
-        }
-    }
-
     /// Set the colors of the terminal.
     pub fn set_color(&mut self, fg: RatatuiColor, bg: RatatuiColor) {
         self.fg = ansi_to_uefi_color_fg(fg);

@@ -147,6 +147,20 @@ impl UefiVariable for u8 {
     }
 }
 
+impl UefiVariable for bool {
+    fn to_bytes(self) -> Vec<u8> {
+        u8::from(self).to_le_bytes().to_vec()
+    }
+    fn from_bytes(bytes: &[u8]) -> Self {
+        let mut array = [0; size_of::<Self>()];
+        array.copy_from_slice(bytes);
+        u8::from_le_bytes(array) > 0
+    }
+    fn default() -> Self {
+        false
+    }
+}
+
 /// Sets a UEFI variable to a [`UefiVariable`] given the name.
 ///
 /// If None is specified for the vendor, then the variable will be searched for in a custom GUID space,

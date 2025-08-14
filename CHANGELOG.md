@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.14.1] - 2025-08-14
+
+### Added
+
+- Added a `UefiVariable` implementation for `bool`.
+
+## bootmgr-rs-ratatui - [0.5.0] - 2025-08-14
+
+### Removed
+
+- Removed `with_output` method for `UefiBackend`.
+
 ## bootmgr-rs-slint - [0.9.1] - 2025-08-14
 
 ### Added

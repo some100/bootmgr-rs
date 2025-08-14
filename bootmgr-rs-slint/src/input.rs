@@ -71,7 +71,7 @@ impl MouseState {
     /// This will record both mouse buttons being pressed as middle mouse button.
     #[allow(
         clippy::cast_precision_loss,
-        reason = "f64 is exactly precise up to 2^53, which is more than enough"
+        reason = "f32 is exactly precise up to 2^23, which is more than enough"
     )]
     pub fn get_state(&mut self) -> Option<(LogicalPosition, PointerEventButton)> {
         if !self.disabled

@@ -87,10 +87,15 @@ fn shim_validate(
 fn shim_retain_protocol() -> BootResult<()> {
     let vendor = VariableVendor(ShimLock::GUID);
     if !matches!(
-        get_variable::<u8>(cstr16!("ShimRetainProtocol"), Some(vendor)),
-        Ok(1)
+        get_variable::<bool>(cstr16!("ShimRetainProtocol"), Some(vendor)),
+        Ok(true)
     ) {
-        set_variable::<u8>(cstr16!("ShimRetainProtocol"), Some(vendor), None, Some(1))?;
+        set_variable::<bool>(
+            cstr16!("ShimRetainProtocol"),
+            Some(vendor),
+            None,
+            Some(true),
+        )?;
     }
     Ok(())
 }
