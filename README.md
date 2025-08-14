@@ -53,7 +53,7 @@ Fuzzing tests are ran using `cargo xtask fuzz <PARSER>`, where `<PARSER>` is one
 
 ## License
 
-Licensed under the MIT License.
+Licensed under GPLv2 or later.
 
 ![systemd-boot and Windows bootmgr-like interface for a bootloader](/images/bootmgr-rs-ratatui.png)
 

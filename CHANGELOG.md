@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.14.0] - 2025-08-14
+
+### Changed
+
+- Project is now licensed under GPL 2.0 or later.
+
 ## bootmgr-rs-slint - [0.9.0] - 2025-08-14
 
 ### Changed

@@ -1,9 +1,9 @@
 [package]
 name = "bootmgr-rs-core"
-version = "0.13.2"
+version = "0.14.0"
 rust-version = "1.88.0"
 edition = "2024"
-license = "MIT"
+license = "GPL-2.0-or-later"
 keywords = ["efi", "uefi", "boot"]
 categories = ["embedded", "no-std"]
 description = "A framework for easily creating boot managers in Rust"
