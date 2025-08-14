@@ -2,8 +2,7 @@
 //!
 //! These store a value into a UEFI variable in a custom vendor namespace.
 
-use alloc::vec::Vec;
-use tinyvec::TinyVec;
+use alloc::{vec, vec::Vec};
 use uefi::{
     CStr16, Status, guid,
     runtime::{self, VariableAttributes, VariableVendor},
@@ -206,7 +205,7 @@ pub fn get_variable<T: UefiVariable + 'static>(
     name: &CStr16,
     vendor: Option<VariableVendor>,
 ) -> BootResult<T> {
-    let mut buf: TinyVec<[_; size_of::<u64>()]> = TinyVec::with_capacity(size_of::<T>()); // have a max capacity of u64, the largest type
+    let mut buf = vec![Default::default(); size_of::<T>()];
     let vendor = vendor.unwrap_or(runtime::VariableVendor(BOOTMGR_GUID));
     RuntimeUefiVariableStorage::get_variable(name, &vendor, &mut buf)
 }
