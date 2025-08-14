@@ -6,7 +6,7 @@ import { TitleLabel } from "title_label.slint";
 import { Editor } from "editor.slint";
 
 export component Ui inherits Window {
-    out property <[{ parser: string, image: image }]> images: [
+    out property <[{ parser: string, image: image}]> images: [
         { parser: "bls", image: @image-url("icons/linux.png") },
         { parser: "fallback", image: @image-url("icons/fallback.png") },
         { parser: "osx", image: @image-url("icons/osx.png") },
@@ -15,7 +15,7 @@ export component Ui inherits Window {
         { parser: "windows", image: @image-url("icons/windows.png") },
         { parser: "special", image: @image-url("icons/special.png") },
     ];
-    out property <[{ label: string, value: string }]> fields: [
+    out property <[{ label: string, value: string}]> fields: [
         { label: "title", value: "" },
         { label: "version", value: "" },
         { label: "machine_id", value: "" },
@@ -29,50 +29,52 @@ export component Ui inherits Window {
     in-out property <int> timeout;
     out property <string> error;
 
-    in property <[{ title: string, image: image }]> items;
+    in property <[{ title: string, image: image}]> items;
     in property <color> fg;
     in property <color> bg;
-    in property <color> highlight_fg;
-    in property <color> highlight_bg;
+    in property <color> highlight-fg;
+    in property <color> highlight-bg;
 
-    callback display_err(err: string);
-    display_err(err) => {
+    callback display-err(err: string);
+    display-err(err) => {
         root.error = err;
         error-popup.show();
     }
 
-    callback display_fatal_err(err: string);
-    display_fatal_err(err) => {
+    callback display-fatal-err(err: string);
+    display-fatal-err(err) => {
         root.error = err;
         fatal-popup.show();
     }
 
-    callback fill_fields(fields: [{ label: string, value: string }]);
-    fill_fields(fields) => {
+    callback fill-fields(fields: [{ label: string, value: string}]);
+    fill-fields(fields) => {
         root.fields = fields;
     }
 
-    function close_edit() {
+    function close-edit() {
         editor-popup.visible = false;
+        editor-bg.visible = false;
     }
 
-    function show_edit() {
+    function show-edit() {
         editor-popup.visible = true;
+        editor-bg.visible = true;
     }
 
-    pure callback try_boot(idx: int);
-    pure callback try_edit(idx: int);
-    pure callback save_changes(fields: [{ label: string, value: string }], idx: int);
-    pure callback persist_config(idx: int);
-    pure callback remove_config(idx: int);
+    pure callback try-boot(idx: int);
+    pure callback try-edit(idx: int);
+    pure callback save-changes(fields: [{ label: string, value: string}], idx: int);
+    pure callback persist-config(idx: int);
+    pure callback remove-config(idx: int);
 
-    forward-focus: boot_list;
+    forward-focus: boot-list;
 
     default-font-family: Theme.font-family;
 
     background: bg;
 
-    boot_list := BootList {
+    boot-list := BootList {
         y: (root.height - self.height) / 2;
         height: 100%;
         itemWidth: Theme.size-medium;
@@ -80,19 +82,27 @@ export component Ui inherits Window {
         listIdx <=> root.listIdx;
         spacing: Theme.spacing-medium;
         timeout <=> root.timeout;
-        try-boot(int) => { root.try_boot(int) }
-        try-edit(int) => { root.try_edit(int) }
-        close-edit() => { root.close_edit() }
-        show-edit() => { root.show_edit() }
+        try-boot(int) => {
+            root.try-boot(int)
+        }
+        try-edit(int) => {
+            root.try-edit(int)
+        }
+        close-edit() => {
+            root.close-edit()
+        }
+        show-edit() => {
+            root.show-edit()
+        }
 
-        for item[index] in root.items : Card {
+        for item[index] in root.items: Card {
             is-selected: index == root.listIdx;
             title: item.title;
             image-source: item.image;
             y: (parent.height - self.height) / 2;
             fg: root.fg;
-            highlight-bg: root.highlight_bg;
-            highlight-fg: root.highlight_fg;
+            highlight-bg: root.highlight-bg;
+            highlight-fg: root.highlight-fg;
         }
     }
 
@@ -106,7 +116,7 @@ export component Ui inherits Window {
 
     error-popup := PopupWindow {
         Rectangle {
-            background: root.highlight_bg;
+            background: root.highlight-bg;
             border-radius: Theme.radius-regular;
             error-label := TitleLabel {
                 text: "Failed to boot: \{error}.\n\nClick anywhere or press ESC to continue.";
@@ -114,10 +124,11 @@ export component Ui inherits Window {
                 height: 100%;
                 width: 100%;
                 wrap: word-wrap;
-                color: root.highlight_fg;
+                color: root.highlight-fg;
                 vertical-alignment: center;
             }
         }
+
         x: (root.width - self.width) / 2;
         y: (root.height - self.height) / 2;
         height: root.height / 4;
@@ -127,7 +138,7 @@ export component Ui inherits Window {
 
     fatal-popup := PopupWindow {
         Rectangle {
-            background: root.highlight_bg;
+            background: root.highlight-bg;
             border-radius: Theme.radius-regular;
             fatal-label := TitleLabel {
                 text: "Fatal error occurred: \{error}.\n\nPlease press any key to restart.";
@@ -135,10 +146,11 @@ export component Ui inherits Window {
                 height: 100%;
                 width: 100%;
                 wrap: word-wrap;
-                color: root.highlight_fg;
+                color: root.highlight-fg;
                 vertical-alignment: center;
             }
         }
+
         x: (root.width - self.width) / 2;
         y: (root.height - self.height) / 2;
         height: root.height / 4;
@@ -146,10 +158,19 @@ export component Ui inherits Window {
         close-policy: no-auto-close;
     }
 
+    editor-bg := Rectangle {
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        height: root.height / 2;
+        width: root.width / 2;
+        background: root.highlight-bg;
+        visible: false;
+        border-radius: Theme.radius-regular;
+    }
+
     editor-popup := Editor {
-        highlight-bg: root.highlight_bg;
-        highlight-fg: root.highlight_fg;
-        
+        highlight-bg: root.highlight-bg;
+        highlight-fg: root.highlight-fg;
         fields <=> root.fields;
 
         visible: false;
@@ -161,15 +182,17 @@ export component Ui inherits Window {
         StandardButton {
             kind: close;
             clicked => {
-                root.close_edit();
+                root.close-edit();
             }
         }
+
         StandardButton {
             kind: apply;
             clicked => {
                 root.save-changes(fields, root.listIdx);
             }
         }
+
         Button {
             text: "Save Persistent Config to filesystem";
             clicked => {
@@ -177,6 +200,7 @@ export component Ui inherits Window {
             }
             dialog-button-role: action;
         }
+
         Button {
             text: "Remove Persistent Config from filesystem";
             clicked => {

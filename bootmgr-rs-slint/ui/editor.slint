@@ -7,12 +7,12 @@ export component Editor inherits Dialog {
     in property <color> highlight-bg;
     in property <color> highlight-fg;
 
-    in-out property <[ { label: string, value: string } ]> fields;
+    in-out property <[ { label: string, value: string} ]> fields;
 
     visible: false;
     VerticalLayout {
         spacing: Theme.spacing-regular;
-        for item[index] in root.fields : EditorField {
+        for item[index] in root.fields: EditorField {
             label: "\{item.label}";
             highlight-bg: root.highlight-bg;
             highlight-fg: root.highlight-fg;

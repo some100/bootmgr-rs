@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.9.1] - 2025-08-14
+
+### Added
+
+- Added a background window for the editor.
+
+### Changed
+
+- Formatted Slint UI files.
+
 ## bootmgr-rs-core - [0.14.0] - 2025-08-14
 
 ### Changed

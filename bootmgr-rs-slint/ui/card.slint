@@ -20,15 +20,21 @@ export component Card inherits Rectangle {
     clip: false;
 
     states [
-        selected when root.is-selected : {
+        selected when root.is-selected: {
             width: Theme.size-big;
             height: Theme.size-big;
             title-label.font-size: Theme.font-size-medium;
         }
     ]
 
-    animate width { duration: Theme.duration-regular; easing: ease-in; }
-    animate height { duration: Theme.duration-regular; easing: ease-in; }
+    animate width {
+        duration: Theme.duration-regular;
+        easing: ease-in;
+    }
+    animate height {
+        duration: Theme.duration-regular;
+        easing: ease-in;
+    }
     animate background { duration: Theme.duration-fast; }
 
     image := Image {
