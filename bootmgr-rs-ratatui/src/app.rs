@@ -251,13 +251,15 @@ impl App {
             return Ok(()); // if there are somehow no events, dont wait
         };
 
+        if self.timeout == 0 {
+            self.state = AppState::Booting;
+            return Ok(()); // if timeout is 0, dont wait and try booting immediately
+        }
+
         match boot::wait_for_event(events) {
             Ok(i) => {
                 if i == 1 {
                     self.timeout = self.timeout.saturating_sub(1);
-                    if self.timeout == 0 {
-                        self.state = AppState::Booting;
-                    }
                 }
             }
             Err(e) => {

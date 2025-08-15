@@ -20,7 +20,7 @@ const SHELL_PATH: &CStr16 = cstr16!("\\shellx64.efi");
 const FALLBACK_PATH: &CStr16 = cstr16!("\\EFI\\BOOT\\BOOTx64.efi");
 
 pub fn check_loaded() -> BootResult<()> {
-    if let Ok(true) = get_variable::<bool>(LOADED_VARIABLE_NAME, None) {
+    if matches!(get_variable::<bool>(LOADED_VARIABLE_NAME, None), Ok(true)) {
         set_variable::<usize>(LOADED_VARIABLE_NAME, None, None, None)?;
         println!("Successfully passed load image test");
         println!(

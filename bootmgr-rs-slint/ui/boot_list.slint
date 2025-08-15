@@ -59,10 +59,11 @@ export component BootList {
         interval: 1000ms;
         running: true;
         triggered() => {
+            if timeout > 0 {
+                timeout -= 1;
+            }
             if timeout == 0 {
                 root.try-boot(root.listIdx);
-            } else if timeout > 0 {
-                timeout -= 1;
             }
         }
     }

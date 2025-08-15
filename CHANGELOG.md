@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.9.2] - 2025-08-15
+
+### Changed
+
+- Move UI related methods of `App` into separate `ui.rs` file, and move previous contents of `ui.rs` to `ui/slint_backend.rs`.
+
+### Fixed
+
+- Fixed an issue where the timeout was one second behind what it should be.
+
+## bootmgr-rs-ratatui - [0.5.1] - 2025-08-15
+
+### Fixed
+
+- Fixed an issue where the timeout was one second behind what it should be.
+
 ## bootmgr-rs-core - [0.14.2] - 2025-08-14
 
 ### Fixed
