@@ -24,6 +24,10 @@ The core crate is located at bootmgr-rs-core. The frontends will generally be na
 
 config contains parsers, which are essentially structs implementing `ConfigParser` that, given an `fs` and `handle`, will generate boot entries in the format of `Config`, that are pushed into the `configs` parameter.
 
+Currently, there are 6 (7) parsers, those being the `bls`, `fallback`, `osx`, `shell`, `uki`, and `windows` parser. The `windows` parser is itself divided into two parsers depending on features. The first and default option is the "autodetecting" parser `windows_auto`, which simply looks for `bootmgfw.efi`. The second option is the parser `windows_bcd`, which parses the content of the BCD, then turns that into a boot entry. This is not the default because it pulls in a GPLv2 dependency.
+
+To enable this BCD parser, turn on the feature `windows_bcd` when compiling `bootmgr-rs-core`.
+
 boot itself is structured into 5 submodules, those being:
 
 * action (provides firmware reset, reboot, and shutdown functions, as well as a PXE parser)

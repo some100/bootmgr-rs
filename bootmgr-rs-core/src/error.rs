@@ -46,7 +46,7 @@ pub enum BootError {
     UkiError(#[from] crate::config::parsers::uki::UkiError),
 
     /// The BCD could not be parsed for any reason.
-    #[cfg(feature = "windows")]
+    #[cfg(feature = "windows_bcd")]
     #[error("Win Parse Error")]
-    WinError(#[from] crate::config::parsers::windows::WinError),
+    WinError(#[from] crate::config::parsers::windows::windows_bcd::WinError),
 }

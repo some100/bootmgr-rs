@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.15.0] - 2025-08-15
+
+### Added
+
+- `windows_auto` parser, which is a lighter parser that does not depend on `nt_hive`.
+
+### Changed
+
+- Moved `windows` parser into `windows_bcd`, and made it optional in case the binary was fine with licensing as GPLv2.
+
 ## bootmgr-rs-slint - [0.9.3] - 2025-08-15
 
 ### Changed

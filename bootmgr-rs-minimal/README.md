@@ -6,4 +6,4 @@ Extremely minimal, basic, barebones user interface to `bootmgr-rs-core`.
 
 # Licensing
 
-This frontend is licensed under the MIT license. However, with the `windows` feature enabled for `bootmgr-rs-core`, the binary will be licensed under GPLv2 or later.
+This frontend is licensed under the MIT license. However, with the `windows_bcd` feature enabled for `bootmgr-rs-core`, the binary will be licensed under GPLv2 or later.

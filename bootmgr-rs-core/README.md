@@ -60,4 +60,4 @@ This example can also be found in [`bootmgr-rs-minimal`](https://github.com/some
 
 # Licensing
 
-The code of this project is licensed under the MIT license. However, with the `windows` feature enabled, due to the `nt-hive` dependency, the library will be licensed under GPLv2 or later.
+The code of this project is licensed under the MIT license. However, with the `windows_bcd` feature enabled, due to the `nt-hive` dependency, the library will be licensed under GPLv2 or later.
