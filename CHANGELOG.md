@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.15.2] - 2025-08-16
+
+### Changed
+
+- Allocate UEFI variable storage on the stack instead of the heap.
+
 ## bootmgr-rs-core - [0.15.1] - 2025-08-16
 
 ### Fixed
