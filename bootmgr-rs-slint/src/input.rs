@@ -15,7 +15,7 @@ use bootmgr_rs_core::{
     system::helper::{create_timer, locate_protocol},
 };
 use slint::{
-    LogicalPosition, SharedString,
+    Color as SlintColor, LogicalPosition, SharedString,
     platform::{
         Key as SlintKey, PointerEventButton, WindowEvent, software_renderer::MinimalSoftwareWindow,
     },
@@ -26,11 +26,11 @@ use uefi::{
     proto::console::{
         gop::BltPixel,
         pointer::{Pointer, PointerMode},
-        text::{Key as UefiKey, ScanCode},
+        text::{Color as UefiColor, Key as UefiKey, ScanCode},
     },
 };
 
-use crate::{MainError, app::App};
+use crate::{MainError, app::App, ui::slint_backend::ueficolor_to_slintcolor};
 
 /// The size of the cursor.
 const CURSOR_SIZE: usize = 5;
@@ -51,11 +51,14 @@ pub struct MouseState {
 
     /// If the pointer is disabled or not.
     disabled: bool,
+
+    /// The color of the pointer.
+    color: SlintColor,
 }
 
 impl MouseState {
     /// Get a new [`MouseState`].
-    pub fn new() -> BootResult<Self> {
+    pub fn new(color: UefiColor) -> BootResult<Self> {
         let mut pointer = locate_protocol::<Pointer>()?;
         let mode = *pointer.mode();
         let position = LogicalPosition::new(0.0, 0.0);
@@ -63,12 +66,14 @@ impl MouseState {
         let disabled =
             pointer.reset(false).is_err() || mode.resolution[0] == 0 || mode.resolution[1] == 0;
 
+        let color = ueficolor_to_slintcolor(color);
         Ok(Self {
             pointer,
             mode,
             position,
             button: PointerEventButton::Other,
             disabled,
+            color,
         })
     }
 
@@ -100,9 +105,8 @@ impl MouseState {
     }
 
     /// Get the color of the cursor.
-    pub const fn color(&self) -> BltPixel {
-        let _ = self;
-        BltPixel::new(255, 255, 255)
+    pub fn color(&self) -> BltPixel {
+        BltPixel::new(self.color.red(), self.color.green(), self.color.blue())
     }
 
     /// Get the current position of the cursor.

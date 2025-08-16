@@ -46,9 +46,9 @@ impl SlintBltPixel {
 impl TargetPixel for SlintBltPixel {
     fn blend(&mut self, color: PremultipliedRgbaColor) {
         let a = u16::from(u8::MAX - color.alpha);
-        self.0.red = u8::try_from(u16::from(self.0.red) * a / 255).unwrap_or(0) + color.red;
-        self.0.green = u8::try_from(u16::from(self.0.green) * a / 255).unwrap_or(0) + color.green;
-        self.0.blue = u8::try_from(u16::from(self.0.blue) * a / 255).unwrap_or(0) + color.blue;
+        self.0.red = u8::try_from(u16::from(self.0.red) * a / 255).unwrap_or(255) + color.red;
+        self.0.green = u8::try_from(u16::from(self.0.green) * a / 255).unwrap_or(255) + color.green;
+        self.0.blue = u8::try_from(u16::from(self.0.blue) * a / 255).unwrap_or(255) + color.blue;
     }
 
     fn from_rgb(red: u8, green: u8, blue: u8) -> Self {

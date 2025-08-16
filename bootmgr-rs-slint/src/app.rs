@@ -92,7 +92,7 @@ impl App {
 
         let input = locate_protocol::<Input>()?;
 
-        let mouse = MouseState::new()?;
+        let mouse = MouseState::new(boot_mgr.boot_config.fg)?;
 
         let gop = locate_protocol::<GraphicsOutput>()?;
 
