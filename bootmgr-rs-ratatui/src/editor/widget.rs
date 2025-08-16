@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Editor widget implementation.
 
 use ratatui_core::{

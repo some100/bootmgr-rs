@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! The `bootmgr-rs` application.
 //!
 //! This provides a [`main`] function that runs the library.

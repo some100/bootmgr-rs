@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Parses configuration files of various formats into [`Config`].
 //!
 //! The currently supported formats are as follows:

@@ -1,0 +1,26 @@
+version = 1
+
+[[annotations]]
+path = [
+    ".gitignore",
+    "*.md",
+    "**/*.md",
+    "Cargo.lock",
+    "REUSE.toml",
+    "rust-toolchain.toml",
+    "bootmgr-rs-ratatui/rust-toolchain.toml",
+    "bootmgr-rs-tests/Cargo.lock",
+    "fuzz/Cargo.lock",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 some100 <ootinnyoo@outlook.com>"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = [
+    "bootmgr-rs-slint/ui/icons/*.png",
+    "images/*",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"

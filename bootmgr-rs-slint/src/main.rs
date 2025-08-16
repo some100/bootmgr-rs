@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 //! A GUI frontend for `bootmgr-rs-core`.
 //!
 //! This is a user interface that aims to show how (comparatively) simple it is

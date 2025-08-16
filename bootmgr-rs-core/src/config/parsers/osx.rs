@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! An auto detector for the macOS boot loader.
 
 use alloc::{format, vec::Vec};

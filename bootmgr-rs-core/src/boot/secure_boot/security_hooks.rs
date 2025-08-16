@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Security hooks that attach to their respective protocols.
 //!
 //! Secure Boot interacts with its validators by calling upon a method stored within the [`SecurityArchProtocol`] and

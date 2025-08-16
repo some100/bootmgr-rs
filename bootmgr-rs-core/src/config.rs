@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Provides [`Config`], the main configuration struct.
 //!
 //! This will generally represent a boot entry in the boot manager.

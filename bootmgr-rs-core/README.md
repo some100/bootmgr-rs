@@ -57,3 +57,7 @@ fn main() -> Status {
 ```
 
 This example can also be found in [`bootmgr-rs-minimal`](https://github.com/some100/bootmgr-rs/tree/main/bootmgr-rs-minimal).
+
+# Licensing
+
+The code of this project is licensed under the MIT license. However, with the `windows` feature enabled, due to the `nt-hive` dependency, the library will be licensed under GPLv2 or later.

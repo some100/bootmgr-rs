@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Provides [`reset_to_firmware`] which allows to reboot to firmware setup
 
 use log::error;

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Shim integration into secure boot.
 //!
 //! The main export of this module is `shim_load_image`, which will optionally verify the image with Shim if required.

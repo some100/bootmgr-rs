@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 //! A parser for the Windows BCD and Windows boot manager.
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};

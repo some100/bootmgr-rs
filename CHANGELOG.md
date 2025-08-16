@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.9.3] - 2025-08-15
+
+### Changed
+
+- Relicensed as GPLv3 or later. Slint markup files are licensed as MIT.
+- Added an `SPDX-License-Identifer` at the header of every source file.
+- Reorganized `App` methods into different files.
+
+## bootmgr-rs-ratatui - [0.5.2] - 2025-08-15
+
+### Changed
+
+- Licensed as MIT.
+- Added an `SPDX-License-Identifer` at the header of every source file.
+
+## bootmgr-rs-minimal - [0.2.1] - 2025-08-15
+
+### Changed
+
+- Licensed as MIT.
+- Added an `SPDX-License-Identifer` at the header of every source file.
+
+## bootmgr-rs-core - [0.14.3] - 2025-08-15
+
+### Changed
+
+- Relicensed under MIT, with GPLv2 only if the `windows` feature is enabled.
+- Added an `SPDX-License-Identifer` at the header of every source file.
+
 ## bootmgr-rs-slint - [0.9.2] - 2025-08-15
 
 ### Changed

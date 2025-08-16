@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Provides [`BootList`], which is a way to display [`Config`]s using ratatui.
 //!
 //! It may be constructed from an iterator of [`Config`]s, or through its new method from a [`BootMgr`] containing

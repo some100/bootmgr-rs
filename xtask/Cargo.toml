@@ -1,6 +1,10 @@
+# SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+# SPDX-License-Identifier: MIT
+
 [package]
 name = "xtask"
 version = "0.1.0"
+license = "MIT"
 edition = "2024"
 
 [dependencies]

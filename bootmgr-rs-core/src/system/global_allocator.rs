@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Simple stub to use UEFI allocator as the global allocator.
 //!
 //! This is enabled when the `global_allocator` feature is enabled, in case the user wanted to roll their

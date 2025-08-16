@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Filesystem helper functions for other modules.
 //!
 //! These mostly wrap around the UEFI [`SimpleFileSystem`] protocol to make an interface that's slightly more

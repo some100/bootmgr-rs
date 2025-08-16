@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! The main application logic.
 //!
 //! This is where the main loop of the whole application is located, and is where terminal, boot manager,

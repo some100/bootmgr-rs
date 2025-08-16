@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Provides [`get_pxe_offer`] which obtains offers through DHCP and parses the response into a [`Config`]
 
 use core::{ffi::CStr, net::Ipv4Addr};

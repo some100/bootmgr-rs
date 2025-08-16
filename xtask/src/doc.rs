@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 use duct::cmd;
 
 pub fn doc_crate(private: bool, open: bool, lib: bool) -> anyhow::Result<()> {

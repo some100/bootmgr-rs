@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! A parser for BootLoaderSpec type #1, a versionless specification for consistent boot entries.
 //!
 //! Example configuration:

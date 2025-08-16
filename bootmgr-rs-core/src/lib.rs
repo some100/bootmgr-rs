@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! The `bootmgr-rs` library crate.
 //!
 //! This is used mainly to expose features such as the parser, boot actions, etc. for external applications such as

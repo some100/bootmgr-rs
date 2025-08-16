@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Loads drivers located in \EFI\BOOT\drivers, or some other path configured in `BootConfig`
 //!
 //! This will also check if the drivers are actual drivers and not just random EFI executables. If they are not drivers,

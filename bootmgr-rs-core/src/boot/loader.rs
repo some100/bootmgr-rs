@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Boot loading re-exports
 //!
 //! This mainly provides the function [`load_boot_option`], which will redirect [`Config`]s to the respective boot loaders
@@ -35,7 +38,7 @@ pub enum LoadError {
 
 /// Loads a boot option given a [`Config`].
 ///
-/// It simply delegates to [`super::action::BootAction::run`].
+/// It simply delegates to `BootAction::run`.
 ///
 /// # Errors
 ///

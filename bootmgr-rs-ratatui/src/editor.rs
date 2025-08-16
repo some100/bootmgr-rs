@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! The optional basic editor for modifying [`Config`]s.
 //!
 //! This can be used for editing Linux EFISTUB cmdline options as an example. The options field can be edited to change the

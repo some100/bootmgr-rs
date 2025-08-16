@@ -1,9 +1,12 @@
+# SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+# SPDX-License-Identifier: MIT
+
 [package]
 name = "bootmgr-rs-core"
-version = "0.14.2"
+version = "0.14.3"
 rust-version = "1.88.0"
 edition = "2024"
-license = "GPL-2.0-or-later"
+license = "MIT"
 keywords = ["efi", "uefi", "boot"]
 categories = ["embedded", "no-std"]
 description = "A framework for easily creating boot managers in Rust"

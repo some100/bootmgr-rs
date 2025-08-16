@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 //! Input protocol bindings for UEFI to Slint.
 //!
 //! This will expose printable keys as well as a subset of special keys to Slint, as well
@@ -6,13 +9,16 @@
 
 use core::time::Duration;
 
+use alloc::rc::Rc;
 use bootmgr_rs_core::{
     BootResult,
     system::helper::{create_timer, locate_protocol},
 };
 use slint::{
-    LogicalPosition,
-    platform::{Key as SlintKey, PointerEventButton},
+    LogicalPosition, SharedString,
+    platform::{
+        Key as SlintKey, PointerEventButton, WindowEvent, software_renderer::MinimalSoftwareWindow,
+    },
 };
 use uefi::{
     Event, ResultExt,
@@ -24,7 +30,7 @@ use uefi::{
     },
 };
 
-use crate::app::App;
+use crate::{MainError, app::App};
 
 /// The size of the cursor.
 const CURSOR_SIZE: usize = 5;
@@ -132,6 +138,45 @@ impl MouseState {
 }
 
 impl App {
+    /// Handle any input events that may have occurred.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the key event could not be dispatched to the window.
+    pub fn handle_input_events(
+        &mut self,
+        window: &Rc<MinimalSoftwareWindow>,
+    ) -> Result<(), MainError> {
+        while let Some(key) = self.handle_key() {
+            let str = SharedString::from(key);
+            window
+                .try_dispatch_event(WindowEvent::KeyPressed { text: str.clone() }) // clones with SharedString are cheap
+                .map_err(MainError::SlintError)?;
+            window
+                .try_dispatch_event(WindowEvent::KeyReleased { text: str })
+                .map_err(MainError::SlintError)?;
+        }
+
+        while let Some((position, button)) = self.mouse.get_state() {
+            window
+                .try_dispatch_event(WindowEvent::PointerMoved { position })
+                .map_err(MainError::SlintError)?;
+            window
+                .try_dispatch_event(WindowEvent::PointerPressed { position, button })
+                .map_err(MainError::SlintError)?;
+
+            // normally this would be really bad, however it does not matter in a uefi bootloader where complex mouse
+            // button usage is not required
+            window
+                .try_dispatch_event(WindowEvent::PointerReleased { position, button })
+                .map_err(MainError::SlintError)?;
+
+            window.request_redraw();
+        }
+
+        Ok(())
+    }
+
     /// Handle a particular key, if there is any that is currently pressed.
     ///
     /// This is slightly different from how the ratatui frontend does it, because

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 use clap::{Parser, Subcommand};
 
 use crate::{fuzz::Fuzz, test::Test};

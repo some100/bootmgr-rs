@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! The boot loader for network executables (really EFI loaded over network)
 //!
 //! It downloads a file from a TFTP server, then uses that file buffer as an EFI executable.

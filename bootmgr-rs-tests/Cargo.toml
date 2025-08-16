@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+# SPDX-License-Identifier: MIT
+
 [package]
 name = "bootmgr-rs-tests"
 version = "0.1.0"

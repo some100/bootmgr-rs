@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 //! The user interface backend for Slint.
 //!
 //! # Safety

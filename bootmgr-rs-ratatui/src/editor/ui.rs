@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! The user interface of the editor.
 //!
 //! This is a highly simplistic user interface that only features a title, an editor area, and a help bar at the bottom.

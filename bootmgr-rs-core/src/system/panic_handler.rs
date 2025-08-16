@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Simple panic handler that stalls for 10 seconds, then shuts down the system.
 //!
 //! This is enabled when the `panic_handler` feature is enabled, in case the user wanted to roll their

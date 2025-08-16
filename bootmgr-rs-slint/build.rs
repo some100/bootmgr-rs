@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 //! Build script for `bootmgr-rs-slint`.
 //!
 //! Embeds ui/main.slint, which defines the design of the program.

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! An auto detector for the UEFI shell (located at /shellx64.efi)
 
 use alloc::{format, vec::Vec};

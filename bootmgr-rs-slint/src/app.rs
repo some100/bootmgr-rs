@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 //! The main application logic.
 //!
 //! This provides callbacks from the Rust side of the UI, as well
@@ -8,10 +11,7 @@ use bootmgr_rs_core::{
     boot::BootMgr, config::editor::persist::PersistentConfig, system::helper::locate_protocol,
 };
 use heapless::mpmc::Q8;
-use slint::{
-    ModelRc, SharedString, ToSharedString,
-    platform::{WindowEvent, software_renderer::MinimalSoftwareWindow},
-};
+use slint::{ModelRc, ToSharedString};
 use uefi::{
     Event, Handle,
     boot::ScopedProtocol,
@@ -257,42 +257,6 @@ impl App {
                 let _ = tx.enqueue(Command::TryEdit(idx));
             }
         });
-    }
-
-    /// Handle any input events that may have occurred.
-    ///
-    /// # Errors
-    ///
-    /// May return an `Error` if the key event could not be dispatched to the window.
-    fn handle_input_events(&mut self, window: &Rc<MinimalSoftwareWindow>) -> Result<(), MainError> {
-        while let Some(key) = self.handle_key() {
-            let str = SharedString::from(key);
-            window
-                .try_dispatch_event(WindowEvent::KeyPressed { text: str.clone() }) // clones with SharedString are cheap
-                .map_err(MainError::SlintError)?;
-            window
-                .try_dispatch_event(WindowEvent::KeyReleased { text: str })
-                .map_err(MainError::SlintError)?;
-        }
-
-        while let Some((position, button)) = self.mouse.get_state() {
-            window
-                .try_dispatch_event(WindowEvent::PointerMoved { position })
-                .map_err(MainError::SlintError)?;
-            window
-                .try_dispatch_event(WindowEvent::PointerPressed { position, button })
-                .map_err(MainError::SlintError)?;
-
-            // normally this would be really bad, however it does not matter in a uefi bootloader where complex mouse
-            // button usage is not required
-            window
-                .try_dispatch_event(WindowEvent::PointerReleased { position, button })
-                .map_err(MainError::SlintError)?;
-
-            window.request_redraw();
-        }
-
-        Ok(())
     }
 
     /// Might try to boot the currently selected boot option, probably. Will return a handle to the loaded image

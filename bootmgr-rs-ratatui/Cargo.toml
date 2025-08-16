@@ -1,6 +1,10 @@
+# SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+# SPDX-License-Identifier: MIT
+
 [package]
 name = "bootmgr-rs-ratatui"
-version = "0.5.1"
+version = "0.5.2"
+license = "MIT"
 edition = "2024"
 
 [dependencies]

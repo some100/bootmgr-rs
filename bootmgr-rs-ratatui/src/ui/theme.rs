@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Provides [`Theme`], which exposes the color scheme for the UI.
 
 use bootmgr_rs_core::boot::config::BootConfig;

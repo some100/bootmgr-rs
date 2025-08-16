@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! The user interface of the bootloader.
 //!
 //! The overall design of the UI is very heavily inspired off of text-only bootloaders like Microsoft's bootmgr and

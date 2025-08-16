@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! An auto detector for the fallback boot loader (BOOTx64.efi, etc.)
 
 use alloc::{format, vec::Vec};

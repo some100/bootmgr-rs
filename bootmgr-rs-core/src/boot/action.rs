@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Provides [`BootAction`], which allows special actions to be done when an entry is loaded
 
 use alloc::{borrow::ToOwned, vec::Vec};

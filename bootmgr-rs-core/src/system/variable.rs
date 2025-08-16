@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! UEFI variable storage helpers.
 //!
 //! These store a value into a UEFI variable in a custom vendor namespace.

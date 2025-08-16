@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! The boot loader for EFI executables
 //!
 //! This will also handle devicetree installs and Shim authentication if either are available.

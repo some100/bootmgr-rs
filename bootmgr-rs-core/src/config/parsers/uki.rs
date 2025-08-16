@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! A parser for BootLoaderSpec type #2, a versionless specification for single Linux boot binaries.
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};

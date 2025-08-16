@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Secure Boot support module.
 //!
 //! Secure Boot interacts with the loading of images through the `SecurityArch` and

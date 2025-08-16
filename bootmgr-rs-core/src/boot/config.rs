@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Provides [`BootConfig`], the configuration file for the bootloader.
 //!
 //! This parses space separated key value pairs, the format of which is defined in

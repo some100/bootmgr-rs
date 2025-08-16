@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Handles devicetree installations and fixups.
 //!
 //! This will install a `Devicetree` into the UEFI configuration table, and may optionally

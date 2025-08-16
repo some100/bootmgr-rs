@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Extremely minimal skeleton for a boot loader.
 //!
 //! This mostly serves as an example minimal frontend for the bootmgr-rs-core crate, and is probably more similar

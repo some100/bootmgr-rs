@@ -7,3 +7,7 @@ The default icons are public domain icons from Wikimedia Commons. To swap these 
 This frontend has an editor implemented using Slint's `LineEdit` widget. This editor is strictly mouse driven. Either ESC or the Cancel button can be used to exit the editor.
 
 ![rEFInd-ish carousel boot manager](/images/bootmgr-rs-slint.gif)
+
+# Licensing
+
+This frontend code is licensed under GPLv3 or later. The Slint language files are licensed under MIT. 

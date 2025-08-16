@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 use anyhow::anyhow;
 use bootmgr_rs_core::{
     BootResult,

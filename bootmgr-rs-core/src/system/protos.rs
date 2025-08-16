@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! UEFI protocols that are not implemented in the [`uefi`] crate.
 //!
 //! This exposes the following protocols:

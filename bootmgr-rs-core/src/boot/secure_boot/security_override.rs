@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Provide `SecurityOverrideInner`, which is what handles validation with custom hooks.
 //!
 //! This is most applicable for usage with Shim, as before Shim v16, validation must be manually done using the `ShimLock` protocol.

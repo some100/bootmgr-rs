@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! Provides [`BootMgr`], a struct which abstracts most of loading a [`Config`].
 
 use alloc::vec::Vec;

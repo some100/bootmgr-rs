@@ -51,10 +51,6 @@ If the main program needs to be tested, then it can be run using `cargo xtask ru
 
 Fuzzing tests are ran using `cargo xtask fuzz <PARSER>`, where `<PARSER>` is one of bls, boot, uki, and win. Alternatively, if cargo-fuzz is already installed, they can be ran using `cargo fuzz run <PARSER>`. Seed corpuses are provided in the directory `fuzz/corpus/<PARSER>`, and any interesting artifacts (such as panics) will be found in the directory `fuzz/artifacts/<PARSER>`.
 
-## Licensing
-
-This project is licensed under GPLv2 or later. This is mostly due to some dependencies, like `nt-hive`, requiring a GPLv2 or later license. The Slint frontend depends on, well, Slint, which is GPLv3. So `bootmgr-rs-slint` is effectively GPLv3.
-
 ![systemd-boot and Windows bootmgr-like interface for a bootloader](/images/bootmgr-rs-ratatui.png)
 
 Example frontend using ratatui.

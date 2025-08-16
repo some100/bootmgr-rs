@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
 //! `newtype` definitions for fields of [`super::Config`]
 //!
 //! At the moment, this includes the following type definitions:
