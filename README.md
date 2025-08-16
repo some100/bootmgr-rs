@@ -51,6 +51,10 @@ If the main program needs to be tested, then it can be run using `cargo xtask ru
 
 Fuzzing tests are ran using `cargo xtask fuzz <PARSER>`, where `<PARSER>` is one of bls, boot, uki, and win. Alternatively, if cargo-fuzz is already installed, they can be ran using `cargo fuzz run <PARSER>`. Seed corpuses are provided in the directory `fuzz/corpus/<PARSER>`, and any interesting artifacts (such as panics) will be found in the directory `fuzz/artifacts/<PARSER>`.
 
+## Licensing
+
+This project is primarily licensed under MIT. With the `windows_bcd` feature enabled, the `bootmgr-rs-core` final library will be licensed under GPLv2+. `bootmgr-rs-slint` is licensed under GPLv3+.
+
 ![systemd-boot and Windows bootmgr-like interface for a bootloader](/images/bootmgr-rs-ratatui.png)
 
 Example frontend using ratatui.

@@ -48,6 +48,24 @@ pub(crate) const ONE_GIGABYTE: usize = 1024 * 1024 * 1024;
 /// The partition GUID of an `XBOOTLDR` partition.
 const XBOOTLDR_PARTITION: uefi::Guid = guid!("bc13c2ff-59e6-4262-a352-b275fd6f7172");
 
+/// The partition GUID of an `APFS` partition.
+const APFS_PARTITION: uefi::Guid = guid!("7c3457ef-0000-11aa-aa11-00306543ecac");
+
+/// The partition GUID of a regular `HFS+` partition.
+const HFS_PARTITION: uefi::Guid = guid!("48465300-0000-11aa-aa11-00306543ecac");
+
+/// The partition GUID of an `HFS+` recovery partition.
+const HFS_BOOT_PARTITION: uefi::Guid = guid!("426f6f74-0000-11aa-aa11-00306543ecac");
+
+/// The target partition GUIDs that `bootmgr-rs` will search in.
+const TARGET_PARTITION_GUIDS: &[uefi::Guid] = &[
+    GptPartitionType::EFI_SYSTEM_PARTITION.0,
+    XBOOTLDR_PARTITION,
+    APFS_PARTITION,
+    HFS_PARTITION,
+    HFS_BOOT_PARTITION,
+];
+
 /// An error that may result from performing filesystem operations
 #[derive(Error, Debug)]
 pub enum FsError {
@@ -432,10 +450,9 @@ pub(crate) fn is_target_partition(handle: Handle) -> bool {
         let Some(entry) = info.gpt_partition_entry() else {
             return false;
         };
-        let guid = entry.partition_type_guid;
-        if guid != GptPartitionType::EFI_SYSTEM_PARTITION
-            && guid != GptPartitionType(XBOOTLDR_PARTITION)
-        {
+        let guid = entry.partition_type_guid.0;
+
+        if !TARGET_PARTITION_GUIDS.contains(&guid) {
             return false;
         }
     }

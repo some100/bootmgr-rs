@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.15.1] - 2025-08-16
+
+### Fixed
+
+- Fixed partition matching for macOS systems.
+
 ## bootmgr-rs-core - [0.15.0] - 2025-08-15
 
 ### Added
