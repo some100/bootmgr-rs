@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.15.4] - 2025-08-16
+
+### Changed
+
+- UKI parser now tags each boot entry with its architecture, allowing for architecture filtering if needed.
+
 ## bootmgr-rs-core - [0.15.3] - 2025-08-16
 
 ### Changed

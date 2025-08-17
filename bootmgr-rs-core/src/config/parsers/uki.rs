@@ -6,7 +6,7 @@
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use log::warn;
 
-use object::{Object, ObjectSection, Section};
+use object::{Architecture, Object, ObjectSection, Section};
 
 use thiserror::Error;
 use uefi::{CStr16, Handle, cstr16, proto::media::file::FileInfo};
@@ -106,6 +106,9 @@ pub struct UkiConfig {
 
     /// The version of the configuration.
     version: Option<String>,
+
+    /// The architecture of the configuration.
+    architecture: Option<String>,
 }
 
 impl UkiConfig {
@@ -125,6 +128,15 @@ impl UkiConfig {
                 Osrel::default()
             }
         };
+
+        let architecture = match pe.architecture() {
+            Architecture::X86_64 => Some("x64"),
+            Architecture::I386 => Some("x86"),
+            Architecture::Aarch64 => Some("aa64"),
+            Architecture::Arm => Some("arm"),
+            _ => None,
+        }
+        .map(ToOwned::to_owned); // this will clone anyways when added to the builder.
 
         Ok(Self {
             title: osrel
@@ -146,6 +158,7 @@ impl UkiConfig {
                 .or(osrel.version)
                 .or(osrel.version_id)
                 .or(osrel.build_id),
+            architecture,
         })
     }
 }
@@ -176,7 +189,8 @@ fn get_uki_config(file: &FileInfo, fs: &mut UefiFileSystem, handle: Handle) -> B
         .sort_key(uki_config.sort_key)
         .fs_handle(handle)
         .origin(Parsers::Uki)
-        .assign_if_some(uki_config.version, ConfigBuilder::version);
+        .assign_if_some(uki_config.version, ConfigBuilder::version)
+        .assign_if_some(uki_config.architecture, ConfigBuilder::architecture);
 
     Ok(config.build())
 }
