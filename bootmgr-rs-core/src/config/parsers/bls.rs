@@ -243,7 +243,7 @@ impl ConfigParser for BlsConfig {
     }
 }
 
-/// Parse a BLS file given the [`FileInfo`], a [`SimpleFileSystem`] protocol, and a handle to that protocol.
+/// Parse a BLS file given the [`FileInfo`], a `SimpleFileSystem` protocol, and a handle to that protocol.
 fn get_bls_config(
     file: &FileInfo,
     fs: &mut UefiFileSystem,
@@ -284,7 +284,7 @@ fn get_bls_config(
     Ok(Some(config.build()))
 }
 
-/// Check if a certain config is bad given the [`FileInfo`] and a [`SimpleFileSystem`] protocol.
+/// Check if a certain config is bad given the [`FileInfo`] and a `SimpleFileSystem` protocol.
 fn check_bad(file: &FileInfo, fs: &mut UefiFileSystem) -> bool {
     let counter = BootCounter::new(file.file_name());
 

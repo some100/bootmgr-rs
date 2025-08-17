@@ -206,6 +206,43 @@ pub(crate) const fn slice_to_maybe_uninit<T>(slice: &mut [T]) -> &mut [MaybeUnin
     }
 }
 
+/// Test if a [`CStr16`] slice ends with an [`&str`] pattern.
+///
+/// This is intended to avoid an allocation from converting the [`CStr16`] into a [`String`]. This will perform
+/// a case-insensitive comparison for ASCII characters only. For non-ASCII characters that fall in the BMP, the
+/// exact character must be used. If the pattern contains a non-BMP character (and therefore non UCS-2 character),
+/// or the pattern is larger in length than the slice, then false will be returned immediately.
+pub(crate) fn cstr_ends_with(str: &CStr16, pat: &str) -> bool {
+    let u16_slice = str.to_u16_slice();
+
+    let pat_u16_iter = pat.encode_utf16();
+    let pat_len = pat_u16_iter.clone().count();
+
+    if u16_slice.len() < pat_len {
+        return false;
+    }
+
+    if pat.chars().any(|c| u32::from(c) >= 0x10000) {
+        return false; // non BMP characters are not supported
+    }
+
+    let end_slice = &u16_slice[u16_slice.len() - pat_len..];
+
+    end_slice.iter().zip(pat_u16_iter).all(|(&x, y)| {
+        // a critical assumption made here is that every character in x and y fall under the BMP.
+        // because every character in x is from a CStr16, which is strictly encoded with UCS-2, and
+        // non-BMP characters in y will make this function return false early, this should have the
+        // intended behavior.
+        if let Some(x) = char::from_u32(u32::from(x))
+            && let Some(y) = char::from_u32(u32::from(y))
+        {
+            x.eq_ignore_ascii_case(&y)
+        } else {
+            false
+        }
+    })
+}
+
 /// Open a protocol given a type implementing [`ProtocolPointer`].
 ///
 /// # Errors

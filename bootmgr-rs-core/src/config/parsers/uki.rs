@@ -176,7 +176,7 @@ impl ConfigParser for UkiConfig {
     }
 }
 
-/// Parse a UKI executable given the [`FileInfo`], a [`SimpleFileSystem`] protocol, and a handle to that protocol.
+/// Parse a UKI executable given the [`FileInfo`], a `SimpleFileSystem` protocol, and a handle to that protocol.
 fn get_uki_config(file: &FileInfo, fs: &mut UefiFileSystem, handle: Handle) -> BootResult<Config> {
     let content = fs.read(&get_path_cstr(UKI_PREFIX, file.file_name())?)?;
 

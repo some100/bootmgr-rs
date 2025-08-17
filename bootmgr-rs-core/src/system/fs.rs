@@ -21,7 +21,7 @@
 //!
 //! This module also provides filesystem-related testing functions, like [`UefiFileSystem::exists`].
 
-use alloc::{borrow::ToOwned, boxed::Box, string::String, vec, vec::Vec};
+use alloc::{borrow::ToOwned, boxed::Box, vec, vec::Vec};
 use log::error;
 use thiserror::Error;
 use uefi::{
@@ -38,7 +38,10 @@ use uefi::{
     },
 };
 
-use crate::{BootResult, system::helper::str_to_cstr};
+use crate::{
+    BootResult,
+    system::helper::{cstr_ends_with, str_to_cstr},
+};
 
 /// The size of one gigabyte in bytes. This is the default value if a file is too big to be read.
 ///
@@ -211,11 +214,7 @@ impl UefiFileSystem {
             .flatten()
             .filter_map(Result::ok)
             .filter(|x| !COMMON_SKIP_DIRS.contains(&x.file_name())) // excludes "." and ".."
-            .filter(move |x| {
-                String::from(x.file_name())
-                    .to_ascii_lowercase()
-                    .ends_with(ext)
-            })
+            .filter(move |x| cstr_ends_with(x.file_name(), ext))
             .filter(|x| x.file_size() > 0)
     }
 

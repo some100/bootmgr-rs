@@ -226,8 +226,7 @@ fn fixup_devicetree(devicetree: &mut DevicetreeGuard) -> BootResult<()> {
 ///
 /// # Errors
 ///
-/// May return an `Error` if the devicetree path is not valid, the handle does not
-/// support [`SimpleFileSystem`], or memory allocation fails. If there is failure
+/// May return an `Error` if the devicetree path is not valid, or memory allocation fails. If there is failure
 /// anywhere after memory is allocated, then the data is freed.
 pub(super) fn install_devicetree(devicetree: &str, fs: &mut UefiFileSystem) -> BootResult<()> {
     if matches!(

@@ -6,6 +6,7 @@
 //! This will generally represent a boot entry in the boot manager.
 
 use alloc::{
+    borrow::ToOwned,
     string::{String, ToString},
     vec::Vec,
 };
@@ -168,13 +169,12 @@ impl Config {
     /// still indicate the source of a particular boot option or its origin.
     /// If the filename is empty, then the index of the boot option is used. This is because at least some way of differentiating
     /// the boot option from other boot options is required. This will only be the case if the index is provided.
+    /// If the index is not provided, then the boot option will simply be labeled "Unknown".
     #[must_use = "Has no effect if the result is unused"]
     pub fn get_preferred_title(&self, option: Option<usize>) -> String {
         let mut title = self.title.clone().unwrap_or_else(|| {
-            if self.filename.is_empty()
-                && let Some(option) = option
-            {
-                option.to_string()
+            if self.filename.is_empty() {
+                option.map_or("Unknown".to_owned(), |x| x.to_string())
             } else {
                 self.filename.clone()
             }

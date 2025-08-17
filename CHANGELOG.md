@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.15.5] - 2025-08-17
+
+### Changed
+
+- Improved documentation.
+- Avoided an unnecessary heap allocation when reading a filtered directory.
+- Made `global_allocator` and `panic_handler` private modules of `bootmgr-rs-core`.
+- Return "Unknown" as the preferred title if both title and filename are empty, and index was not provided.
+
 ## bootmgr-rs-cli - [0.1.2] - 2025-08-17
 
 ### Changed

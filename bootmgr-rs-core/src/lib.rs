@@ -23,7 +23,8 @@ pub type BootResult<T> = Result<T, crate::error::BootError>;
 pub mod boot;
 pub mod config;
 pub mod error;
-pub mod features;
 pub mod system;
+
+mod features;
 
 extern crate alloc;
