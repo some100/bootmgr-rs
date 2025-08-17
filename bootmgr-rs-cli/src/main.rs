@@ -10,8 +10,7 @@ extern crate alloc;
 
 use alloc::string::ToString;
 
-use anyhow::Context;
-use bootmgr_rs_core::{boot::BootMgr, system::log_backend::UefiLogger};
+use bootmgr_rs_core::{BootResult, boot::BootMgr, system::log_backend::UefiLogger};
 use getargs::{Arg, Options};
 use uefi::{
     Handle, ResultExt, Status, boot, cstr16, entry, println, proto::loaded_image::LoadedImage,
@@ -21,7 +20,7 @@ use uefi::{
 static LOGGER: UefiLogger = UefiLogger::new();
 
 /// The actual main function of the program, which returns an [`anyhow::Result`].
-fn main_func() -> anyhow::Result<Option<Handle>> {
+fn main_func() -> BootResult<Option<Handle>> {
     uefi::helpers::init()?; // initialize helpers (for print)
 
     let load_options = {
@@ -34,9 +33,10 @@ fn main_func() -> anyhow::Result<Option<Handle>> {
 
     let mut options = load_options.split_whitespace();
 
-    let app_filename = options
-        .next()
-        .context("No load options were passed to the program.")?;
+    let Some(app_filename) = options.next() else {
+        println!("Error: No load options were passed to the program");
+        return Ok(None);
+    };
 
     let _ = log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Warn));
 

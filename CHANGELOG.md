@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-cli - [0.1.1] - 2025-08-17
+
+### Changed
+
+- Removed dependency on `anyhow` in favor of using `BootResult`.
+
 ## bootmgr-rs-cli - [0.1.0] - 2025-08-17
 
 ### Added

@@ -448,9 +448,8 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
- "anyhow",
  "bootmgr-rs-core",
  "getargs",
  "log",
@@ -467,7 +466,7 @@ dependencies = [
  "postcard",
  "proptest",
  "serde",
- "thiserror 2.0.12",
+ "thiserror 2.0.15",
  "tinyvec",
  "uefi",
 ]
@@ -497,7 +496,7 @@ dependencies = [
  "log",
  "ratatui-core",
  "ratatui-widgets",
- "thiserror 2.0.12",
+ "thiserror 2.0.15",
  "tinyvec",
  "uefi",
 ]
@@ -512,7 +511,7 @@ dependencies = [
  "log",
  "slint",
  "slint-build",
- "thiserror 2.0.12",
+ "thiserror 2.0.15",
  "uefi",
 ]
 
@@ -770,7 +769,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fa961b519f0b462e3a3b4a34b64d119eeaca1d59af726fe450bbba07a9fc0a1"
 dependencies = [
- "thiserror 2.0.12",
+ "thiserror 2.0.15",
 ]
 
 [[package]]
@@ -2308,7 +2307,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96d9e0d6a8bf886abccc1cbcac7d74f9000ae5882aedc4a9042188bbc9cd4487"
 dependencies = [
  "hashbrown 0.15.4",
- "thiserror 2.0.12",
+ "thiserror 2.0.15",
 ]
 
 [[package]]
@@ -2591,7 +2590,7 @@ dependencies = [
  "objc2-foundation 0.3.1",
  "once_cell",
  "png",
- "thiserror 2.0.12",
+ "thiserror 2.0.15",
  "windows-sys 0.60.2",
 ]
 
@@ -2669,7 +2668,7 @@ dependencies = [
  "bitflags 2.9.1",
  "enumn",
  "memoffset",
- "thiserror 2.0.12",
+ "thiserror 2.0.15",
  "zerocopy",
 ]
 
@@ -3504,7 +3503,7 @@ dependencies = [
  "kasuari",
  "lru",
  "strum",
- "thiserror 2.0.12",
+ "thiserror 2.0.15",
  "unicode-segmentation",
  "unicode-truncate",
  "unicode-width",
@@ -4259,11 +4258,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.12"
+version = "2.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "567b8a2dae586314f7be2a752ec7474332959c6460e02bde30d702a66d488708"
+checksum = "80d76d3f064b981389ecb4b6b7f45a0bf9fdac1d5b9204c7bd6714fecc302850"
 dependencies = [
- "thiserror-impl 2.0.12",
+ "thiserror-impl 2.0.15",
 ]
 
 [[package]]
@@ -4279,9 +4278,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.12"
+version = "2.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f7cf42b4507d8ea322120659672cf1b9dbb93f8f2d4ecfd6e51350ff5b17a1d"
+checksum = "44d29feb33e986b6ea906bd9c3559a856983f92371b3eaa5e83782a351623de0"
 dependencies = [
  "proc-macro2",
  "quote",
