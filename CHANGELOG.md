@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.15.3] - 2025-08-16
+
+### Changed
+
+- Added more specific error messages for UEFI variable get errors.
+
+### Fixed
+
+- Fixed errors not having context when displayed.
+
 ## bootmgr-rs-slint - [0.9.4] - 2025-08-16
 
 ### Changed

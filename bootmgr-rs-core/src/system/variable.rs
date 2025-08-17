@@ -5,18 +5,27 @@
 //!
 //! These store a value into a UEFI variable in a custom vendor namespace.
 
+use thiserror::Error;
 use uefi::{
     CStr16, Status, guid,
     runtime::{self, VariableAttributes, VariableVendor},
 };
 
-use crate::{BootResult, error::BootError};
+use crate::BootResult;
 
 /// The custom variable namespace for the boot manager.
 const BOOTMGR_GUID: uefi::Guid = guid!("23600d08-561e-4e68-a024-1d7d6e04ee4e");
 
 /// The maximum size of a singular type to be stored in a UEFI variable in bytes.
 const MAX_SIZE: usize = size_of::<u64>();
+
+/// An `Error` that may result from attempting to get value from a UEFI variable.
+#[derive(Error, Debug)]
+pub enum VarError {
+    /// The variable could not be obtained.
+    #[error("Failed to get variable: {0}")]
+    GetErr(#[from] uefi::Error<Option<usize>>),
+}
 
 /// A trait for implementations of UEFI variable storage.
 ///
@@ -46,7 +55,7 @@ impl UefiVariableStorage for RuntimeUefiVariableStorage {
         match runtime::get_variable(name, vendor, &mut buf) {
             Ok((var, _)) => Ok(T::from_bytes(var)),
             Err(e) if e.status() == Status::NOT_FOUND => Ok(T::default()), // pretend that we got all zeroes if its not found
-            Err(e) => Err(BootError::Uefi(e.to_err_without_payload())),
+            Err(e) => Err(VarError::GetErr(e).into()),
         }
     }
 

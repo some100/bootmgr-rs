@@ -44,16 +44,16 @@ const MAX_PATH: usize = 256;
 #[derive(Error, Debug)]
 pub enum StrError {
     /// A [`String`] could not be converted into a [`CString16`]
-    #[error("Could not convert String to CString16")]
+    #[error("Could not convert String to CString16: {0}")]
     CstrFromStr(#[from] uefi::data_types::FromStrError),
 
     /// A byte slice could not be converted into a [`CString`], due to an invalid
     /// character or nul character found.
-    #[error("Could not convert a byte slice to a CString*")]
+    #[error("Could not convert a byte slice to a CString: {0}")]
     FromSliceWithNul(#[from] uefi::data_types::FromSliceWithNulError),
 
     /// A [`String`] could not be converted into a [`CString`]
-    #[error("Could not convert String to CString")]
+    #[error("Could not convert String to CString: {0}")]
     CstringFromStr(#[from] alloc::ffi::NulError),
 }
 
@@ -61,11 +61,11 @@ pub enum StrError {
 #[derive(Error, Debug)]
 pub enum DevicePathError {
     /// A Device Path could not be built. This can if the buffer was too small.
-    #[error("Could not build DevicePath")]
+    #[error("Could not build DevicePath: {0}")]
     Build(#[from] uefi::proto::device_path::build::BuildError),
 
     /// The Device Path could not be appended to an existing one for some reason.
-    #[error("Could not append DevicePath to another DevicePath")]
+    #[error("Could not append DevicePath to another DevicePath: {0}")]
     DevPathUtil(#[from] uefi::proto::device_path::DevicePathUtilitiesError),
 }
 

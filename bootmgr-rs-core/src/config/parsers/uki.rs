@@ -31,7 +31,7 @@ const UKI_SUFFIX: &str = ".efi";
 #[derive(Error, Debug)]
 pub enum UkiError {
     /// An error that originated from the [`object`] crate.
-    #[error("Error while parsing PE binary: \"{0}\"")]
+    #[error("Error while parsing PE binary: {0}")]
     Object(#[from] object::Error),
 }
 

@@ -35,10 +35,10 @@ static LOGGER: UefiLogger = UefiLogger::new();
 #[derive(Error, Debug)]
 pub enum MainError {
     /// An error occurred with the boot manager.
-    #[error("Boot Error")]
+    #[error("Boot Error: {0}")]
     BootError(#[from] bootmgr_rs_core::error::BootError),
     /// An error occurred while running the App.
-    #[error("App Error")]
+    #[error("App Error: {0}")]
     AppError(#[from] crate::app::AppError),
 }
 

@@ -28,7 +28,7 @@ pub enum LoadError {
     ConfigMissingEfi(String),
 
     /// Failed to parse a string as an IP address.
-    #[error("Failed to parse as IP address")]
+    #[error("Failed to parse as IP address: {0}")]
     IpParse(#[from] core::net::AddrParseError),
 
     /// The HTTP response did not have a valid content-length header.

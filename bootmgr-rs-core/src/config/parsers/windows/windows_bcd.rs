@@ -33,7 +33,7 @@ const DISPLAYORDER_PATH: &str =
 #[derive(Error, Debug)]
 pub enum WinError {
     /// The BCD could not be parsed for any reason.
-    #[error("Hive Parse Error")]
+    #[error("Hive Parse Error: {0}")]
     Hive(#[from] nt_hive::NtHiveError),
 
     /// The BCD was missing a required key for parsing.

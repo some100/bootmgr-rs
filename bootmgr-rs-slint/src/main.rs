@@ -25,10 +25,10 @@ mod ui;
 #[derive(Error, Debug)]
 pub enum MainError {
     /// An error occurred with the boot manager.
-    #[error("Boot Error")]
+    #[error("Boot Error: {0}")]
     BootError(#[from] bootmgr_rs_core::error::BootError),
     /// A fatal error occurred while running the Slint UI.
-    #[error("Slint Error")]
+    #[error("Slint Error: {0}")]
     SlintError(slint::PlatformError),
     /// The input was closed for some reason.
     #[error("Input protocol was closed")]
