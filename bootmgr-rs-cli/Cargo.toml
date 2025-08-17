@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+# SPDX-License-Identifier: MIT
+
 [package]
 name = "bootmgr-rs-cli"
 version = "0.1.1"
