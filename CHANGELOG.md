@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-cli - [0.1.0] - 2025-08-17
+
+### Added
+
+- A new CLI frontend for `bootmgr-rs-core` that is mainly accessible through the UEFI shell.
+
 ## bootmgr-rs-core - [0.15.4] - 2025-08-16
 
 ### Changed

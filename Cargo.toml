@@ -3,6 +3,7 @@
 
 [workspace]
 members = [
+    "bootmgr-rs-cli",
     "bootmgr-rs-core",
     "bootmgr-rs-minimal",
     "bootmgr-rs-ratatui",
@@ -12,6 +13,7 @@ members = [
     "xtask",
 ]
 default-members = [
+    "bootmgr-rs-cli",
     "bootmgr-rs-core",
     "bootmgr-rs-minimal",
     "bootmgr-rs-ratatui",

@@ -1,0 +1,104 @@
+// SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
+// SPDX-License-Identifier: MIT
+
+//! A command line interface frontend to `bootmgr-rs`.
+
+#![no_main]
+#![no_std]
+
+extern crate alloc;
+
+use alloc::string::ToString;
+
+use anyhow::Context;
+use bootmgr_rs_core::{boot::BootMgr, system::log_backend::UefiLogger};
+use getargs::{Arg, Options};
+use uefi::{
+    Handle, ResultExt, Status, boot, cstr16, entry, println, proto::loaded_image::LoadedImage,
+};
+
+/// The global logging instance.
+static LOGGER: UefiLogger = UefiLogger::new();
+
+/// The actual main function of the program, which returns an [`anyhow::Result`].
+fn main_func() -> anyhow::Result<Option<Handle>> {
+    uefi::helpers::init()?; // initialize helpers (for print)
+
+    let load_options = {
+        let loaded_image = boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle())?;
+        loaded_image
+            .load_options_as_cstr16()
+            .unwrap_or(cstr16!("bootmgr-rs-cli.efi")) // there is at least one argument, which is the filename
+            .to_string()
+    }; // loaded_image dropped here
+
+    let mut options = load_options.split_whitespace();
+
+    let app_filename = options
+        .next()
+        .context("No load options were passed to the program.")?;
+
+    let _ = log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Warn));
+
+    let mut boot_mgr = BootMgr::new()?;
+
+    let mut opts = Options::new(options);
+    while let Ok(Some(arg)) = opts.next_arg() {
+        match arg {
+            Arg::Short('l') | Arg::Long("list") => {
+                for (i, config) in boot_mgr.list().iter().enumerate() {
+                    println!(
+                        "{i}: {} ({})",
+                        config.get_preferred_title(Some(i)),
+                        config.filename,
+                    );
+                }
+                return Ok(None);
+            }
+            Arg::Short('b') | Arg::Long("boot") => {
+                let Ok(value) = opts.value() else {
+                    println!("Error: An index was not passed into the boot argument");
+                    return Ok(None);
+                };
+                let idx = match value.parse() {
+                    Ok(idx) => idx,
+                    Err(e) => {
+                        println!(
+                            "Error: {e} (The value passed to the boot argument could not be parsed as a number)"
+                        );
+                        return Ok(None);
+                    }
+                };
+                if idx >= boot_mgr.list().len() {
+                    println!(
+                        "Error: The value passed to the boot argument was not in range of the list"
+                    );
+                    return Ok(None);
+                }
+
+                return Ok(Some(boot_mgr.load(idx)?));
+            }
+            Arg::Short('h') | Arg::Long("help") => break, // ignore any other arguments and break out of the while loop when help is specified
+            Arg::Short(invalid) => println!("Error: Unknown short argument: -{invalid}"),
+            Arg::Long(invalid) => println!("Error: Unknown long argument: --{invalid}"),
+            Arg::Positional(invalid) => println!("Error: Unknown positional argument: {invalid}"),
+        }
+    }
+
+    println!(
+        r"Usage: {app_filename} [OPTIONS] [ARGS]...
+                    
+-h, --help       display this help and exit
+-l, --list       display boot options and exit
+-b, --boot       boot the given boot option index
+"
+    );
+
+    Ok(None)
+}
+
+#[entry]
+fn main() -> Status {
+    let image = main_func().unwrap_or_else(|e| panic!("Error: {e}"));
+    image.map_or(Status::SUCCESS, |image| boot::start_image(image).status())
+}

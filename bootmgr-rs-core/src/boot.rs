@@ -45,7 +45,9 @@ impl BootMgr {
     /// supporting `SimpleFileSystem`) or when parsing the [`Config`]s.
     pub fn new() -> BootResult<Self> {
         let boot_config = BootConfig::new()?;
-        load_drivers(boot_config.drivers, &boot_config.driver_path)?; // load drivers before configs from other fs are parsed
+        if boot_config.drivers {
+            load_drivers(&boot_config.driver_path)?; // load drivers before configs from other fs are parsed
+        }
         let mut configs = scan_configs()?;
         add_special_boot(&mut configs, &boot_config);
 

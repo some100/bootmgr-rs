@@ -69,10 +69,7 @@ fn load_driver(driver_path: &CStr16, file: &FileInfo, buf: &mut [u8]) -> BootRes
 ///
 /// May return an `Error` if either the image handle doesn't support `SimpleFileSystem` or
 /// there are literally no handles present on the system, both of which are quite unlikely
-pub(crate) fn load_drivers(drivers: bool, driver_path: &str) -> BootResult<()> {
-    if !drivers {
-        return Ok(());
-    }
+pub(crate) fn load_drivers(driver_path: &str) -> BootResult<()> {
     let driver_path = str_to_cstr(driver_path)?;
     let mut fs = UefiFileSystem::from_image_fs()?;
 
