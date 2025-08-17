@@ -24,7 +24,8 @@ fn main_func() -> BootResult<Option<Handle>> {
     uefi::helpers::init()?; // initialize helpers (for print)
 
     let load_options = {
-        let loaded_image = boot::open_protocol_exclusive::<LoadedImage>(boot::image_handle())?;
+        let handle = boot::image_handle();
+        let loaded_image = boot::open_protocol_exclusive::<LoadedImage>(handle)?;
         loaded_image
             .load_options_as_cstr16()
             .unwrap_or(cstr16!("bootmgr-rs-cli.efi")) // there is at least one argument, which is the filename
@@ -99,6 +100,9 @@ fn main_func() -> BootResult<Option<Handle>> {
 
 #[entry]
 fn main() -> Status {
-    let image = main_func().unwrap_or_else(|e| panic!("Error: {e}"));
+    let image = main_func().unwrap_or_else(|e| {
+        println!("Error: {e}");
+        None // dont panic when an error occurs, instead, just exit.
+    });
     image.map_or(Status::SUCCESS, |image| boot::start_image(image).status())
 }

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-cli - [0.1.2] - 2025-08-17
+
+### Changed
+
+- No longer panics on error, but instead exits with a message.
+
 ## bootmgr-rs-cli - [0.1.1] - 2025-08-17
 
 ### Changed
