@@ -40,7 +40,6 @@ unsafe_op_in_unsafe_fn = "deny"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
-arbitrary_source_item_ordering = "warn"
 unnecessary_safety_comment = "warn"
 missing_docs_in_private_items = "warn"
 redundant_type_annotations = "warn"
