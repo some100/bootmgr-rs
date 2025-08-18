@@ -8,12 +8,13 @@
 //! communication channel for the boot loader and systemd. This allows boot loaders, such as systemd-boot,
 //! to use a tool such as `bootctl` to set the timeout, or set the next boot option.
 //!
-//! Currently, `bootmgr-rs` only supports the former. This is indicated to `bootctl` through the feature flags.
+//! This module provides a nearly-complete implementation of this interface, the only caveat being that random
+//! seed generation from the boot loader is not supported.
 
 use alloc::{format, string::ToString, vec::Vec};
 
 use bitflags::bitflags;
-use uefi::{boot, cstr16, guid, runtime::VariableVendor};
+use uefi::{boot, cstr16, data_types::EqStrUntilNul, guid, runtime::VariableVendor};
 
 use crate::{
     BootResult,
@@ -22,7 +23,7 @@ use crate::{
         fs::get_partition_guid,
         helper::str_to_cstr,
         time::timer_usec,
-        variable::{set_variable, set_variable_str, set_variable_u16_slice},
+        variable::{get_variable_str, set_variable, set_variable_str, set_variable_u16_slice},
     },
 };
 
@@ -51,8 +52,11 @@ bitflags! {
 pub(crate) fn export_variables() -> BootResult<()> {
     let supported = LoaderFeatures::TIMEOUT
         | LoaderFeatures::TIMEOUT_ONESHOT
+        | LoaderFeatures::ENTRY_DEFAULT
+        | LoaderFeatures::ENTRY_ONESHOT
         | LoaderFeatures::BOOT_COUNTER
-        | LoaderFeatures::XBOOTLDR;
+        | LoaderFeatures::XBOOTLDR
+        | LoaderFeatures::MENU_DISABLED; // this is frontend dependent, depending on how input events are handled.
 
     let time = str_to_cstr(&timer_usec().to_string())?;
     let partition_guid =
@@ -119,16 +123,55 @@ pub(crate) fn set_loader_entries(configs: &[Config]) -> BootResult<()> {
     )
 }
 
-/// Get the timeout variable from Boot Loader Interface, if there is any.
+/// Get the default entry based off the BLI identifier.
+///
+/// May return `None` if the variable does not exist.
+pub(crate) fn get_default_entry(configs: &[Config]) -> Option<usize> {
+    let default = get_variable_str(cstr16!("LoaderEntryDefault"), Some(BLI_VENDOR)).ok();
+    let oneshot = get_variable_str(cstr16!("LoaderEntryOneShot"), Some(BLI_VENDOR)).ok();
+
+    oneshot.map_or_else(
+        || {
+            default.and_then(|default| {
+                configs
+                    .iter()
+                    .position(|x| x.filename.eq_str_until_nul(&default))
+            })
+        },
+        |oneshot| {
+            configs
+                .iter()
+                .position(|x| x.filename.eq_str_until_nul(&oneshot))
+        },
+    )
+}
+
+/// Set the default entry from Boot Loader Interface.
 ///
 /// This function is disabled when testing on host to avoid causing a panic while unit tests for `BootConfig`
 /// are being done.
 ///
-/// May return `None` if the variable does not exist.
-#[cfg(not(test))]
-pub(crate) fn get_timeout_var() -> Option<i64> {
-    use crate::system::variable::get_variable_str;
+/// # Errors
+///
+/// May return an `Error` if the variable could not be set.
+pub(crate) fn set_default_entry(configs: &[Config], idx: usize) -> BootResult<()> {
+    let timeout = str_to_cstr(&configs[idx].filename)?;
+    set_variable_str(
+        cstr16!("LoaderEntryDefault"),
+        Some(BLI_VENDOR),
+        None,
+        Some(&timeout),
+    )
+}
 
+/// Get the timeout variable from Boot Loader Interface, if there is any.
+///
+/// This has `dead_code` allowed since in tests, this will produce a false warning since the UEFI-specific code using
+/// this function is not included.
+///
+/// May return `None` if the variable does not exist.
+#[allow(dead_code)]
+pub(crate) fn get_timeout_var() -> Option<i64> {
     let timeout = get_variable_str(cstr16!("LoaderConfigTimeout"), Some(BLI_VENDOR)).ok();
     let oneshot = get_variable_str(cstr16!("LoaderConfigTimeoutOneshot"), Some(BLI_VENDOR)).ok();
 
@@ -148,13 +191,13 @@ pub(crate) fn get_timeout_var() -> Option<i64> {
 
 /// Set the timeout variable from Boot Loader Interface.
 ///
-/// This function is disabled when testing on host to avoid causing a panic while unit tests for `BootConfig`
-/// are being done.
+/// This has `dead_code` allowed since in tests, this will produce a false warning since the UEFI-specific code using
+/// this function is not included.
 ///
 /// # Errors
 ///
 /// May return an `Error` if the variable could not be set.
-#[cfg(not(test))]
+#[allow(dead_code)]
 pub(crate) fn set_timeout_var(timeout: i64) -> BootResult<()> {
     let timeout = str_to_cstr(&timeout.to_string())?;
     set_variable_str(
@@ -166,10 +209,7 @@ pub(crate) fn set_timeout_var(timeout: i64) -> BootResult<()> {
 }
 
 /// Match a BLI timeout string into a `bootmgr-rs` compatible timeout value.
-#[cfg(not(test))]
 fn match_timeout(timeout: &uefi::CStr16) -> Option<i64> {
-    use uefi::data_types::EqStrUntilNul;
-
     if timeout.eq_str_until_nul("menu-force") {
         Some(-1)
     } else if timeout.eq_str_until_nul("menu-hidden") || timeout.eq_str_until_nul("menu-disabled") {

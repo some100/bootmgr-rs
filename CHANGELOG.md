@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.16.2] - 2025-08-18
+
+### Changed
+
+- Added support for setting and getting the default boot entry from Boot Loader Interface.
+
 ## bootmgr-rs-core - [0.16.1] - 2025-08-18
 
 ### Fixed

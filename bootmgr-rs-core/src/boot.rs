@@ -5,16 +5,13 @@
 
 use alloc::vec::Vec;
 use log::error;
-use uefi::{Handle, cstr16};
+use uefi::Handle;
 
 use crate::{
     BootResult,
     boot::{action::add_special_boot, config::BootConfig, loader::load_boot_option},
     config::{Config, scan_configs},
-    system::{
-        drivers::load_drivers,
-        variable::{get_variable, set_variable},
-    },
+    system::drivers::load_drivers,
 };
 
 pub mod action;
@@ -55,7 +52,11 @@ impl BootMgr {
         let mut configs = scan_configs()?;
         add_special_boot(&mut configs, &boot_config);
 
-        bli::set_loader_entries(&configs)?;
+        if let Some(default) = boot_config.default {
+            let _ = bli::set_default_entry(&configs, default);
+        }
+
+        let _ = bli::set_loader_entries(&configs);
 
         Ok(Self {
             boot_config,
@@ -101,21 +102,16 @@ impl BootMgr {
 
     /// Gets the default boot option.
     ///
-    /// It does this in the following order:
-    /// 1. UEFI variable
-    /// 2. Config file
-    ///
-    /// If the default boot option is set in neither, then 0 is returned
+    /// If the default boot option is not set, then 0 is returned
     #[must_use = "Has no effect if the result is unused"]
     pub fn get_default(&self) -> usize {
-        [
-            get_variable::<usize>(cstr16!("BootDefault"), None).ok(),
-            self.boot_config.default,
-        ]
-        .into_iter()
-        .flatten()
-        .find(|&idx| idx < self.configs.len())
-        .unwrap_or(0)
+        if let Some(default) = bli::get_default_entry(&self.configs)
+            && default < self.configs.len()
+        {
+            default
+        } else {
+            0
+        }
     }
 
     /// Sets the default boot option by index.
@@ -124,9 +120,9 @@ impl BootMgr {
     /// cannot be completely reliable across all firmware implementations.
     pub fn set_default(&self, option: usize) {
         if option < self.configs.len()
-            && let Err(e) = set_variable::<usize>(cstr16!("BootDefault"), None, None, Some(option))
+            && let Err(e) = bli::set_default_entry(&self.configs, option)
         {
-            error!("Failed to set BootDefault UEFI variable: {e}");
+            error!("Failed to set LoaderEntryDefault UEFI variable: {e}");
         }
     }
 
