@@ -27,7 +27,7 @@ use crate::{
 };
 
 /// The variable namespace for Boot Loader Interface UEFI variables.
-const BLI_GUID: uefi::Guid = guid!("4a67b082-0a4c-41cf-b6c7-440b29bb8c4f");
+const BLI_VENDOR: VariableVendor = VariableVendor(guid!("4a67b082-0a4c-41cf-b6c7-440b29bb8c4f"));
 
 bitflags! {
     /// Feature flags for Boot Loader Interface.
@@ -60,28 +60,23 @@ pub(crate) fn export_variables() -> BootResult<()> {
     let info = str_to_cstr(&format!("bootmgr-rs {}", env!("CARGO_PKG_VERSION")))?;
     set_variable_str(
         cstr16!("LoaderTimeInitUSec"),
-        Some(VariableVendor(BLI_GUID)),
+        Some(BLI_VENDOR),
         None,
         Some(&time),
     )?;
     set_variable(
         cstr16!("LoaderFeatures"),
-        Some(VariableVendor(BLI_GUID)),
+        Some(BLI_VENDOR),
         None,
         Some(supported.bits()),
     )?;
     set_variable_str(
         cstr16!("LoaderDevicePartUUID"),
-        Some(VariableVendor(BLI_GUID)),
+        Some(BLI_VENDOR),
         None,
         partition_guid.as_deref(),
     )?;
-    set_variable_str(
-        cstr16!("LoaderInfo"),
-        Some(VariableVendor(BLI_GUID)),
-        None,
-        Some(&info),
-    )?;
+    set_variable_str(cstr16!("LoaderInfo"), Some(BLI_VENDOR), None, Some(&info))?;
     Ok(())
 }
 
@@ -94,7 +89,7 @@ pub(crate) fn record_exit_time() -> BootResult<()> {
     let time = str_to_cstr(&timer_usec().to_string())?;
     set_variable_str(
         cstr16!("LoaderTimeExecUSec"),
-        Some(VariableVendor(BLI_GUID)),
+        Some(BLI_VENDOR),
         None,
         Some(&time),
     )?;
@@ -118,7 +113,7 @@ pub(crate) fn set_loader_entries(configs: &[Config]) -> BootResult<()> {
         .collect();
     set_variable_u16_slice(
         cstr16!("LoaderEntries"),
-        Some(VariableVendor(BLI_GUID)),
+        Some(BLI_VENDOR),
         None,
         Some(&entries),
     )
@@ -134,20 +129,20 @@ pub(crate) fn set_loader_entries(configs: &[Config]) -> BootResult<()> {
 pub(crate) fn get_timeout_var() -> Option<i64> {
     use crate::system::variable::get_variable_str;
 
-    let timeout = get_variable_str(
-        cstr16!("LoaderConfigTimeout"),
-        Some(VariableVendor(BLI_GUID)),
-    )
-    .ok();
-    let oneshot = get_variable_str(
-        cstr16!("LoaderConfigTimeoutOneshot"),
-        Some(VariableVendor(BLI_GUID)),
-    )
-    .ok();
+    let timeout = get_variable_str(cstr16!("LoaderConfigTimeout"), Some(BLI_VENDOR)).ok();
+    let oneshot = get_variable_str(cstr16!("LoaderConfigTimeoutOneshot"), Some(BLI_VENDOR)).ok();
 
     oneshot.map_or_else(
         || timeout.and_then(|timeout| match_timeout(&timeout)),
-        |oneshot| match_timeout(&oneshot),
+        |oneshot| {
+            let _ = set_variable_str(
+                cstr16!("LoaderConfigTimeoutOneshot"),
+                Some(BLI_VENDOR),
+                None,
+                None,
+            );
+            match_timeout(&oneshot)
+        },
     )
 }
 
@@ -164,7 +159,7 @@ pub(crate) fn set_timeout_var(timeout: i64) -> BootResult<()> {
     let timeout = str_to_cstr(&timeout.to_string())?;
     set_variable_str(
         cstr16!("LoaderConfigTimeout"),
-        Some(VariableVendor(BLI_GUID)),
+        Some(BLI_VENDOR),
         None,
         Some(&timeout),
     )

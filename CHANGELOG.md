@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.16.1] - 2025-08-18
+
+### Fixed
+
+- Timeout oneshot variable is now deleted after it is read.
+
 ## bootmgr-rs-core - [0.16.0] - 2025-08-18
 
 ### Added
