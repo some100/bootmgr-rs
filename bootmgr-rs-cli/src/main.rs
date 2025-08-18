@@ -102,6 +102,10 @@ fn main_func() -> BootResult<Option<Handle>> {
     Ok(None)
 }
 
+/// The main function of the program.
+///
+/// This will not panic on a fatal error, rather, it will return control to the UEFI shell (or the firmware menu).
+/// This program is intended to be ran as a shell script, so panicking here would not make any sense.
 #[entry]
 fn main() -> Status {
     let image = main_func().unwrap_or_else(|e| {

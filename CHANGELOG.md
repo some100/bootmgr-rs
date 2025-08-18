@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.16.4] - 2025-08-18
+
+### Added
+
+- Features that bootmgr-rs supports are now reported to Boot Loader Interface.
+
+### Changed
+
+- Random seeds are now always created regardless of prior existence on filesystem.
+
 ## bootmgr-rs-core - [0.16.3] - 2025-08-18
 
 ### Added
