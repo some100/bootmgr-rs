@@ -21,6 +21,10 @@ use crate::{editor::Editor, ui::ratatui_backend::UefiBackend};
 
 impl Editor {
     /// Draw a frame to the screen.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the widgets could not be drawn to the screen.
     pub fn draw(&mut self, terminal: &mut Terminal<UefiBackend>) -> BootResult<()> {
         terminal.draw(|f| f.render_widget(self, f.area()))?;
         terminal.show_cursor()?;

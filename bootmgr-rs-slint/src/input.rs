@@ -58,6 +58,10 @@ pub struct MouseState {
 
 impl MouseState {
     /// Get a new [`MouseState`].
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if a pointer protocol does not exist.
     pub fn new(color: UefiColor) -> BootResult<Self> {
         let mut pointer = locate_protocol::<Pointer>()?;
         let mode = *pointer.mode();
@@ -209,6 +213,10 @@ impl App {
     /// Wait for an event.
     ///
     /// This will also clear the event queue every time it is called, because the duration may be different between calls.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the timer could not be created for some reason.
     pub fn wait_for_events(&mut self, duration: Option<Duration>) -> BootResult<()> {
         if let Some(duration) = duration {
             let duration_time = u64::try_from(duration.as_nanos() / 100).unwrap_or(u64::MAX);

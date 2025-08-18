@@ -18,6 +18,7 @@ use crate::{
 };
 
 pub mod action;
+pub mod bli;
 pub mod config;
 pub mod devicetree;
 pub mod loader;
@@ -44,12 +45,17 @@ impl BootMgr {
     /// May return an `Error` if a fatal error occurred when parsing the [`BootConfig`] (such as the image handle not
     /// supporting `SimpleFileSystem`) or when parsing the [`Config`]s.
     pub fn new() -> BootResult<Self> {
+        let _ = bli::export_variables();
+
         let boot_config = BootConfig::new()?;
         if boot_config.drivers {
             load_drivers(&boot_config.driver_path)?; // load drivers before configs from other fs are parsed
         }
+
         let mut configs = scan_configs()?;
         add_special_boot(&mut configs, &boot_config);
+
+        bli::set_loader_entries(&configs)?;
 
         Ok(Self {
             boot_config,
@@ -65,7 +71,10 @@ impl BootMgr {
     pub fn load(&mut self, selected: usize) -> BootResult<Handle> {
         let config = &self.configs[selected];
         match load_boot_option(config) {
-            Ok(handle) => Ok(handle),
+            Ok(handle) => {
+                let _ = bli::record_exit_time();
+                Ok(handle)
+            }
             Err(e) => {
                 self.configs[selected].bad = true;
                 Err(e) // after setting as bad, finally return the error

@@ -79,6 +79,8 @@ struct SecurityOverride {
 impl SecurityOverride {
     /// Return a copy of the inner [`SecurityOverrideInner`].
     ///
+    /// # Panics
+    ///
     /// This will panic if the [`Cell`] is not yet initialized.
     /// However, this is not possible since the [`Cell`] is always initalized at the start
     /// of the program as a static. Therefore, this method cannot actually panic.

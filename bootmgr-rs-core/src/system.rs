@@ -8,6 +8,7 @@ pub mod fs;
 pub mod helper;
 pub mod log_backend;
 pub mod protos;
+pub mod time;
 pub mod variable;
 
 mod global_allocator;

@@ -81,6 +81,11 @@ pub struct App {
 
 impl App {
     /// Initialize the state of the [`App`].
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the boot manager could not be created, the filesystem could not be opened,
+    /// there's no input protocol, the mouse state could not be created, or there is no graphics output.
     pub fn new() -> Result<Self, MainError> {
         let mut boot_mgr = BootMgr::new()?;
         let persist = PersistentConfig::new()?;

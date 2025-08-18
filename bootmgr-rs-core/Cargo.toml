@@ -3,7 +3,7 @@
 
 [package]
 name = "bootmgr-rs-core"
-version = "0.15.6"
+version = "0.16.0"
 rust-version = "1.88.0"
 edition = "2024"
 license = "MIT"
@@ -13,6 +13,8 @@ description = "A framework for easily creating boot managers in Rust"
 repository = "https://github.com/some100/bootmgr-rs"
 
 [dependencies]
+bitflags = "2.9.2"
+bytemuck = "1.23.2"
 log = "0.4.27"
 nt-hive = { version = "0.3.0", default-features = false, features = ["alloc"], optional = true }
 object = { version = "0.37.1", default-features = false, features = ["pe", "read_core"], optional = true }

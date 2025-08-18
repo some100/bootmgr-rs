@@ -195,6 +195,11 @@ unsafe extern "efiapi" fn authentication_hook(
 ///
 /// If the [`c_void`] is an invalid pointer, then it will return [`None`]. However, this is still unsafe as
 /// the size passed through the parameter cannot be verified as the exact size of the slice.
+///
+/// # Safety
+///
+/// This function will dereference a raw pointer in order to convert it into a slice. Conversion from a pointer
+/// to a slice requires the size to be accurate. The caller must ensure that the slice is of an accurate size.
 unsafe fn mut_ptr_to_u8_slice<'a>(ptr: *mut c_void, size: usize) -> Option<&'a mut [u8]> {
     // SAFETY: an invalid pointer should be guarded against, but if the size is invalid, then this
     // could be unsafe.

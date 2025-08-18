@@ -99,18 +99,14 @@ impl BootConfig {
     pub(super) fn new() -> BootResult<Self> {
         let mut fs = UefiFileSystem::from_image_fs()?;
 
-        if fs.exists(CONFIG_PATH) {
-            let mut buf = [0; 4096]; // a config file over 4096 bytes is very unusual and is not supported
-            let bytes = match fs.read_into(CONFIG_PATH, &mut buf) {
-                Ok(bytes) => bytes,
-                Err(FsError::OpenErr(Status::NOT_FOUND)) => return Ok(Self::default()),
-                Err(e) => return Err(e.into()),
-            };
+        let mut buf = [0; 4096]; // a config file over 4096 bytes is very unusual and is not supported
+        let bytes = match fs.read_into(CONFIG_PATH, &mut buf) {
+            Ok(bytes) => bytes,
+            Err(FsError::OpenErr(Status::NOT_FOUND)) => return Ok(Self::default()),
+            Err(e) => return Err(e.into()),
+        };
 
-            return Ok(Self::get_boot_config(&buf, Some(bytes)));
-        }
-
-        Ok(Self::default())
+        Ok(Self::get_boot_config(&buf, Some(bytes)))
     }
 
     /// Parses the contents of a [`BootConfig`] format string.
@@ -118,6 +114,11 @@ impl BootConfig {
     pub fn get_boot_config(content: &[u8], bytes: Option<usize>) -> Self {
         let mut config = Self::default();
         let slice = &content[0..bytes.unwrap_or(content.len()).min(content.len())];
+
+        #[cfg(not(test))]
+        if let Some(timeout) = super::bli::get_timeout_var() {
+            config.timeout = timeout;
+        }
 
         if let Ok(content) = str::from_utf8(slice) {
             for line in content.lines() {
@@ -141,6 +142,9 @@ impl BootConfig {
                 "timeout" => {
                     if let Ok(value) = value.parse() {
                         self.timeout = value;
+
+                        #[cfg(not(test))]
+                        let _ = super::bli::set_timeout_var(value);
                     }
                 }
                 "default" => {
@@ -238,6 +242,9 @@ mod tests {
     use super::*;
     use proptest::prelude::*;
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_full_config() {
         let config = b"

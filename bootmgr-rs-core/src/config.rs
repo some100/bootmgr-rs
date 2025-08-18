@@ -220,6 +220,12 @@ impl Config {
     /// # Errors
     ///
     /// May return an `Error` if the paths do not exist in the filesystem when they are in the [`Config`].
+    ///
+    /// # Panics
+    ///
+    /// This may technically panic if the filesystem handle associated with the [`Config`] does not support
+    /// [`SimpleFileSystem`]. This is impossible in practice due to it a newtype that is validated to support
+    /// [`SimpleFileSystem`].
     fn validate_paths(&self) -> Result<(), ConfigError> {
         if let Some(handle) = self.fs_handle {
             let mut fs = UefiFileSystem::from_handle(*handle)
@@ -292,8 +298,16 @@ mod tests {
     use super::*;
     use alloc::borrow::ToOwned;
 
-    // This is technically not a valid Config.
-    // This simply tests that the config validator will mark valid fields as correct.
+    /// This is technically not a valid [`Config`].
+    /// This simply tests that the config validator will mark valid fields as correct.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the newtype constructors failed.
+    ///
+    /// # Panics
+    ///
+    /// May panic if the [`Config`] is not good.
     #[test]
     fn test_non_efi_config() -> Result<(), TypeError> {
         let machine_id = MachineId::new("1234567890abcdef1234567890abcdef")?;

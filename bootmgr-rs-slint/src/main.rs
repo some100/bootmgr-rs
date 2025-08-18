@@ -35,6 +35,11 @@ pub enum MainError {
     InputClosed,
 }
 
+/// The actual main function of the program.
+///
+/// # Errors
+///
+/// May return an `Error` if a failure occurs while the app is running.
 fn main_func() -> Result<Option<Handle>, MainError> {
     // This is all done to ensure that GOP, Input, etc. are properly dropped before the next program is started.
     // If the image was simply booted directly from the tryboot function, then it would result in this program
@@ -44,6 +49,11 @@ fn main_func() -> Result<Option<Handle>, MainError> {
     app.run()
 }
 
+/// The main function of the program.
+///
+/// # Panics
+///
+/// This will result in a panic if `main_func` fails.
 #[entry]
 fn main() -> Status {
     let image = main_func().unwrap_or_else(|e| panic!("Error occurred while running: {e}"));

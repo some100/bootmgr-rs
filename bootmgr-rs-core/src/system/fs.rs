@@ -25,7 +25,7 @@ use alloc::{borrow::ToOwned, boxed::Box, vec, vec::Vec};
 use log::error;
 use thiserror::Error;
 use uefi::{
-    CStr16, CString16, Char16, Handle, Status,
+    CStr16, CString16, Char16, Guid, Handle, Status,
     boot::{self, ScopedProtocol},
     fs::{CHARACTER_DENY_LIST, COMMON_SKIP_DIRS, UefiDirectoryIter},
     guid,
@@ -167,6 +167,10 @@ impl UefiFileSystem {
     /// It makes no distinction between whether a file could not be verified to exist or a file that really
     /// does not exist. Both will return `false`. This means that if the volume could not be opened, it will return
     /// `false` as the file cannot be verified to exist.
+    ///
+    /// This method may introduce the risk of TOCTOU bugs. While this is a little bit less likely to happen considering
+    /// the single threaded nature of UEFI, it is still risky to check the existence of a file using `exists` before opening
+    /// it. In that specific situation, consider opening the file and handling the [`FsError::OpenErr`] separately.
     pub fn exists(&mut self, path: &CStr16) -> bool {
         let Ok(mut root) = self.0.open_volume() else {
             return false;
@@ -269,17 +273,16 @@ impl UefiFileSystem {
         Ok(buf)
     }
 
-    /// Renames a file into another file.
+    /// Copy a file onto another file.
     ///
-    /// This essentially copies a file into another file, then deletes the original file. This implements buffered
-    /// reading and writing, with a fixed size of 4 KiB. This buffer is a stack allocated array that is small enough
-    /// to avoid stack overflow while still being suitable for operations like renaming boot counter files.
+    /// This implements buffered reading and writing, with a fixed size of 4 KiB. This buffer is a stack allocated array
+    /// that is small enough to avoid stack overflow while still being suitable for operations like renaming boot counter files.
     ///
     /// # Errors
     ///
-    /// May return an `Error` if the volume couldn't be opened, any of the two paths don't point to a valid file,
-    /// the source file could not be read, or the source file could not be deleted.
-    pub fn rename(&mut self, src: &CStr16, dst: &CStr16) -> Result<(), FsError> {
+    /// May return an `Error` if the volume couldn't be opened, any of the two paths don't point to a valid file, or
+    /// the source file could not be read.
+    pub fn copy(&mut self, src: &CStr16, dst: &CStr16) -> Result<(), FsError> {
         const CHUNK_SIZE: usize = 4 * 1024;
 
         let _ = self.delete(dst);
@@ -313,7 +316,24 @@ impl UefiFileSystem {
         }
         dst.flush().map_err(|e| FsError::FlushErr(e.status()))?;
 
-        src.delete().map_err(|e| FsError::DeleteErr(e.status()))?;
+        Ok(())
+    }
+
+    /// Renames a file into another file.
+    ///
+    /// This essentially copies a file into another file, then deletes the original file.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the volume couldn't be opened, any of the two paths don't point to a valid file,
+    /// the source file could not be read, or the source file could not be deleted.
+    pub fn rename(&mut self, src: &CStr16, dst: &CStr16) -> Result<(), FsError> {
+        if src == dst {
+            return Ok(());
+        }
+
+        self.copy(src, dst)?;
+        self.delete(src)?;
 
         Ok(())
     }
@@ -456,6 +476,22 @@ pub(crate) fn is_target_partition(handle: Handle) -> bool {
         }
     }
     true
+}
+
+/// Get the unique partition GUID of a particular partition.
+///
+/// Not to be confused with the partition type GUID, the unique partition GUID allows
+/// to universally identify a particular partition.
+///
+/// May return `None` if the partition does not support [`PartitionInfo`], or is not a GPT partition.
+pub(crate) fn get_partition_guid(handle: Handle) -> Option<Guid> {
+    if let Ok(info) = boot::open_protocol_exclusive::<PartitionInfo>(handle) {
+        let entry = info.gpt_partition_entry()?;
+
+        Some(entry.unique_partition_guid)
+    } else {
+        None
+    }
 }
 
 /// Checks if an [`&str`] path is valid.

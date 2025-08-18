@@ -32,6 +32,11 @@ static LOGGER: UefiLogger = UefiLogger::new();
 /// The actual main function of the program, which returns a [`Result`].
 ///
 /// `Box<dyn core::error::Error>` is used here mainly for simplicity purposes (we simply will propagate all these errors).
+///
+/// # Errors
+///
+/// May return an `Error` if an error occurs while the boot manager is created, or there is no input protocol, or an error
+/// occurred while loading an image.
 fn main_func() -> Result<Handle, Box<dyn core::error::Error>> {
     uefi::helpers::init().map_err(BootError::Uefi)?; // initialize helpers (for print)
     with_stdout(Output::clear)?;
@@ -63,6 +68,11 @@ fn main_func() -> Result<Handle, Box<dyn core::error::Error>> {
     }
 }
 
+/// The main function of the program.
+///
+/// # Panics
+///
+/// Will return a panic if an error occurs while `main_func` is ran.
 #[entry]
 fn main() -> Status {
     let image = main_func().unwrap_or_else(|e| panic!("Error: {e}")); // panic on critical error

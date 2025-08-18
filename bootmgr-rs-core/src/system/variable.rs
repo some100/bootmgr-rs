@@ -7,7 +7,7 @@
 
 use thiserror::Error;
 use uefi::{
-    CStr16, Status, guid,
+    CStr16, CString16, Status, guid,
     runtime::{self, VariableAttributes, VariableVendor},
 };
 
@@ -25,6 +25,14 @@ pub enum VarError {
     /// The variable could not be obtained.
     #[error("Failed to get variable: {0}")]
     GetErr(#[from] uefi::Error<Option<usize>>),
+
+    /// The string variable could not be cast into a u16.
+    #[error("Failed to cast variable to u16: {0}")]
+    CastErr(bytemuck::PodCastError),
+
+    /// The variable did not contain a string with valid characters or a nul terminator.
+    #[error("Failed to get string variable: {0}")]
+    StrErr(#[from] uefi::data_types::FromSliceWithNulError),
 }
 
 /// A trait for implementations of UEFI variable storage.
@@ -32,12 +40,20 @@ pub enum VarError {
 /// Usually this will use runtime services.
 trait UefiVariableStorage {
     /// Get a variable given its name, a variable vendor, and a mutable byte slice.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the underlying variable storage failed to get the variable.
     fn get_variable<T: UefiVariable + 'static>(
         name: &CStr16,
         vendor: &VariableVendor,
     ) -> BootResult<T>;
 
     /// Set a variable given its name, a variable vendor, variable attributes, and the chosen type.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the underlying variable storage failed to set the variable.
     fn set_variable<T: UefiVariable + 'static>(
         name: &CStr16,
         vendor: &VariableVendor,
@@ -227,7 +243,11 @@ pub fn set_variable<T: UefiVariable + 'static>(
 ) -> BootResult<()> {
     let vendor = vendor.unwrap_or(runtime::VariableVendor(BOOTMGR_GUID));
     let attrs = attrs.map_or_else(
-        || VariableAttributes::NON_VOLATILE | VariableAttributes::BOOTSERVICE_ACCESS,
+        || {
+            VariableAttributes::NON_VOLATILE
+                | VariableAttributes::BOOTSERVICE_ACCESS
+                | VariableAttributes::RUNTIME_ACCESS
+        },
         |x| x,
     );
     RuntimeUefiVariableStorage::set_variable(name, &vendor, attrs, num)
@@ -253,4 +273,86 @@ pub fn get_variable<T: UefiVariable + 'static>(
 ) -> BootResult<T> {
     let vendor = vendor.unwrap_or(runtime::VariableVendor(BOOTMGR_GUID));
     RuntimeUefiVariableStorage::get_variable(name, &vendor)
+}
+
+/// Sets a UEFI variable to a [`u16`] slice given the name.
+///
+/// If None is specified for the vendor, then the variable will be searched for in a custom GUID space,
+/// not the global variables vendor space. In other words, unless you are storing your own variables,
+/// it may not be what you expect.
+///
+/// This custom namespace is accessible at GUID `23600d08-561e-4e68-a024-1d7d6e04ee4e`.
+///
+/// Passing None for str will result in the variable being deleted.
+///
+/// # Errors
+///
+/// May return an `Error` for many reasons, see [`runtime::set_variable`]
+pub fn set_variable_u16_slice(
+    name: &CStr16,
+    vendor: Option<VariableVendor>,
+    attrs: Option<VariableAttributes>,
+    bytes: Option<&[u16]>,
+) -> BootResult<()> {
+    let vendor = vendor.unwrap_or(runtime::VariableVendor(BOOTMGR_GUID));
+    let attrs = attrs.map_or_else(
+        || {
+            VariableAttributes::NON_VOLATILE
+                | VariableAttributes::BOOTSERVICE_ACCESS
+                | VariableAttributes::RUNTIME_ACCESS
+        },
+        |x| x,
+    );
+    let bytes = bytes.unwrap_or(&[] as &[u16]);
+    Ok(runtime::set_variable(
+        name,
+        &vendor,
+        attrs,
+        bytemuck::cast_slice(bytes),
+    )?)
+}
+
+/// Sets a UEFI variable to an [`&CStr16`] given the name.
+///
+/// This is essentially a convenience wrapper around [`set_variable_u16_slice`]. This converts
+/// a [`&CStr16`] into a u16 slice before setting the variable.
+///
+/// # Errors
+///
+/// May return an `Error` for many reasons, see [`runtime::set_variable`]
+pub fn set_variable_str(
+    name: &CStr16,
+    vendor: Option<VariableVendor>,
+    attrs: Option<VariableAttributes>,
+    str: Option<&CStr16>,
+) -> BootResult<()> {
+    let str = str.map(CStr16::to_u16_slice_with_nul);
+    set_variable_u16_slice(name, vendor, attrs, str)
+}
+
+/// Gets a UEFI variable of a [`&CStr16`] given the name
+///
+/// If None is specified for the vendor, then the variable will be searched for in a custom GUID space,
+/// not the global variables vendor space. In other words, unless you are storing your own variables,
+/// it may not be what you expect.
+///
+/// This custom namespace is accessible at GUID `23600d08-561e-4e68-a024-1d7d6e04ee4e`.
+///
+/// If the variable was not found, an empty string will be returned.
+///
+/// # Errors
+///
+/// May return an `Error` for many reasons, see [`runtime::get_variable`]. In addition if the variable could not be
+/// converted into a u16 slice, or the variable could not be converted into a [`CString16`], then an error will be
+/// returned.
+pub fn get_variable_str(name: &CStr16, vendor: Option<VariableVendor>) -> BootResult<CString16> {
+    let vendor = vendor.unwrap_or(runtime::VariableVendor(BOOTMGR_GUID));
+    let var = match runtime::get_variable_boxed(name, &vendor) {
+        Ok((var, _)) => var,
+        Err(e) if e.status() == Status::NOT_FOUND => return Ok(CString16::new()),
+        Err(e) => return Err(e.into()),
+    };
+    let str = bytemuck::try_cast_slice(&var).map_err(VarError::CastErr)?;
+
+    Ok(CString16::try_from(str.to_vec()).map_err(VarError::StrErr)?)
 }

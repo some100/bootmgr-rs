@@ -67,6 +67,10 @@ fn shim_is_recent() -> bool {
 }
 
 /// Shim validator with [`super::Validator`] function signature.
+///
+/// # Errors
+///
+/// May return an `Error` if the file failed validation.
 fn shim_validate(
     _ctx: Option<NonNull<u8>>,
     device_path: Option<&DevicePath>,
@@ -87,6 +91,10 @@ fn shim_validate(
 }
 
 /// Ask Shim to keep its protocol around, in case we need to verify more images (for example, after loading drivers with Shim)
+///
+/// # Errors
+///
+/// May return an `Error` if the variable could not be set.
 fn shim_retain_protocol() -> BootResult<()> {
     let vendor = VariableVendor(ShimLock::GUID);
     if !matches!(

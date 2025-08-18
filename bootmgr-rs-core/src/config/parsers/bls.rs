@@ -88,6 +88,10 @@ impl BootCounter {
     }
 
     /// Convert the current [`BootCounter`] into a filename for renaming.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the filename could not be converted into a [`CString16`].
     fn to_filename(&self) -> BootResult<CString16> {
         let str = if self.done > 0 {
             format!("{}+{}-{}.conf", self.base_name, self.left, self.done)
@@ -244,6 +248,10 @@ impl ConfigParser for BlsConfig {
 }
 
 /// Parse a BLS file given the [`FileInfo`], a `SimpleFileSystem` protocol, and a handle to that protocol.
+///
+/// # Errors
+///
+/// May return an `Error` if the file could not be read.
 fn get_bls_config(
     file: &FileInfo,
     fs: &mut UefiFileSystem,
@@ -321,6 +329,9 @@ mod tests {
 
     use super::*;
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_basic_config() {
         let config = b"
@@ -344,6 +355,9 @@ mod tests {
         );
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_multiple_initrd() {
         let config = b"
@@ -361,6 +375,9 @@ mod tests {
         assert_eq!(bls_config.get_options(), "root=PARTUUID=dcba4321-fe65-hg87-ji09-vutsrqponmlk ro initrd=/intel-ucode.img initrd=/initramfs-linux.img".to_owned());
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_comment() {
         let config = b"
@@ -373,6 +390,9 @@ mod tests {
         assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()));
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_duplicate() {
         let config = b"
@@ -386,6 +406,9 @@ mod tests {
         assert_eq!(bls_config.linux, Some("/vmlinuz-linux".to_owned()));
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_invalid_keys() {
         let config = b"
@@ -397,6 +420,9 @@ mod tests {
         assert_eq!(bls_config.title, Some("Linux".to_owned())); // valid keys should still be parsed
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_boot_counter() {
         let filename = "somelinuxconf+3.conf";

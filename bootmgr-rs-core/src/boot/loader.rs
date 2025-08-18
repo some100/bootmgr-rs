@@ -95,6 +95,9 @@ mod tests {
 
     use super::*;
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_missing_handle() {
         let config = Config {

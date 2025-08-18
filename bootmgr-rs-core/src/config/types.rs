@@ -219,6 +219,9 @@ impl Deref for FsHandle {
 mod tests {
     use super::*;
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_sort_key() {
         let sort_key = SortKey::new("a-valid-sort-key");
@@ -230,6 +233,9 @@ mod tests {
         assert!(sort_key.is_err());
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_machine_id() {
         let machine_id = MachineId::new("93274530989549038301177646597349");
@@ -245,6 +251,9 @@ mod tests {
         assert!(machine_id.is_err());
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_dtb_path() {
         let devicetree = DevicetreePath::new("\\foo\\bar.dtb");
@@ -256,6 +265,9 @@ mod tests {
         assert!(devicetree.is_err());
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_arch() {
         let arch = Architecture::new("x64");
@@ -264,6 +276,9 @@ mod tests {
         assert!(arch.is_err());
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_efi_path() {
         let efi = EfiPath::new("\\foo\\bar.efi");

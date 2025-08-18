@@ -35,6 +35,10 @@ impl App {
     /// Then, it gets the images from the UI, and, for each [`Config`] in the [`BootMgr`], it will assign an image
     /// given the origin of the [`Config`], then put those items back into the UI. Then theme settings from `BootConfig`
     /// are applied. Finally, the list index and timeout are set to the application's values.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the window could not be created.
     pub fn get_a_ui(
         &self,
         w: usize,

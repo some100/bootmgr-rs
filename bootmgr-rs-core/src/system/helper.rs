@@ -273,6 +273,9 @@ mod tests {
     use super::*;
     use uefi::cstr16;
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_check_sort_key_valid() {
         let sort_key = "sort-key";
@@ -281,6 +284,9 @@ mod tests {
         assert!(!check_sort_key_valid(sort_key));
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_check_machine_id_valid() {
         let machine_id = "1234567890abcdef1234567890abcdef";
@@ -291,6 +297,13 @@ mod tests {
         assert!(!check_machine_id_valid(machine_id));
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the string could not be converted into a [`CString16`].
     #[test]
     fn test_str_to_cstr() -> Result<(), StrError> {
         let cstr = str_to_cstr("foo bar")?;
@@ -299,6 +312,13 @@ mod tests {
         Ok(())
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if [`&CStr16`] slices could not joined as a path.
     #[test]
     fn test_get_path_cstr() -> Result<(), StrError> {
         const PREFIX: &CStr16 = cstr16!("\\root");
@@ -309,6 +329,9 @@ mod tests {
         Ok(())
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_get_arch() {
         if cfg!(target_arch = "x86") {
@@ -324,6 +347,9 @@ mod tests {
         }
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_normalize_path() {
         let path = "/some/path/from/linux/fs";

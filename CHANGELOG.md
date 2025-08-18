@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.16.0] - 2025-08-18
+
+### Added
+
+- Added time module, which provides `timer_usec`, which measures the microseconds since the beginning of startup.
+- Added `UefiFileSystem::copy`, which only copies the contents of a file onto another file.
+- Added `get_variable_str` and `set_variable_str` for saving and loading strings.
+- Added partial support for Boot Loader Interface, which allows UEFI bootloaders to interact with systemd through UEFI variables.
+
 ## bootmgr-rs-core - [0.15.6] - 2025-08-17
 
 ### Changed

@@ -35,6 +35,10 @@ pub fn reset_to_firmware() -> ! {
 }
 
 /// Sets the [`EFI_OS_INDICATIONS_BOOT_TO_FW_UI`] bit.
+///
+/// # Errors
+///
+/// May return an `Error` if the variable could not be obtained or set.
 fn set_reset_to_firmware_flag() -> BootResult<()> {
     let mut osind = get_variable::<u64>(
         cstr16!("OsIndications"),

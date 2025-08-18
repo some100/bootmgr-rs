@@ -20,6 +20,10 @@ use uefi::{
 static LOGGER: UefiLogger = UefiLogger::new();
 
 /// The actual main function of the program, which returns an [`anyhow::Result`].
+///
+/// # Errors
+///
+/// May return an `Error` if the program could not obtain the `LoadedImage` protocol.
 fn main_func() -> BootResult<Option<Handle>> {
     uefi::helpers::init()?; // initialize helpers (for print)
 

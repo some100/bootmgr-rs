@@ -9,7 +9,7 @@ use log::warn;
 use object::{Architecture, Object, ObjectSection, Section};
 
 use thiserror::Error;
-use uefi::{CStr16, Handle, cstr16, proto::media::file::FileInfo};
+use uefi::{CStr16, Handle, Status, cstr16, proto::media::file::FileInfo};
 
 use crate::{
     BootResult,
@@ -18,7 +18,10 @@ use crate::{
         builder::ConfigBuilder,
         parsers::{ConfigParser, Parsers},
     },
-    system::{fs::UefiFileSystem, helper::get_path_cstr},
+    system::{
+        fs::{FsError, UefiFileSystem},
+        helper::get_path_cstr,
+    },
 };
 
 /// The configuration prefix.
@@ -169,16 +172,29 @@ impl ConfigParser for UkiConfig {
 
         for file in dir {
             match get_uki_config(&file, fs, handle) {
-                Ok(config) => configs.push(config),
+                Ok(Some(config)) => configs.push(config),
                 Err(e) => warn!("{e}"),
+                _ => (),
             }
         }
     }
 }
 
 /// Parse a UKI executable given the [`FileInfo`], a `SimpleFileSystem` protocol, and a handle to that protocol.
-fn get_uki_config(file: &FileInfo, fs: &mut UefiFileSystem, handle: Handle) -> BootResult<Config> {
-    let content = fs.read(&get_path_cstr(UKI_PREFIX, file.file_name())?)?;
+///
+/// # Errors
+///
+/// May return an `Error` if the
+fn get_uki_config(
+    file: &FileInfo,
+    fs: &mut UefiFileSystem,
+    handle: Handle,
+) -> BootResult<Option<Config>> {
+    let content = match fs.read(&get_path_cstr(UKI_PREFIX, file.file_name())?) {
+        Ok(content) => content,
+        Err(FsError::OpenErr(Status::NOT_FOUND)) => return Ok(None),
+        Err(e) => return Err(e.into()),
+    };
 
     let uki_config = UkiConfig::new(&content)?;
 
@@ -192,7 +208,7 @@ fn get_uki_config(file: &FileInfo, fs: &mut UefiFileSystem, handle: Handle) -> B
         .assign_if_some(uki_config.version, ConfigBuilder::version)
         .assign_if_some(uki_config.architecture, ConfigBuilder::architecture);
 
-    Ok(config.build())
+    Ok(Some(config.build()))
 }
 
 #[cfg(test)]

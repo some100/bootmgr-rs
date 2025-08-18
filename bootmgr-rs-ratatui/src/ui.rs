@@ -37,6 +37,10 @@ pub mod theme;
 
 impl App {
     /// Draw a frame to the screen.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the widgets could not be drawn to the screen.
     pub fn draw(&mut self, terminal: &mut Terminal<UefiBackend>) -> Result<(), MainError> {
         terminal.draw(|f| f.render_widget(self, f.area()))?;
         Ok(())

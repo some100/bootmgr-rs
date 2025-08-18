@@ -235,6 +235,9 @@ mod tests {
     use super::*;
     use alloc::borrow::ToOwned;
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_basic_config() {
         let config = ConfigBuilder::new("foo.bar", ".bar")
@@ -260,6 +263,9 @@ mod tests {
         assert_eq!(config.options, Some("Some options".to_owned()));
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_path_replacement() {
         let config = ConfigBuilder::new("foo.bar", ".bar")

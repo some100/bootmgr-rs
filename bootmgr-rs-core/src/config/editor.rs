@@ -124,6 +124,9 @@ impl ConfigEditor {
 mod tests {
     use super::*;
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn basic_editing() {
         let mut config = ConfigBuilder::new("foo.bar", ".bar")
@@ -148,6 +151,9 @@ mod tests {
         assert!(config.options.is_none());
     }
 
+    /// # Panics
+    ///
+    /// May panic if the assertions fail.
     #[test]
     fn test_validation() {
         let mut config = ConfigBuilder::new("foo.bar", ".bar")

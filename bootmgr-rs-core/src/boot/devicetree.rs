@@ -77,6 +77,10 @@ impl Devicetree<'_> {
     ///
     /// If the size provided is smaller than the content length, then the content length will be used.
     /// This ensures that both enough memory can be allocated and the slice can be constructed safely.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the memory pool could not be allocated.
     fn new(content: &[u8], size: Option<usize>) -> BootResult<Self> {
         let size = size.unwrap_or(content.len()).min(content.len());
 
@@ -97,6 +101,10 @@ impl Devicetree<'_> {
     /// We simply pass the devicetree blob as well as size as is to the firmware's fixup
     /// protocol. From this point, it is up to the firmware to interpret and fixup the
     /// devicetree.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the firmware fixup method failed.
     fn fixup(&mut self, fixup: &mut ScopedProtocol<DevicetreeFixup>) -> BootResult<()> {
         Ok(fixup
             .fixup(
@@ -108,6 +116,10 @@ impl Devicetree<'_> {
     }
 
     /// Install the devicetree blob into the configuration table.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if we ran out of memory somehow.
     fn install(&self) -> BootResult<()> {
         // SAFETY: the ptr is not modified or freed afterwards, especially when using DevicetreeGuard, so this is
         // safe.
@@ -133,6 +145,10 @@ impl Drop for Devicetree<'_> {
 impl DevicetreeGuard<'_> {
     /// Get a new [`DevicetreeGuard`] given a byte slice to a devicetree blob and optionally its size.
     /// This delegates to the inner [`Devicetree`] constructor.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the inner [`Devicetree`] constructor fails.
     fn new(content: &[u8], size: Option<usize>) -> BootResult<Self> {
         Ok(Self {
             devicetree: Some(Devicetree::new(content, size)?),
@@ -140,6 +156,10 @@ impl DevicetreeGuard<'_> {
     }
 
     /// Apply fixups to the devicetree blob. This delegates to the inner [`Devicetree`].
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the inner [`Devicetree`] fails fixup.
     fn fixup(&mut self, fixup: &mut ScopedProtocol<DevicetreeFixup>) -> BootResult<()> {
         if let Some(devicetree) = &mut self.devicetree {
             devicetree.fixup(fixup)?;
@@ -149,6 +169,10 @@ impl DevicetreeGuard<'_> {
 
     /// Install the devicetree into the configuration table. This delegates to the inner [`Devicetree`],
     /// but also leaks the pointer so that it may safely stay in the configuration table.
+    ///
+    /// # Errors
+    ///
+    /// May return an `Error` if the inner devicetree could not be installed.
     fn install(&mut self) -> BootResult<()> {
         let devicetree = self.devicetree.take();
         if let Some(devicetree) = devicetree {

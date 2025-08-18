@@ -7,7 +7,7 @@ use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use log::warn;
 use nt_hive::{Hive, KeyNode};
 use thiserror::Error;
-use uefi::{CStr16, Handle, cstr16};
+use uefi::{CStr16, Handle, Status, cstr16};
 
 use crate::{
     BootResult,
@@ -16,7 +16,10 @@ use crate::{
         builder::ConfigBuilder,
         parsers::{ConfigParser, Parsers},
     },
-    system::{fs::UefiFileSystem, helper::get_path_cstr},
+    system::{
+        fs::{FsError, UefiFileSystem},
+        helper::get_path_cstr,
+    },
 };
 
 /// The configuration prefix.
@@ -145,16 +148,26 @@ impl ConfigParser for WinConfig {
         };
         if fs.exists(&path) {
             match get_win_config(fs, handle) {
-                Ok(config) => configs.push(config),
+                Ok(Some(config)) => configs.push(config),
                 Err(e) => warn!("{e}"),
+                _ => (),
             }
         }
     }
 }
 
 /// Parse a BLS file given a [`UefiFileSystem`], and a handle to that protocol's underlying [`SimpleFileSystem`].
-fn get_win_config(fs: &mut UefiFileSystem, handle: Handle) -> BootResult<Config> {
-    let content = fs.read(&get_path_cstr(WIN_PREFIX, cstr16!("BCD"))?)?;
+///
+/// # Errors
+///
+/// May return an `Error` if the filesystem could not read the BCD for some reason other than it being not found, or
+/// the BCD is not a valid registry hive.
+fn get_win_config(fs: &mut UefiFileSystem, handle: Handle) -> BootResult<Option<Config>> {
+    let content = match fs.read(&get_path_cstr(WIN_PREFIX, cstr16!("BCD"))?) {
+        Ok(content) => content,
+        Err(FsError::OpenErr(Status::NOT_FOUND)) => return Ok(None),
+        Err(e) => return Err(e.into()),
+    };
 
     let win_config = WinConfig::new(&content)?;
 
@@ -166,7 +179,7 @@ fn get_win_config(fs: &mut UefiFileSystem, handle: Handle) -> BootResult<Config>
         .fs_handle(handle)
         .origin(Parsers::Windows);
 
-    Ok(config.build())
+    Ok(Some(config.build()))
 }
 
 #[cfg(test)]
