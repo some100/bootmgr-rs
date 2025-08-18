@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.16.3] - 2025-08-18
+
+### Added
+
+- Added support for random seed generation for Boot Loader Interface.
+
 ## bootmgr-rs-core - [0.16.2] - 2025-08-18
 
 ### Changed

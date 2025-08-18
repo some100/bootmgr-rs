@@ -8,20 +8,27 @@
 //! communication channel for the boot loader and systemd. This allows boot loaders, such as systemd-boot,
 //! to use a tool such as `bootctl` to set the timeout, or set the next boot option.
 //!
-//! This module provides a nearly-complete implementation of this interface, the only caveat being that random
-//! seed generation from the boot loader is not supported.
+//! This module provides an essentially complete implementation of this interface as per the
+//! [Boot Loader Interface](https://systemd.io/BOOT_LOADER_INTERFACE/) specification.
 
 use alloc::{format, string::ToString, vec::Vec};
 
 use bitflags::bitflags;
-use uefi::{boot, cstr16, data_types::EqStrUntilNul, guid, runtime::VariableVendor};
+use sha2::{Digest, Sha256};
+use uefi::{
+    CStr16, boot, cstr16,
+    data_types::EqStrUntilNul,
+    guid,
+    proto::rng::Rng,
+    runtime::{self, VariableVendor},
+};
 
 use crate::{
     BootResult,
     config::Config,
     system::{
-        fs::get_partition_guid,
-        helper::str_to_cstr,
+        fs::{UefiFileSystem, get_partition_guid},
+        helper::{locate_protocol, str_to_cstr},
         time::timer_usec,
         variable::{get_variable_str, set_variable, set_variable_str, set_variable_u16_slice},
     },
@@ -29,6 +36,9 @@ use crate::{
 
 /// The variable namespace for Boot Loader Interface UEFI variables.
 const BLI_VENDOR: VariableVendor = VariableVendor(guid!("4a67b082-0a4c-41cf-b6c7-440b29bb8c4f"));
+
+/// The path of the random seed.
+const RANDOM_SEED_PATH: &CStr16 = cstr16!("\\loader\\random-seed");
 
 bitflags! {
     /// Feature flags for Boot Loader Interface.
@@ -56,6 +66,7 @@ pub(crate) fn export_variables() -> BootResult<()> {
         | LoaderFeatures::ENTRY_ONESHOT
         | LoaderFeatures::BOOT_COUNTER
         | LoaderFeatures::XBOOTLDR
+        | LoaderFeatures::RANDOM_SEED
         | LoaderFeatures::MENU_DISABLED; // this is frontend dependent, depending on how input events are handled.
 
     let time = str_to_cstr(&timer_usec().to_string())?;
@@ -217,4 +228,51 @@ fn match_timeout(timeout: &uefi::CStr16) -> Option<i64> {
     } else {
         timeout.to_string().parse().ok()
     }
+}
+
+/// Generate a random seed given the system RNG, the on-disk seed, and the system token.
+///
+/// This will generate a random seed as per the Boot Loader Interface, which list that the random seed should be hashed
+/// with the available source of entropy (the Rng protocol), the random seed, and the system token. Additionally, it will
+/// also hash in the available time (microseconds since boot). Entropy is gathered on a best-effort basis, which means
+/// that errors that may occur from the available sources are ignored. The only source which is required is the random seed,
+/// since this also indicates if the operating system supports using this random seed in the first place.
+///
+/// # Errors
+///
+/// May return an `Error` if the filesystem could not be opened, the random seed could not be read, or the finalized
+/// seed could not be written back to.
+pub(crate) fn generate_random_seed() -> BootResult<()> {
+    let mut fs = UefiFileSystem::from_image_fs()?;
+
+    if !fs.exists(RANDOM_SEED_PATH) {
+        return Ok(()); // return immediately if there isnt even a random seed to begin with, before initializing hasher.
+    }
+
+    let mut hasher = Sha256::new();
+
+    let content = fs.read(RANDOM_SEED_PATH)?;
+
+    hasher.update(&content);
+
+    if let Ok((token, _)) = runtime::get_variable_boxed(cstr16!("LoaderSystemToken"), &BLI_VENDOR) {
+        hasher.update(&token);
+    }
+
+    if let Ok(mut rng) = locate_protocol::<Rng>() {
+        let mut buf = [0; 64];
+        let _ = rng.get_rng(None, &mut buf);
+
+        hasher.update(buf);
+    }
+
+    // Add in the current time in there just for fun (and extra entropy)
+    hasher.update(timer_usec().to_le_bytes());
+
+    let result = hasher.finalize();
+
+    let _ = fs.delete(RANDOM_SEED_PATH);
+    fs.write(RANDOM_SEED_PATH, &result)?;
+
+    Ok(())
 }

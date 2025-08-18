@@ -73,6 +73,7 @@ impl BootMgr {
         let config = &self.configs[selected];
         match load_boot_option(config) {
             Ok(handle) => {
+                let _ = bli::generate_random_seed();
                 let _ = bli::record_exit_time();
                 Ok(handle)
             }

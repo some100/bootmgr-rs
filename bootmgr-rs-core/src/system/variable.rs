@@ -312,10 +312,10 @@ pub fn set_variable_u16_slice(
     )?)
 }
 
-/// Sets a UEFI variable to an [`&CStr16`] given the name.
+/// Sets a UEFI variable to an [`CStr16`] slice given the name.
 ///
 /// This is essentially a convenience wrapper around [`set_variable_u16_slice`]. This converts
-/// a [`&CStr16`] into a u16 slice before setting the variable.
+/// a [`CStr16`] slice into a u16 slice before setting the variable.
 ///
 /// # Errors
 ///
@@ -330,7 +330,7 @@ pub fn set_variable_str(
     set_variable_u16_slice(name, vendor, attrs, str)
 }
 
-/// Gets a UEFI variable of a [`&CStr16`] given the name
+/// Gets a UEFI variable of a [`CStr16`] slice given the name
 ///
 /// If None is specified for the vendor, then the variable will be searched for in a custom GUID space,
 /// not the global variables vendor space. In other words, unless you are storing your own variables,
