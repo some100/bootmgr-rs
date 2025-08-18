@@ -174,7 +174,7 @@ impl Config {
     pub fn get_preferred_title(&self, option: Option<usize>) -> String {
         let mut title = self.title.clone().unwrap_or_else(|| {
             if self.filename.is_empty() {
-                option.map_or("Unknown".to_owned(), |x| x.to_string())
+                option.map_or_else(|| "Unknown".to_owned(), |x| x.to_string())
             } else {
                 self.filename.clone()
             }

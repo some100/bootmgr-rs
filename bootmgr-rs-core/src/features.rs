@@ -20,13 +20,13 @@ macro_rules! optional_config {
     ($feature:literal, $name:ident, $config:ident) => {
         /// The parser for $config
         #[cfg(feature = $feature)]
-        pub(crate) mod $name {
+        pub mod $name {
             pub use crate::config::parsers::$name::$config;
         }
 
         /// The disabled parser for $config
         #[cfg(not(feature = $feature))]
-        pub(crate) mod $name {
+        pub mod $name {
             use crate::{
                 config::{Config, parsers::ConfigParser},
                 system::fs::UefiFileSystem,

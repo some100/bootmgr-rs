@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-core - [0.15.6] - 2025-08-17
+
+### Changed
+
+- Use `map_or_else` in `get_preferred_title` instead of `map_or`.
+
 ## bootmgr-rs-core - [0.15.5] - 2025-08-17
 
 ### Changed

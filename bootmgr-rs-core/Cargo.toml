@@ -3,7 +3,7 @@
 
 [package]
 name = "bootmgr-rs-core"
-version = "0.15.5"
+version = "0.15.6"
 rust-version = "1.88.0"
 edition = "2024"
 license = "MIT"
