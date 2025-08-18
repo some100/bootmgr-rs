@@ -51,8 +51,8 @@ bitflags! {
     /// Some of these features are flagged as not supported, even if `bootmgr-rs` may support these features,
     /// due to different paths that `bootmgr-rs` may use or because it uses a different configuration format
     /// (such as `LOAD_DRIVER` and `SAVED_ENTRY`).
-    /// 
-    /// The only feature flags that are necessary for direct interaction with `bootctl` are `TIMEOUT`, 
+    ///
+    /// The only feature flags that are necessary for direct interaction with `bootctl` are `TIMEOUT`,
     /// `TIMEOUT_ONESHOT`, `ENTRY_DEFAULT`, `ENTRY_ONESHOT`, `BOOT_COUNTER`, `XBOOTLDR`, `RANDOM_SEED`,
     /// and `MENU_DISABLED`.
     struct LoaderFeatures: u64 {
