@@ -3,7 +3,7 @@
 
 [package]
 name = "bootmgr"
-version = "0.19.0"
+version = "0.19.1"
 rust-version = "1.88.0"
 edition = "2024"
 license = "MIT"
@@ -15,7 +15,7 @@ repository = "https://github.com/some100/bootmgr-rs"
 [dependencies]
 bitflags = "2.9.2"
 blake3 = { version = "1.8.2", default-features = false }
-bytemuck = "1.23.2"
+bytemuck = { version = "1.23.2", features = ["must_cast"] }
 log = "0.4.27"
 nt-hive = { version = "0.3.0", default-features = false, features = ["alloc"], optional = true }
 object = { version = "0.37.1", default-features = false, features = ["pe", "read_core"], optional = true }

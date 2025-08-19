@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr - [0.19.1] - 2025-08-19
+
+### Changed
+
+- Used `must_cast` functions instead of `cast` functions from bytemuck for compile time cast guarantees.
+
 ## bootmgr - [0.19.0] - 2025-08-19
 
 ### Changed
