@@ -41,34 +41,31 @@ use uefi::{
 ///
 /// A [`RefCell`] is used here as `LoadOptions` may need to be modified more than once.
 /// This is the case if the `shim_load_image` function fails.
-static LOAD_OPTIONS: LoadOptions = LoadOptions {
-    options: RefCell::new(None),
-};
+static LOAD_OPTIONS: LoadOptions = LoadOptions::new();
 
 /// Storage struct for a [`CString16`] with load options.
-struct LoadOptions {
-    /// [`RefCell`] wrapper around the load options.
-    options: RefCell<Option<CString16>>,
-}
+struct LoadOptions(RefCell<Option<CString16>>);
 
 impl LoadOptions {
+    /// Get a new instance of [`LoadOptions`].
+    const fn new() -> Self {
+        Self(RefCell::new(None))
+    }
+
     /// Set the current load options from a [`CStr16`] slice.
     fn set(&self, s: &CStr16) {
-        let mut options = self.options.borrow_mut();
+        let mut options = self.0.borrow_mut();
         *options = Some(s.into());
     }
 
     /// Get the current load options as a possibly null u8 raw pointer.
     fn get(&self) -> Option<*const u8> {
-        self.options
-            .borrow()
-            .as_ref()
-            .map(|x| x.as_ptr().cast::<u8>())
+        self.0.borrow().as_ref().map(|x| x.as_ptr().cast::<u8>())
     }
 
     /// Get the number of bytes of the load options.
     fn size(&self) -> usize {
-        self.options.borrow().as_ref().map_or(0, |x| x.num_bytes())
+        self.0.borrow().as_ref().map_or(0, |x| x.num_bytes())
     }
 
     /// Set the load options of an image to the load options of the struct.

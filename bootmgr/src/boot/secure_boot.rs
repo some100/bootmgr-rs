@@ -66,17 +66,17 @@ pub(super) type Validator = fn(
 /// To partially counter the risk that a singular static state brings, this static is not exposed to anywhere other than
 /// [`SecurityOverrideGuard`]. This may need to be changed more than once in case `LoadImage` fails, and the override
 /// is still installed.
-static SECURITY_OVERRIDE: SecurityOverride = SecurityOverride {
-    inner: Cell::new(None),
-};
+static SECURITY_OVERRIDE: SecurityOverride = SecurityOverride::new();
 
 /// The security override, for installing a custom validator.
-struct SecurityOverride {
-    /// The inner [`SecurityOverrideInner`] wrapped around a [`Cell`] for safety.
-    inner: Cell<Option<SecurityOverrideInner>>,
-}
+struct SecurityOverride(Cell<Option<SecurityOverrideInner>>);
 
 impl SecurityOverride {
+    /// Get a new instance of [`SecurityOverride`] with an empty [`SecurityOverrideInner`].
+    const fn new() -> Self {
+        Self(Cell::new(None))
+    }
+
     /// Return a copy of the inner [`SecurityOverrideInner`].
     ///
     /// # Panics
@@ -85,9 +85,16 @@ impl SecurityOverride {
     /// However, this is not possible since the [`Cell`] is always initalized at the start
     /// of the program as a static. Therefore, this method cannot actually panic.
     const fn get(&self) -> SecurityOverrideInner {
-        self.inner
+        self.0
             .get()
             .expect("The static Cell should always be initialized at the start of the program")
+    }
+
+    /// Set the value of the inner [`SecurityOverrideInner`].
+    ///
+    /// Setting this as `None` will essentially delete it.
+    const fn set(&self, inner: Option<SecurityOverrideInner>) {
+        let _ = self.0.replace(inner);
     }
 }
 
@@ -129,9 +136,7 @@ fn secure_boot_enabled() -> bool {
 fn install_security_override(validator: Validator, validator_ctx: Option<NonNull<u8>>) {
     let security_override = &SECURITY_OVERRIDE;
 
-    security_override
-        .inner
-        .set(Some(SecurityOverrideInner::new(validator, validator_ctx)));
+    security_override.set(Some(SecurityOverrideInner::new(validator, validator_ctx)));
 }
 
 /// Uninstalls the security override. Should be used after installing the security override.
@@ -141,5 +146,5 @@ fn uninstall_security_override() {
     let security_override = &SECURITY_OVERRIDE;
 
     security_override.get().uninstall_validator();
-    security_override.inner.take();
+    security_override.set(None);
 }

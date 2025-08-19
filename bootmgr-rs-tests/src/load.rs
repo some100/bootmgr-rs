@@ -22,6 +22,13 @@ const LOADED_VARIABLE_NAME: &CStr16 = cstr16!("LoadedFromPrevTest");
 const SHELL_PATH: &CStr16 = cstr16!("\\shellx64.efi");
 const FALLBACK_PATH: &CStr16 = cstr16!("\\EFI\\BOOT\\BOOTx64.efi");
 
+/// Test if the image was successfully loaded (through the variable persisting).
+///
+/// If a panic resulted before this, then the image was not actually loaded.
+///
+/// # Errors
+///
+/// May return an `Error` if the variable could not be deleted.
 pub fn check_loaded() -> BootResult<()> {
     if matches!(get_variable::<bool>(LOADED_VARIABLE_NAME, None), Ok(true)) {
         set_variable::<usize>(LOADED_VARIABLE_NAME, None, None, None)?;
@@ -35,6 +42,15 @@ pub fn check_loaded() -> BootResult<()> {
     Ok(())
 }
 
+/// Test if an image could be loaded.
+///
+/// # Panics
+///
+/// May panic if any of the assertions fail.
+///
+/// # Errors
+///
+/// May return an `Error` if the filesystem could not be opened, or the variable could not be set.
 pub fn test_loading() -> anyhow::Result<()> {
     println!(
         "Will try to load an image from either {SHELL_PATH} or {FALLBACK_PATH} on same filesystem"

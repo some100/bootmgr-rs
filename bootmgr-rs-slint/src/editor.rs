@@ -9,10 +9,7 @@ use slint::{Model, ModelRc, SharedString, ToSharedString};
 
 /// The basic editor
 #[derive(Default)]
-pub struct Editor {
-    /// The [`ConfigEditor`].
-    pub edit: ConfigEditor,
-}
+pub struct Editor(ConfigEditor);
 
 impl Editor {
     /// Creates a new [`Editor`].
@@ -22,7 +19,7 @@ impl Editor {
 
     /// Load an editor from a config.
     pub fn load_config(&mut self, config: &Config) {
-        self.edit = ConfigEditor::new(config);
+        self.0 = ConfigEditor::new(config);
     }
 
     /// Save an editor to a config.
@@ -32,13 +29,13 @@ impl Editor {
         fields: &ModelRc<(SharedString, SharedString)>,
     ) {
         self.save_fields(fields);
-        self.edit.build(config);
+        self.0.build(config);
     }
 
     /// Get the fields of the config.
     pub fn get_fields(&self) -> ModelRc<(SharedString, SharedString)> {
         let fields: Vec<_> = self
-            .edit
+            .0
             .fields()
             .iter()
             .map(|(x, y)| (x.to_shared_string(), y.to_shared_string()))
@@ -50,8 +47,8 @@ impl Editor {
     /// Save the fields to the config.
     pub fn save_fields(&mut self, fields: &ModelRc<(SharedString, SharedString)>) {
         for (label, value) in fields.iter() {
-            if self.edit.go_to_field(&label) {
-                self.edit.update_selected(&value);
+            if self.0.go_to_field(&label) {
+                self.0.update_selected(&value);
             }
         }
     }

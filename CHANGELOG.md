@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr - [0.19.0] - 2025-08-19
+
+### Changed
+
+- Random seeds are now hashed using BLAKE3 instead of SHA-256.
+- Only generate the random seed if there is an existing one and the system token exists.
+- Convert some structs with one field to be opaque wrappers.
+
+### Removed
+
+- Removed `Instant::duration_since_start` (use `Instant::zero().elapsed()`). (BREAKING)
+
 ## bootmgr - [0.18.0] - 2025-08-18
 
 ### Added

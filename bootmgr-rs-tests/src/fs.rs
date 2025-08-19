@@ -10,6 +10,15 @@ const FILE_PATH: &CStr16 = cstr16!("\\foo.file");
 const FILE_CONTENT: &[u8] = &55usize.to_le_bytes();
 const ALT_FILE_PATH: &CStr16 = cstr16!("\\foo.other");
 
+/// Test the various filesystem methods.
+///
+/// # Panics
+///
+/// May panic if the filesystem assertions fail.
+///
+/// # Errors
+///
+/// May return an `Error` if any of the filesystem functions return an error.
 pub fn test_filesystem() -> BootResult<()> {
     let mut fs = UefiFileSystem::from_image_fs()?;
 

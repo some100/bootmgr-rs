@@ -6,6 +6,11 @@ use uefi::{println, proto::console::text::Key};
 
 use crate::read_key;
 
+/// Test the exposed custom actions.
+///
+/// # Errors
+///
+/// May return an `Error` if the key could not be read.
 pub fn test_custom_actions() -> anyhow::Result<()> {
     println!("Select the boot option that you want to test:");
     println!("1. Reboot");

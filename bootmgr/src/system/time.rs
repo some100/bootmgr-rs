@@ -20,15 +20,10 @@ use core::{cell::LazyCell, time::Duration};
 ///
 /// This is done so that the potentially expensive [`timer_freq`] operation (depending on x86 or aarch64) is only done
 /// once when it is used.
-static TIMER_FREQ: TimerFreq = TimerFreq {
-    timer_freq: LazyCell::new(timer_freq),
-};
+static TIMER_FREQ: TimerFreq = TimerFreq(LazyCell::new(timer_freq));
 
 /// A timer frequency that is stored in a static variable.
-struct TimerFreq {
-    /// The frequency of the timer, initialized once at the beginning using a [`LazyCell`].
-    timer_freq: LazyCell<u64>,
-}
+struct TimerFreq(LazyCell<u64>);
 
 // SAFETY: UEFI is single threaded there is no requirement of thread safety.
 unsafe impl Sync for TimerFreq {}
@@ -41,26 +36,20 @@ impl Instant {
     /// Returns an `Instant` corresponding to “now”.
     #[must_use = "Has no effect if the result is unused"]
     pub fn now() -> Self {
-        Self(1000 * 1000 * timer_tick() / *TIMER_FREQ.timer_freq)
+        Self(1000 * 1000 * timer_tick() / *TIMER_FREQ.0)
     }
 
     /// Returns an `Instant` corresponding to zero.
     #[must_use = "Has no effect if the result is unused"]
-    pub fn zero() -> Self {
+    pub const fn zero() -> Self {
         Self(0)
     }
 
     /// Returns the amount of time elapsed from another `Instant` to this one. This will return 0 if
     /// that `Instant` was later than the current one.
     #[must_use = "Has no effect if the result is unused"]
-    pub fn duration_since(&self, earlier: Self) -> Duration {
+    pub const fn duration_since(&self, earlier: Self) -> Duration {
         Duration::from_micros(self.0.saturating_sub(earlier.0))
-    }
-
-    /// Return the amount of time elapsed since the start of the timer counter.
-    #[must_use = "Has no effect if the result is unused"]
-    pub fn duration_since_start(&self) -> Duration {
-        Duration::from_micros(self.0.saturating_sub(0))
     }
 
     /// Get the duration elapsed since this `Instant`.

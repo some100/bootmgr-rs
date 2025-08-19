@@ -65,10 +65,7 @@ impl From<&Config> for SerializableConfig {
 /// The main storage for persistent [`Config`]s. This is essentially
 /// a map of filenames to a saved [`Config`].
 #[derive(Default)]
-pub struct PersistentConfig {
-    /// The mapper for config filenames to [`Config`].
-    configs: BTreeMap<String, SerializableConfig>,
-}
+pub struct PersistentConfig(BTreeMap<String, SerializableConfig>);
 
 impl PersistentConfig {
     /// Create a new [`PersistentConfig`].
@@ -87,7 +84,7 @@ impl PersistentConfig {
         if let Ok(content) = fs.read(PERSISTENT_CONFIG_PATH)
             && let Ok(content) = postcard::from_bytes(&content)
         {
-            configs.configs = content;
+            configs.0 = content;
         }
         Ok(configs)
     }
@@ -98,9 +95,7 @@ impl PersistentConfig {
     /// and origin are both exactly the same, then it is most likely the same [`Config`].
     #[must_use = "Has no effect if the result is unused"]
     pub fn contains(&self, config: &Config) -> bool {
-        self.configs
-            .get(&config.filename)
-            .map(|x| x.origin.as_ref())
+        self.0.get(&config.filename).map(|x| x.origin.as_ref())
             == Some(config.origin.map(|x| x.as_str().to_owned()).as_ref())
     }
 
@@ -115,7 +110,7 @@ impl PersistentConfig {
 
         fs.create(PERSISTENT_CONFIG_PATH)?;
 
-        if let Ok(content) = postcard::to_allocvec(&self.configs) {
+        if let Ok(content) = postcard::to_allocvec(&self.0) {
             fs.write(PERSISTENT_CONFIG_PATH, &content)?;
         }
         Ok(())
@@ -125,7 +120,7 @@ impl PersistentConfig {
     ///
     /// This will only swap the 8 fields that the editor is able to edit.
     pub fn swap_config_in_persist<'a>(&'a self, config: &'a mut Config) {
-        if let Some(persist_config) = self.configs.get(&config.filename)
+        if let Some(persist_config) = self.0.get(&config.filename)
             && persist_config.origin.as_deref() == config.origin.map(Parsers::as_str)
         {
             *config = ConfigBuilder::from(&*config)
@@ -152,12 +147,12 @@ impl PersistentConfig {
 
     /// Add a [`Config`] into the [`PersistentConfig`] map.
     pub fn add_config_to_persist(&mut self, config: &Config) {
-        self.configs
+        self.0
             .insert(config.filename.clone(), SerializableConfig::from(config));
     }
 
     /// Remove a [`Config`] from the [`PersistentConfig`] map.
     pub fn remove_config_from_persist(&mut self, config: &Config) {
-        self.configs.remove(&config.filename);
+        self.0.remove(&config.filename);
     }
 }

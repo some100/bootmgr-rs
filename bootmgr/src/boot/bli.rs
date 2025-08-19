@@ -16,7 +16,6 @@
 use alloc::{format, string::ToString, vec::Vec};
 
 use bitflags::bitflags;
-use sha2::{Digest, Sha256};
 use uefi::{
     CStr16, boot, cstr16,
     data_types::EqStrUntilNul,
@@ -275,8 +274,8 @@ fn match_timeout(timeout: &uefi::CStr16) -> Option<i64> {
 ///
 /// This will generate a random seed as per the Boot Loader Interface, which list that the random seed should be hashed
 /// with the available source of entropy (the Rng protocol), the random seed, and the system token. Additionally, it will
-/// also hash in the available time (microseconds since boot). Entropy is gathered on a best-effort basis, which means
-/// that errors that may occur from the available sources are ignored.
+/// also hash in the available time (microseconds since boot). Both the random seed and system token must be present as per
+/// [systemd's usage of random seeds](https://systemd.io/RANDOM_SEEDS/), otherwise this function will return immediately.
 ///
 /// # Errors
 ///
@@ -284,31 +283,33 @@ fn match_timeout(timeout: &uefi::CStr16) -> Option<i64> {
 pub(crate) fn generate_random_seed() -> BootResult<()> {
     let mut fs = UefiFileSystem::from_image_fs()?;
 
-    let mut hasher = Sha256::new();
+    let mut hasher = blake3::Hasher::new();
 
-    if let Ok(content) = fs.read(RANDOM_SEED_PATH) {
+    if let Ok(content) = fs.read(RANDOM_SEED_PATH)
+        && let Ok((token, _)) =
+            runtime::get_variable_boxed(cstr16!("LoaderSystemToken"), &BLI_VENDOR)
+    {
         hasher.update(&content);
-    }
-
-    if let Ok((token, _)) = runtime::get_variable_boxed(cstr16!("LoaderSystemToken"), &BLI_VENDOR) {
         hasher.update(&token);
+    } else {
+        return Ok(());
     }
 
     if let Ok(mut rng) = locate_protocol::<Rng>() {
         let mut buf = [0; 64];
         let _ = rng.get_rng(None, &mut buf);
 
-        hasher.update(buf);
+        hasher.update(&buf);
     }
 
     // Add in the current time in there just for fun (and extra entropy)
-    hasher.update(Instant::zero().elapsed().as_micros().to_le_bytes());
+    hasher.update(&Instant::zero().elapsed().as_micros().to_le_bytes());
 
     let result = hasher.finalize();
 
     let _ = fs.delete(RANDOM_SEED_PATH);
     fs.create(RANDOM_SEED_PATH)?;
-    fs.write(RANDOM_SEED_PATH, &result)?;
+    fs.write(RANDOM_SEED_PATH, result.as_bytes())?;
 
     Ok(())
 }

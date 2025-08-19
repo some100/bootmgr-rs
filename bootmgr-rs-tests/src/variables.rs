@@ -16,6 +16,15 @@ const STRING_VARIABLE_NAME: &CStr16 = cstr16!("TestStringVariable");
 const STRING_VARIABLE_CONTENT: &CStr16 = cstr16!("foo");
 const UPDATED_STRING_VARIABLE_CONTENT: &CStr16 = cstr16!("bar");
 
+/// Check if the variables persisted.
+///
+/// # Panics
+///
+/// May panic if any of the assertions fail.
+///
+/// # Errors
+///
+/// May return an `Error` if the variables could not be set.
 pub fn check_variable() -> BootResult<()> {
     if let Ok(num) = get_variable::<usize>(VARIABLE_NAME, None)
         && num != 0
@@ -46,6 +55,15 @@ pub fn check_variable() -> BootResult<()> {
     Ok(())
 }
 
+/// Test setting the values of the variables.
+///
+/// # Panics
+///
+/// May panic if any of the assertions fail.
+///
+/// # Errors
+///
+/// May return an `Error` if the variables could not be set.
 pub fn test_variables() -> BootResult<()> {
     set_variable(VARIABLE_NAME, None, None, Some(VARIABLE_CONTENT))?;
     set_variable_str(

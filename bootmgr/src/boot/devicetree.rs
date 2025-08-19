@@ -66,10 +66,7 @@ struct Devicetree<'a> {
 /// A RAII guard for [`Devicetree`] that leaks upon installation, in order to
 /// safely install the devicetree blob to the configuration table.
 #[must_use = "Will drop the inner Devicetree if immediately dropped"]
-struct DevicetreeGuard<'a> {
-    /// The inner [`Devicetree`].
-    devicetree: Option<Devicetree<'a>>,
-}
+struct DevicetreeGuard<'a>(Option<Devicetree<'a>>);
 
 impl Devicetree<'_> {
     /// Get a new [`Devicetree`] given a byte slice of a devicetree blob, and optionally its size which is
@@ -150,9 +147,7 @@ impl DevicetreeGuard<'_> {
     ///
     /// May return an `Error` if the inner [`Devicetree`] constructor fails.
     fn new(content: &[u8], size: Option<usize>) -> BootResult<Self> {
-        Ok(Self {
-            devicetree: Some(Devicetree::new(content, size)?),
-        })
+        Ok(Self(Some(Devicetree::new(content, size)?)))
     }
 
     /// Apply fixups to the devicetree blob. This delegates to the inner [`Devicetree`].
@@ -161,7 +156,7 @@ impl DevicetreeGuard<'_> {
     ///
     /// May return an `Error` if the inner [`Devicetree`] fails fixup.
     fn fixup(&mut self, fixup: &mut ScopedProtocol<DevicetreeFixup>) -> BootResult<()> {
-        if let Some(devicetree) = &mut self.devicetree {
+        if let Some(devicetree) = &mut self.0 {
             devicetree.fixup(fixup)?;
         }
         Ok(())
@@ -174,7 +169,7 @@ impl DevicetreeGuard<'_> {
     ///
     /// May return an `Error` if the inner devicetree could not be installed.
     fn install(&mut self) -> BootResult<()> {
-        let devicetree = self.devicetree.take();
+        let devicetree = self.0.take();
         if let Some(devicetree) = devicetree {
             devicetree.install()?;
             core::mem::forget(devicetree); // pointer must not be freed or modified after installation
@@ -189,7 +184,7 @@ impl DevicetreeGuard<'_> {
     /// May return an `Error` if the [`DevicetreeGuard`] was already consumed.
     fn size(&self) -> Result<usize, DevicetreeError> {
         Ok(self
-            .devicetree
+            .0
             .as_ref()
             .ok_or(DevicetreeError::DevicetreeGuardConsumed)?
             .size)
@@ -202,7 +197,7 @@ impl DevicetreeGuard<'_> {
     /// May return an `Error` if the [`DevicetreeGuard`] was already consumed.
     fn slice(&self) -> Result<&[u8], DevicetreeError> {
         Ok(self
-            .devicetree
+            .0
             .as_ref()
             .ok_or(DevicetreeError::DevicetreeGuardConsumed)?
             .slice)
@@ -211,11 +206,12 @@ impl DevicetreeGuard<'_> {
 
 impl Drop for DevicetreeGuard<'_> {
     fn drop(&mut self) {
-        self.devicetree.take();
+        self.0.take();
     }
 }
 
 /// Lets the firmware apply fixups to the provided devicetree.
+///
 /// This essentially attempts to open the [`DevicetreeFixup`] protocol on the system if it exists, then running its fixup method
 /// in order to apply firmware fixups to a DTB blob.
 ///

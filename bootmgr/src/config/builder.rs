@@ -38,45 +38,40 @@ use crate::{
 ///     .build();
 /// ```
 #[must_use = "Has no effect if the result is unused"]
-pub struct ConfigBuilder {
-    /// The inner [`Config`] that the builder operates on.
-    config: Config,
-}
+pub struct ConfigBuilder(Config);
 
 impl ConfigBuilder {
     /// Constructs a new [`Config`].
     pub fn new(filename: impl Into<String>, suffix: impl Into<String>) -> Self {
         let filename = filename.into();
         let suffix = suffix.into();
-        Self {
-            config: Config {
-                title: None,
-                version: None,
-                machine_id: None,
-                sort_key: None,
-                options: None,
-                devicetree_path: None,
-                architecture: None,
-                efi_path: None,
-                bad: false,
-                action: BootAction::BootEfi,
-                fs_handle: None,
-                origin: None,
-                filename,
-                suffix,
-            },
-        }
+        Self(Config {
+            title: None,
+            version: None,
+            machine_id: None,
+            sort_key: None,
+            options: None,
+            devicetree_path: None,
+            architecture: None,
+            efi_path: None,
+            bad: false,
+            action: BootAction::BootEfi,
+            fs_handle: None,
+            origin: None,
+            filename,
+            suffix,
+        })
     }
 
     /// Sets the title of a [`Config`].
     pub fn title(mut self, title: impl Into<String>) -> Self {
-        self.config.title = Some(title.into());
+        self.0.title = Some(title.into());
         self
     }
 
     /// Sets the version of a [`Config`].
     pub fn version(mut self, version: impl Into<String>) -> Self {
-        self.config.version = Some(version.into());
+        self.0.version = Some(version.into());
         self
     }
 
@@ -85,7 +80,7 @@ impl ConfigBuilder {
     /// This must be formatted as 32 lower case hexadecimal characters as defined in
     /// `BootLoaderSpec`. Otherwise, this will have no effect
     pub fn machine_id(mut self, machine_id: impl Into<String>) -> Self {
-        self.config.machine_id = match MachineId::new(&machine_id.into()) {
+        self.0.machine_id = match MachineId::new(&machine_id.into()) {
             Ok(machine_id) => Some(machine_id),
             Err(e) => {
                 warn!("{e}");
@@ -100,7 +95,7 @@ impl ConfigBuilder {
     /// Ideally, this should be entirely composed of lowercase characters,
     /// with nothing else other than numbers, dashes, underscores, and periods.
     pub fn sort_key(mut self, sort_key: impl Into<String>) -> Self {
-        self.config.sort_key = match SortKey::new(&sort_key.into()) {
+        self.0.sort_key = match SortKey::new(&sort_key.into()) {
             Ok(sort_key) => Some(sort_key),
             Err(e) => {
                 warn!("{e}");
@@ -114,13 +109,13 @@ impl ConfigBuilder {
     ///
     /// This essentially sets the `LoadOptions`, or the command line of an EFI shell
     pub fn options(mut self, options: impl Into<String>) -> Self {
-        self.config.options = Some(options.into());
+        self.0.options = Some(options.into());
         self
     }
 
     /// Sets the devicetree of a [`Config`]
     pub fn devicetree_path(mut self, devicetree_path: impl Into<String>) -> Self {
-        self.config.devicetree_path = match DevicetreePath::new(&devicetree_path.into()) {
+        self.0.devicetree_path = match DevicetreePath::new(&devicetree_path.into()) {
             Ok(devicetree_path) => Some(devicetree_path),
             Err(e) => {
                 warn!("{e}");
@@ -134,7 +129,7 @@ impl ConfigBuilder {
     ///
     /// This is only used for filtering entries
     pub fn architecture(mut self, architecture: impl Into<String>) -> Self {
-        self.config.architecture = match Architecture::new(&architecture.into()) {
+        self.0.architecture = match Architecture::new(&architecture.into()) {
             Ok(architecture) => Some(architecture),
             Err(e) => {
                 warn!("{e}");
@@ -146,7 +141,7 @@ impl ConfigBuilder {
 
     /// Sets if a [`Config`] is bad, so it may be deranked
     pub const fn set_bad(mut self, bad: bool) -> Self {
-        self.config.bad = bad;
+        self.0.bad = bad;
         self
     }
 
@@ -155,7 +150,7 @@ impl ConfigBuilder {
     /// This can be one of [`BootAction::BootEfi`], [`BootAction::BootTftp`], [`BootAction::Reboot`], [`BootAction::Shutdown`],
     /// and [`BootAction::ResetToFirmware`]. You should never need to use this
     pub const fn action(mut self, action: BootAction) -> Self {
-        self.config.action = action;
+        self.0.action = action;
         self
     }
 
@@ -164,7 +159,7 @@ impl ConfigBuilder {
     /// This is used for filesystem operations, so it is required to be set to
     /// indicate which filesystem a [`Config`] comes from
     pub fn fs_handle(mut self, fs_handle: Handle) -> Self {
-        self.config.fs_handle = match FsHandle::new(fs_handle) {
+        self.0.fs_handle = match FsHandle::new(fs_handle) {
             Ok(fs_handle) => Some(fs_handle),
             Err(e) => {
                 warn!("{e}");
@@ -178,13 +173,13 @@ impl ConfigBuilder {
     ///
     /// This is one of the parsers that generate [`Config`]s.
     pub const fn origin(mut self, origin: Parsers) -> Self {
-        self.config.origin = Some(origin);
+        self.0.origin = Some(origin);
         self
     }
 
     /// Sets the EFI executable path of a [`Config`].
     pub fn efi_path(mut self, efi_path: impl Into<String>) -> Self {
-        self.config.efi_path = match EfiPath::new(&efi_path.into()) {
+        self.0.efi_path = match EfiPath::new(&efi_path.into()) {
             Ok(efi_path) => Some(efi_path),
             Err(e) => {
                 warn!("{e}");
@@ -197,7 +192,7 @@ impl ConfigBuilder {
     /// Builds a [`Config`]
     #[must_use = "Has no effect if the result is unused"]
     pub fn build(self) -> Config {
-        self.config
+        self.0
     }
 
     /// Assigns a value to a field in a [`Config`] if it is [`Some`].

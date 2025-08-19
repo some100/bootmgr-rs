@@ -31,6 +31,11 @@ mod variables;
 
 static LOGGER: UefiLogger = UefiLogger::new();
 
+/// The actual main function of the program.
+///
+/// # Errors
+///
+/// May return an `Error` if the tests fail to run.
 fn main_func() -> anyhow::Result<()> {
     uefi::helpers::init()?;
     let _ = log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Info));
@@ -60,17 +65,28 @@ fn main_func() -> anyhow::Result<()> {
     }
 }
 
+/// The main function.
+///
+/// # Panics
+///
+/// Panics if the test fails to run.
 #[entry]
 fn main() -> Status {
     main_func().unwrap_or_else(|e| panic!("Failed to run test: {e}"));
     Status::SUCCESS
 }
 
+/// Block until a key is read, then reboot.
 fn press_for_reboot() -> ! {
     let _ = read_key();
     reboot::reset();
 }
 
+/// Blocking read a key from the available input.
+///
+/// # Errors
+///
+/// May return an `Error` if the [`Input`] could not be opened.
 fn read_key() -> anyhow::Result<Key> {
     let mut input = locate_protocol::<Input>()?;
     let key_event = input
