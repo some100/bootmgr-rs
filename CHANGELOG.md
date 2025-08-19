@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr - [0.19.2] - 2025-08-19
+
+### Changed
+
+- Changed hashing algorithm back to SHA-256 due to a bug where BLAKE3 would link in intrinsics objects for unix.
+
+### Fixed
+
+- Fixed issue where `must_cast_slice` would cause a compile error when converting variable to string.
+- Fixed issue with BLAKE3 linking in intrinsics (by replacing it with SHA-256).
+
 ## bootmgr - [0.19.1] - 2025-08-19
 
 ### Changed

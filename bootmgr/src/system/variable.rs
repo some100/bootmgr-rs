@@ -26,6 +26,10 @@ pub enum VarError {
     #[error("Failed to get variable: {0}")]
     GetErr(#[from] uefi::Error<Option<usize>>),
 
+    /// The string variable could not be cast into a u16.
+    #[error("Failed to cast variable to u16: {0}")]
+    CastErr(bytemuck::PodCastError),
+
     /// The variable did not contain a string with valid characters or a nul terminator.
     #[error("Failed to get string variable: {0}")]
     StrErr(#[from] uefi::data_types::FromSliceWithNulError),
@@ -348,7 +352,7 @@ pub fn get_variable_str(name: &CStr16, vendor: Option<VariableVendor>) -> BootRe
         Err(e) if e.status() == Status::NOT_FOUND => return Ok(CString16::new()),
         Err(e) => return Err(e.into()),
     };
-    let str = bytemuck::must_cast_slice(&var);
+    let str = bytemuck::try_cast_slice(&var).map_err(VarError::CastErr)?;
 
     Ok(CString16::try_from(str.to_vec()).map_err(VarError::StrErr)?)
 }

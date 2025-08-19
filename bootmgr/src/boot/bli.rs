@@ -16,6 +16,7 @@
 use alloc::{format, string::ToString, vec::Vec};
 
 use bitflags::bitflags;
+use sha2::Digest;
 use uefi::{
     CStr16, boot, cstr16,
     data_types::EqStrUntilNul,
@@ -283,7 +284,7 @@ fn match_timeout(timeout: &uefi::CStr16) -> Option<i64> {
 pub(crate) fn generate_random_seed() -> BootResult<()> {
     let mut fs = UefiFileSystem::from_image_fs()?;
 
-    let mut hasher = blake3::Hasher::new();
+    let mut hasher = sha2::Sha256::new();
 
     if let Ok(content) = fs.read(RANDOM_SEED_PATH)
         && let Ok((token, _)) =
@@ -299,17 +300,17 @@ pub(crate) fn generate_random_seed() -> BootResult<()> {
         let mut buf = [0; 64];
         let _ = rng.get_rng(None, &mut buf);
 
-        hasher.update(&buf);
+        hasher.update(buf);
     }
 
     // Add in the current time in there just for fun (and extra entropy)
-    hasher.update(&Instant::zero().elapsed().as_micros().to_le_bytes());
+    hasher.update(Instant::zero().elapsed().as_micros().to_le_bytes());
 
     let result = hasher.finalize();
 
     let _ = fs.delete(RANDOM_SEED_PATH);
     fs.create(RANDOM_SEED_PATH)?;
-    fs.write(RANDOM_SEED_PATH, result.as_bytes())?;
+    fs.write(RANDOM_SEED_PATH, &result)?;
 
     Ok(())
 }
