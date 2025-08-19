@@ -31,7 +31,7 @@ use crate::{
     system::{
         fs::{UefiFileSystem, get_partition_guid},
         helper::{locate_protocol, str_to_cstr},
-        time::timer_usec,
+        time::Instant,
         variable::{get_variable_str, set_variable, set_variable_str, set_variable_u16_slice},
     },
 };
@@ -105,7 +105,7 @@ pub(crate) fn export_variables() -> BootResult<()> {
         | LoaderFeatures::RETAIN_SHIM
         | LoaderFeatures::MENU_DISABLED; // this is frontend dependent, depending on how input events are handled.
 
-    let time = str_to_cstr(&timer_usec().to_string())?;
+    let time = str_to_cstr(&Instant::zero().elapsed().as_micros().to_string())?;
     let partition_guid =
         get_partition_guid(boot::image_handle()).and_then(|x| str_to_cstr(&x.to_string()).ok());
     let info = str_to_cstr(&format!("bootmgr-rs {}", env!("CARGO_PKG_VERSION")))?;
@@ -142,7 +142,7 @@ pub(crate) fn export_variables() -> BootResult<()> {
 ///
 /// May return an `Error` if the variable could not be set.
 pub(crate) fn record_exit_time() -> BootResult<()> {
-    let time = str_to_cstr(&timer_usec().to_string())?;
+    let time = str_to_cstr(&Instant::zero().elapsed().as_micros().to_string())?;
     set_variable_str(
         cstr16!("LoaderTimeExecUSec"),
         Some(BLI_VENDOR),
@@ -302,7 +302,7 @@ pub(crate) fn generate_random_seed() -> BootResult<()> {
     }
 
     // Add in the current time in there just for fun (and extra entropy)
-    hasher.update(timer_usec().to_le_bytes());
+    hasher.update(Instant::zero().elapsed().as_micros().to_le_bytes());
 
     let result = hasher.finalize();
 

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr - [0.18.0] - 2025-08-18
+
+### Added
+
+- New `Instant` type, which mirrors the type in std.
+
+### Removed
+
+- Removed `timer_usec` (use `Instant::zero().elapsed()`). (BREAKING)
+
 ## bootmgr-rs-slint - [0.9.5] - 2025-08-18
 
 ### Changed

@@ -6,7 +6,7 @@
 use core::time::Duration;
 
 use alloc::{boxed::Box, rc::Rc};
-use bootmgr::system::time::timer_usec;
+use bootmgr::system::time::Instant;
 use bytemuck::TransparentWrapper;
 use slint::{
     Color as SlintColor,
@@ -52,7 +52,7 @@ pub struct UefiPlatform {
     window: Rc<MinimalSoftwareWindow>,
 
     /// The value of the timer at the start of the program.
-    timer_start: u64,
+    timer_start: Instant,
 }
 
 impl Platform for UefiPlatform {
@@ -61,7 +61,7 @@ impl Platform for UefiPlatform {
     }
 
     fn duration_since_start(&self) -> Duration {
-        Duration::from_micros(timer_usec() - self.timer_start)
+        Instant::now().duration_since(self.timer_start)
     }
 
     // run_event_loop intentionally not implemented
@@ -76,7 +76,7 @@ pub fn create_window() -> Result<(Rc<MinimalSoftwareWindow>, Ui), MainError> {
     let window = MinimalSoftwareWindow::new(RepaintBufferType::default());
     let _ = slint::platform::set_platform(Box::new(UefiPlatform {
         window: window.clone(),
-        timer_start: timer_usec(),
+        timer_start: Instant::now(),
     }));
 
     let ui = Ui::new().map_err(MainError::SlintError)?;

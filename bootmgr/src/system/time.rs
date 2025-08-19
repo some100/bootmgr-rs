@@ -14,7 +14,7 @@
 //!    which is the counter of the timer.
 //! 4. See point 3, but replace `CNTVCT_EL0` with `CNTFRQ_EL0` and "counter" with "frequency".
 
-use core::cell::LazyCell;
+use core::{cell::LazyCell, time::Duration};
 
 /// The frequency of the timer, stored statically in a variable for efficiency.
 ///
@@ -32,6 +32,43 @@ struct TimerFreq {
 
 // SAFETY: UEFI is single threaded there is no requirement of thread safety.
 unsafe impl Sync for TimerFreq {}
+
+/// A set moment in time. Usually used for comparing with another Instant or in a Duration.
+#[derive(Clone, Copy, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct Instant(u64);
+
+impl Instant {
+    /// Returns an `Instant` corresponding to “now”.
+    #[must_use = "Has no effect if the result is unused"]
+    pub fn now() -> Self {
+        Self(1000 * 1000 * timer_tick() / *TIMER_FREQ.timer_freq)
+    }
+
+    /// Returns an `Instant` corresponding to zero.
+    #[must_use = "Has no effect if the result is unused"]
+    pub fn zero() -> Self {
+        Self(0)
+    }
+
+    /// Returns the amount of time elapsed from another `Instant` to this one. This will return 0 if
+    /// that `Instant` was later than the current one.
+    #[must_use = "Has no effect if the result is unused"]
+    pub fn duration_since(&self, earlier: Self) -> Duration {
+        Duration::from_micros(self.0.saturating_sub(earlier.0))
+    }
+
+    /// Return the amount of time elapsed since the start of the timer counter.
+    #[must_use = "Has no effect if the result is unused"]
+    pub fn duration_since_start(&self) -> Duration {
+        Duration::from_micros(self.0.saturating_sub(0))
+    }
+
+    /// Get the duration elapsed since this `Instant`.
+    #[must_use = "Has no effect if the result is unused"]
+    pub fn elapsed(&self) -> Duration {
+        Self::now().duration_since(*self)
+    }
+}
 
 /// Read the value of the system's timestamp counter, or timer tick.
 #[must_use = "Has no effect if the result is unused"]
@@ -75,10 +112,4 @@ fn timer_freq() -> u64 {
         core::arch::asm!("mrs {}, cntfrq_el0", out(reg) freq);
         freq
     }
-}
-
-/// Get the number of microseconds since system initialization.
-#[must_use = "Has no effect if the result is unused"]
-pub fn timer_usec() -> u64 {
-    1000 * 1000 * timer_tick() / *TIMER_FREQ.timer_freq
 }
