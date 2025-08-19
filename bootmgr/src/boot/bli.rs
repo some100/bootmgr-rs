@@ -22,7 +22,7 @@ use uefi::{
     data_types::EqStrUntilNul,
     guid,
     proto::rng::Rng,
-    runtime::{self, VariableVendor},
+    runtime::{self, VariableAttributes, VariableVendor},
 };
 
 use crate::{
@@ -38,6 +38,15 @@ use crate::{
 
 /// The variable namespace for Boot Loader Interface UEFI variables.
 const BLI_VENDOR: VariableVendor = VariableVendor(guid!("4a67b082-0a4c-41cf-b6c7-440b29bb8c4f"));
+
+/// The attributes for a variable accessible at boot and runtime, but is not persistent.
+///
+/// Some of these variables do not need to persist because they only must be accessible to `bootctl` at runtime. For example,
+/// `LoaderTimeInitUSec` does not need to persist between boots, same as `LoaderFeatures`, which is already set everytime
+/// at initialization anyways. This avoids the overhead of storing these variables in NVRAM, which could have an impact
+/// on boot times.
+const VOLATILE_ATTRS: VariableAttributes =
+    VariableAttributes::BOOTSERVICE_ACCESS.union(VariableAttributes::RUNTIME_ACCESS);
 
 /// The path of the random seed.
 const RANDOM_SEED_PATH: &CStr16 = cstr16!("\\loader\\random-seed");
@@ -103,22 +112,27 @@ pub(crate) fn export_variables() -> BootResult<()> {
     set_variable_str(
         cstr16!("LoaderTimeInitUSec"),
         Some(BLI_VENDOR),
-        None,
+        Some(VOLATILE_ATTRS),
         Some(&time),
     )?;
     set_variable(
         cstr16!("LoaderFeatures"),
         Some(BLI_VENDOR),
-        None,
+        Some(VOLATILE_ATTRS),
         Some(supported.bits()),
     )?;
     set_variable_str(
         cstr16!("LoaderDevicePartUUID"),
         Some(BLI_VENDOR),
-        None,
+        Some(VOLATILE_ATTRS),
         partition_guid.as_deref(),
     )?;
-    set_variable_str(cstr16!("LoaderInfo"), Some(BLI_VENDOR), None, Some(&info))?;
+    set_variable_str(
+        cstr16!("LoaderInfo"),
+        Some(BLI_VENDOR),
+        Some(VOLATILE_ATTRS),
+        Some(&info),
+    )?;
     Ok(())
 }
 
@@ -132,7 +146,7 @@ pub(crate) fn record_exit_time() -> BootResult<()> {
     set_variable_str(
         cstr16!("LoaderTimeExecUSec"),
         Some(BLI_VENDOR),
-        None,
+        Some(VOLATILE_ATTRS),
         Some(&time),
     )?;
     Ok(())
@@ -156,7 +170,7 @@ pub(crate) fn set_loader_entries(configs: &[Config]) -> BootResult<()> {
     set_variable_u16_slice(
         cstr16!("LoaderEntries"),
         Some(BLI_VENDOR),
-        None,
+        Some(VOLATILE_ATTRS),
         Some(&entries),
     )
 }

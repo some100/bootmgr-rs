@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr - [0.17.1] - 2025-08-18
+
+### Fixed
+
+- Fixed some UEFI variables being persistent when they shouldn't be.
+
 ## bootmgr - [0.17.0] - 2025-08-18
 
 ### Changed

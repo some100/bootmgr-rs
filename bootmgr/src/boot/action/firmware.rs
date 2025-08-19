@@ -6,7 +6,7 @@
 use log::error;
 use uefi::{
     Status, boot, cstr16,
-    runtime::{self, ResetType, VariableAttributes, VariableVendor},
+    runtime::{self, ResetType, VariableVendor},
 };
 
 use crate::{
@@ -48,11 +48,7 @@ fn set_reset_to_firmware_flag() -> BootResult<()> {
     set_variable::<u64>(
         cstr16!("OsIndications"),
         Some(VariableVendor::GLOBAL_VARIABLE),
-        Some(
-            VariableAttributes::NON_VOLATILE
-                | VariableAttributes::BOOTSERVICE_ACCESS
-                | VariableAttributes::RUNTIME_ACCESS,
-        ),
+        None,
         Some(osind),
     )?;
     Ok(())

@@ -19,7 +19,7 @@ use uefi::{
     boot::{self, ScopedProtocol},
     cstr16,
     proto::{device_path::DevicePath, media::fs::SimpleFileSystem, shim::ShimLock},
-    runtime::VariableVendor,
+    runtime::{VariableAttributes, VariableVendor},
 };
 
 use crate::{
@@ -104,7 +104,7 @@ fn shim_retain_protocol() -> BootResult<()> {
         set_variable::<bool>(
             cstr16!("ShimRetainProtocol"),
             Some(vendor),
-            None,
+            Some(VariableAttributes::BOOTSERVICE_ACCESS | VariableAttributes::RUNTIME_ACCESS),
             Some(true),
         )?;
     }
