@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.9.5] - 2025-08-18
+
+### Changed
+
+- Relicensed the source code of bootmgr-rs-slint under MIT (the final application will still be GPLv3+).
+
 ## bootmgr - [0.17.1] - 2025-08-18
 
 ### Fixed

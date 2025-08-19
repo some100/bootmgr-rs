@@ -515,7 +515,7 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-slint"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "bootmgr",
  "bytemuck",

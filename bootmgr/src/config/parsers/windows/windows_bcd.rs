@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: MIT
 
 //! A parser for the Windows BCD and Windows boot manager.
 

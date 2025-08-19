@@ -10,4 +10,4 @@ This frontend has an editor implemented using Slint's `LineEdit` widget. This ed
 
 # Licensing
 
-This frontend code is licensed under GPLv3 or later. The Slint language files are licensed under MIT. 
+Both the frontend code and Slint markup are licensed under the MIT license. However, the final application will be built as GPLv3+, due to it depending on Slint, which uses the GPLv3+ license. The default icons bundled in with the program are in the public domain.
