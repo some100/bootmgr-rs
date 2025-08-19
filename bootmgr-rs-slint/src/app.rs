@@ -7,7 +7,7 @@
 //! as a way to get the UI.
 
 use alloc::{rc::Rc, vec};
-use bootmgr_rs_core::{
+use bootmgr::{
     boot::BootMgr, config::editor::persist::PersistentConfig, system::helper::locate_protocol,
 };
 use heapless::mpmc::Q8;

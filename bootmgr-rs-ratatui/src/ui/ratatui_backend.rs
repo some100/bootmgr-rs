@@ -5,7 +5,7 @@
 
 use core::fmt::Write;
 
-use bootmgr_rs_core::{BootResult, error::BootError, system::helper::locate_protocol};
+use bootmgr::{BootResult, error::BootError, system::helper::locate_protocol};
 use ratatui_core::{
     backend::{Backend, ClearType, WindowSize},
     buffer::Cell,

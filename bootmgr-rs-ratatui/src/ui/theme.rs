@@ -3,7 +3,7 @@
 
 //! Provides [`Theme`], which exposes the color scheme for the UI.
 
-use bootmgr_rs_core::boot::config::BootConfig;
+use bootmgr::boot::config::BootConfig;
 use ratatui_core::style::{Color as RatatuiColor, Style};
 
 use uefi::proto::console::text::Color as UefiColor;

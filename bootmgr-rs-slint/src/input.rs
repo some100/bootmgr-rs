@@ -10,7 +10,7 @@
 use core::time::Duration;
 
 use alloc::rc::Rc;
-use bootmgr_rs_core::{
+use bootmgr::{
     BootResult,
     system::helper::{create_timer, locate_protocol},
 };

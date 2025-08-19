@@ -8,7 +8,7 @@ license = "GPL-3.0-or-later"
 edition = "2024"
 
 [dependencies]
-bootmgr-rs-core = { path = "../bootmgr-rs-core" }
+bootmgr = { path = "../bootmgr" }
 bytemuck = "1.23.2"
 heapless = { version = "0.8.0", features = ["mpmc_large"] }
 log = "0.4.27"

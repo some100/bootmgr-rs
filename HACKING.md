@@ -15,7 +15,7 @@ cargo build --target x86_64-unknown-uefi --features global_allocator,panic_handl
 
 # Structure
 
-The core crate is located at bootmgr-rs-core. The frontends will generally be named bootmgr-rs-\[frontend\]. The core crate is structured into 4 modules, those being:
+The core crate is located at bootmgr. The frontends will generally be named bootmgr-rs-\[frontend\]. The core crate is structured into 4 modules, those being:
 
 * boot (provides `BootMgr` as well as boot-related things)
 * config (provides `Config` and `ConfigBuilder`, houses parsers)
@@ -26,11 +26,12 @@ config contains parsers, which are essentially structs implementing `ConfigParse
 
 Currently, there are 6 (7) parsers, those being the `bls`, `fallback`, `osx`, `shell`, `uki`, and `windows` parser. The `windows` parser is itself divided into two parsers depending on features. The first and default option is the "autodetecting" parser `windows_auto`, which simply looks for `bootmgfw.efi`. The second option is the parser `windows_bcd`, which parses the content of the BCD, then turns that into a boot entry. This is not the default because it pulls in a GPLv2 dependency.
 
-To enable this BCD parser, turn on the feature `windows_bcd` when compiling `bootmgr-rs-core`.
+To enable this BCD parser, turn on the feature `windows_bcd` when compiling `bootmgr`.
 
 boot itself is structured into 5 submodules, those being:
 
 * action (provides firmware reset, reboot, and shutdown functions, as well as a PXE parser)
+* bli (provides an implementation of Boot Loader Interface, which allows for 2-way communication between bootloader and systemd)
 * config (provides `BootConfig`, which exposes settings for boot manager)
 * devicetree (provides `install_devicetree`, which installs and fixups a devicetree blob)
 * loader (provides EFI loader and EFI over TFTP loader)
@@ -42,7 +43,7 @@ The general flow of a program with this crate is as follows:
 2. The frontend will poll for inputs or have some other way of selecting the boot option.
 3. Once a boot option is selected (through its index), the `load` method is called on the `BootMgr`.
     * This will call `boot::loader::load_boot_option` on the boot option's `Config`, which delegates to the `run` method of the `Config`'s `action` field.
-    * Depending on the boot option, this will lead to the following loaders: If it is a special boot option, it will be reboot, shutdown, or reset to firmware. If the action indicates that it's a normal boot program (`BootAction::BootEfi`), then it will lead to the EFI loader being used. Otherwise, if it's a EFI over TFTP program (`BootAction::BootTftp`). For simplicity, this will focus on the EFI loader.
+    * Depending on the boot option, this will lead to the following loaders: If it is a special boot option, it will be reboot, shutdown, or reset to firmware. If the action indicates that it's a normal boot program (`BootAction::BootEfi`), then it will lead to the EFI loader being used. Otherwise, if it's an EFI over TFTP program (`BootAction::BootTftp`). For simplicity, this will focus on the EFI loader.
     * The handle is unwrapped from the `Config`'s `fs_handle`, and opened into a filesystem. This handle is how the filesystem from which the `Config` originates is tracked. Afterwards, the image specified by the `Config` through `efi_path` is converted into a `DevicePath`.
     * `shim_load_image` is then called, specifying the `DevicePath` as the source. Depending on if Shim is installed, this will either install the necessary security overrides, or load the image through UEFI as is.
     * The image returned is then setup, with devicetree installations, and LoadOptions being set as needed if specified.
@@ -52,13 +53,13 @@ The general flow of a program with this crate is as follows:
 
 # Writing a parser
 
-In order to create a parser, it must first implement `ConfigParser`, which can be done by detecting if a file exists for example, then using the `ConfigBuilder` in order to create a `Config` that will then be pushed into the `configs` parameter. Then, add it as a module in `bootmgr-rs-core/src/config/parsers.rs` as well as to the `Parsers` enum. Afterwards, add it to `bootmgr-rs-core/src/features.rs` using the `optional_config!` macro, then add it as a feature flag in the `Cargo.toml`.
+In order to create a parser, it must first implement `ConfigParser`, which can be done by detecting if a file exists for example, then using the `ConfigBuilder` in order to create a `Config` that will then be pushed into the `configs` parameter. Then, add it as a module in `bootmgr/src/config/parsers.rs` as well as to the `Parsers` enum. Afterwards, add it to `bootmgr/src/features.rs` using the `optional_config!` macro, then add it as a feature flag in the `Cargo.toml`.
 
 Optionally, you can also add an icon for it in `bootmgr-rs-slint`, as well as unit testing and fuzzing in xtask if applicable.
 
-A good example of an auto-detecting "parser" can be found in `bootmgr-rs-core/src/config/parsers/shell.rs`. This simply checks for the existence of `\shellx64.efi`. It specifies the EFI path, the title, the sort key, the filesystem handle, as well as the origin of the `Config`, then pushes a built `Config` into the `configs` parameter. 
+A good example of an auto-detecting "parser" can be found in `bootmgr/src/config/parsers/shell.rs`. This simply checks for the existence of `\shellx64.efi`. It specifies the EFI path, the title, the sort key, the filesystem handle, as well as the origin of the `Config`, then pushes a built `Config` into the `configs` parameter. 
 
-A good example of a parser that actually parses can be found in `bootmgr-rs-core/src/config/parsers/bls.rs`. This builds the `Config` based on information that was received while parsing the BLS configuration file. Because it actually parses things, it also has unit tests and fuzzing as well, to ensure the expected result.
+A good example of a parser that actually parses can be found in `bootmgr/src/config/parsers/bls.rs`. This builds the `Config` based on information that was received while parsing the BLS configuration file. Because it actually parses things, it also has unit tests and fuzzing as well, to ensure the expected result.
 
 # Writing a frontend
 

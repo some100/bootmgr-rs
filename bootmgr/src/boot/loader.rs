@@ -49,7 +49,7 @@ pub enum LoadError {
 /// ```no_run
 /// // this example starts the fallback boot loader on the same partition as the image handle.
 ///
-/// use bootmgr_rs_core::{boot::loader::load_boot_option, config::builder::ConfigBuilder};
+/// use bootmgr::{boot::loader::load_boot_option, config::builder::ConfigBuilder};
 /// use uefi::{
 ///     boot,
 ///     proto::{

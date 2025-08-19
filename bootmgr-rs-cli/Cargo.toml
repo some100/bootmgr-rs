@@ -7,7 +7,7 @@ version = "0.1.2"
 edition = "2024"
 
 [dependencies]
-bootmgr-rs-core = { path = "../bootmgr-rs-core" }
+bootmgr = { path = "../bootmgr" }
 getargs = { version = "0.5.0", default-features = false }
 log = { version = "0.4.27", default-features = false }
 uefi = "0.35.0"

@@ -3,7 +3,7 @@
 
 //! Extremely minimal skeleton for a boot loader.
 //!
-//! This mostly serves as an example minimal frontend for the bootmgr-rs-core crate, and is probably more similar
+//! This mostly serves as an example minimal frontend for the bootmgr crate, and is probably more similar
 //! to ELILO than anything systemd-boot or bootmgr.
 //! This should probably not be used over the reference application using ratatui if possible, unless for some
 //! reason you wanted a UI even more minimal.
@@ -14,7 +14,7 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use bootmgr_rs_core::{
+use bootmgr::{
     boot::BootMgr,
     error::BootError,
     system::{helper::locate_protocol, log_backend::UefiLogger},

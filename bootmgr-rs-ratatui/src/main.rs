@@ -13,7 +13,7 @@
 
 extern crate alloc;
 
-use bootmgr_rs_core::system::log_backend::UefiLogger;
+use bootmgr::system::log_backend::UefiLogger;
 
 use ratatui_core::terminal::Terminal;
 use thiserror::Error;
@@ -36,7 +36,7 @@ static LOGGER: UefiLogger = UefiLogger::new();
 pub enum MainError {
     /// An error occurred with the boot manager.
     #[error("Boot Error: {0}")]
-    BootError(#[from] bootmgr_rs_core::error::BootError),
+    BootError(#[from] bootmgr::error::BootError),
     /// An error occurred while running the App.
     #[error("App Error: {0}")]
     AppError(#[from] crate::app::AppError),

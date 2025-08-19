@@ -10,7 +10,7 @@ extern crate alloc;
 
 use alloc::string::ToString;
 
-use bootmgr_rs_core::{BootResult, boot::BootMgr, system::log_backend::UefiLogger};
+use bootmgr::{BootResult, boot::BootMgr, system::log_backend::UefiLogger};
 use getargs::{Arg, Options};
 use uefi::{
     Handle, ResultExt, Status, boot, cstr16, entry, println, proto::loaded_image::LoadedImage,

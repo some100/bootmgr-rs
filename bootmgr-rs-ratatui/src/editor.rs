@@ -18,7 +18,7 @@ use uefi::{
     proto::console::text::{Input, Key, ScanCode},
 };
 
-use bootmgr_rs_core::{
+use bootmgr::{
     BootResult,
     config::{
         Config,

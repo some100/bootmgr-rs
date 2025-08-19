@@ -8,7 +8,7 @@ license = "MIT"
 edition = "2024"
 
 [dependencies]
-bootmgr-rs-core = { path = "../bootmgr-rs-core" }
+bootmgr = { path = "../bootmgr" }
 log = "0.4.27"
 ratatui-core = "0.1.0-alpha.6"
 ratatui-widgets = "0.3.0-alpha.5"

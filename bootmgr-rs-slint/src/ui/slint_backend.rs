@@ -6,7 +6,7 @@
 use core::time::Duration;
 
 use alloc::{boxed::Box, rc::Rc};
-use bootmgr_rs_core::system::time::timer_usec;
+use bootmgr::system::time::timer_usec;
 use bytemuck::TransparentWrapper;
 use slint::{
     Color as SlintColor,

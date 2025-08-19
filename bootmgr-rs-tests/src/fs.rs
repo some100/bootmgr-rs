@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
 // SPDX-License-Identifier: MIT
 
-use bootmgr_rs_core::{BootResult, system::fs::UefiFileSystem};
+use bootmgr::{BootResult, system::fs::UefiFileSystem};
 use uefi::{CStr16, cstr16, println};
 
 use crate::press_for_reboot;

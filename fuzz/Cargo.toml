@@ -13,8 +13,8 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 
-[dependencies.bootmgr-rs-core]
-path = "../bootmgr-rs-core"
+[dependencies.bootmgr]
+path = "../bootmgr"
 features = ["windows_bcd"]
 
 [[bin]]

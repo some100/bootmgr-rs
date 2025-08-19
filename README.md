@@ -53,7 +53,7 @@ Fuzzing tests are ran using `cargo xtask fuzz <PARSER>`, where `<PARSER>` is one
 
 ## Licensing
 
-This project is primarily licensed under MIT. With the `windows_bcd` feature enabled, the `bootmgr-rs-core` final library will be licensed under GPLv2+. `bootmgr-rs-slint` is licensed under GPLv3+.
+This project is primarily licensed under MIT. With the `windows_bcd` feature enabled, the `bootmgr` final library will be licensed under GPLv2+. `bootmgr-rs-slint` is licensed under GPLv3+.
 
 ![systemd-boot and Windows bootmgr-like interface for a bootloader](/images/bootmgr-rs-ratatui.png)
 

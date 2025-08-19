@@ -21,7 +21,7 @@ use crate::{
 /// # Example
 ///
 /// ```no_run
-/// use bootmgr_rs_core::config::builder::ConfigBuilder;
+/// use bootmgr::config::builder::ConfigBuilder;
 /// use uefi::{boot, proto::{device_path::DevicePath, loaded_image::LoadedImage, media::fs::SimpleFileSystem}};
 ///
 /// let handle = {

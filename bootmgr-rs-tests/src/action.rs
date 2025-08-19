@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
 // SPDX-License-Identifier: MIT
 
-use bootmgr_rs_core::boot::action::{firmware, reboot, shutdown};
+use bootmgr::boot::action::{firmware, reboot, shutdown};
 use uefi::{println, proto::console::text::Key};
 
 use crate::read_key;

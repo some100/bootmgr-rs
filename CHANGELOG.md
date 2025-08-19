@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr - [0.17.0] - 2025-08-18
+
+### Changed
+
+- Renamed bootmgr-rs-core to bootmgr. (BREAKING)
+
 ## bootmgr-rs-core - [0.16.4] - 2025-08-18
 
 ### Added

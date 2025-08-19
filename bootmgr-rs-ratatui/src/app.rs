@@ -6,7 +6,7 @@
 //! This is where the main loop of the whole application is located, and is where terminal, boot manager,
 //! and editor interact.
 
-use bootmgr_rs_core::{
+use bootmgr::{
     boot::BootMgr,
     config::editor::persist::PersistentConfig,
     error::BootError,

@@ -456,18 +456,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "bootmgr-rs-cli"
-version = "0.1.2"
-dependencies = [
- "bootmgr-rs-core",
- "getargs",
- "log",
- "uefi",
-]
-
-[[package]]
-name = "bootmgr-rs-core"
-version = "0.16.4"
+name = "bootmgr"
+version = "0.17.0"
 dependencies = [
  "bitflags 2.9.2",
  "bytemuck",
@@ -484,10 +474,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "bootmgr-rs-cli"
+version = "0.1.2"
+dependencies = [
+ "bootmgr",
+ "getargs",
+ "log",
+ "uefi",
+]
+
+[[package]]
 name = "bootmgr-rs-fuzz"
 version = "0.0.0"
 dependencies = [
- "bootmgr-rs-core",
+ "bootmgr",
  "libfuzzer-sys",
 ]
 
@@ -495,7 +495,7 @@ dependencies = [
 name = "bootmgr-rs-minimal"
 version = "0.2.1"
 dependencies = [
- "bootmgr-rs-core",
+ "bootmgr",
  "log",
  "uefi",
 ]
@@ -504,7 +504,7 @@ dependencies = [
 name = "bootmgr-rs-ratatui"
 version = "0.5.2"
 dependencies = [
- "bootmgr-rs-core",
+ "bootmgr",
  "log",
  "ratatui-core",
  "ratatui-widgets",
@@ -517,7 +517,7 @@ dependencies = [
 name = "bootmgr-rs-slint"
 version = "0.9.4"
 dependencies = [
- "bootmgr-rs-core",
+ "bootmgr",
  "bytemuck",
  "heapless",
  "log",
@@ -532,7 +532,7 @@ name = "bootmgr-rs-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bootmgr-rs-core",
+ "bootmgr",
  "log",
  "uefi",
 ]

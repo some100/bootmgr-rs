@@ -7,7 +7,7 @@
 #![no_std]
 
 use anyhow::anyhow;
-use bootmgr_rs_core::{
+use bootmgr::{
     boot::action::reboot,
     system::{helper::locate_protocol, log_backend::UefiLogger},
 };

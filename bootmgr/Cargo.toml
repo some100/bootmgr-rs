@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 [package]
-name = "bootmgr-rs-core"
-version = "0.16.4"
+name = "bootmgr"
+version = "0.17.0"
 rust-version = "1.88.0"
 edition = "2024"
 license = "MIT"

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use anyhow::anyhow;
-use bootmgr_rs_core::{
+use bootmgr::{
     BootResult,
     boot::loader::load_boot_option,
     config::builder::ConfigBuilder,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
 // SPDX-License-Identifier: MIT
 
-use bootmgr_rs_core::{
+use bootmgr::{
     BootResult,
     system::variable::{get_variable, get_variable_str, set_variable, set_variable_str},
 };

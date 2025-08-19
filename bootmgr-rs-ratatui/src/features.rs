@@ -15,7 +15,7 @@ pub mod editor {
     use ratatui_core::terminal::Terminal;
     use uefi::{boot::ScopedProtocol, proto::console::text::Input};
 
-    use bootmgr_rs_core::{BootResult, config::Config};
+    use bootmgr::{BootResult, config::Config};
 
     use crate::ui::{ratatui_backend::UefiBackend, theme::Theme};
 

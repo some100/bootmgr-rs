@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 some100 <ootinnyoo@outlook.com>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A GUI frontend for `bootmgr-rs-core`.
+//! A GUI frontend for `bootmgr`.
 //!
 //! This is a user interface that aims to show how (comparatively) simple it is
 //! to use a GUI frontend or a frontend of any kind with `bootmgr-rs`.
@@ -26,7 +26,7 @@ mod ui;
 pub enum MainError {
     /// An error occurred with the boot manager.
     #[error("Boot Error: {0}")]
-    BootError(#[from] bootmgr_rs_core::error::BootError),
+    BootError(#[from] bootmgr::error::BootError),
     /// A fatal error occurred while running the Slint UI.
     #[error("Slint Error: {0}")]
     SlintError(slint::PlatformError),

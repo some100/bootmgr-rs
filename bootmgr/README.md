@@ -1,4 +1,4 @@
-# bootmgr-rs-core
+# bootmgr
 
 A framework for creating boot managers in Rust. Has support for Windows, BLS, and UKIs, with auto detection for the fallback bootloader, UEFI shell, and macOS.
 
@@ -7,7 +7,7 @@ A framework for creating boot managers in Rust. Has support for Windows, BLS, an
 #![no_main]
 #![no_std]
 
-use bootmgr_rs_core::{
+use bootmgr::{
     boot::BootMgr,
     error::BootError,
     system::{helper::locate_protocol, log_backend::UefiLogger}
