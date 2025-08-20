@@ -100,6 +100,8 @@ pub(crate) fn export_variables() -> BootResult<()> {
         | LoaderFeatures::BOOT_COUNTER
         | LoaderFeatures::XBOOTLDR
         | LoaderFeatures::RANDOM_SEED
+        | LoaderFeatures::LOAD_DRIVER // bootmgr-rs loads drivers through its own way, though
+        | LoaderFeatures::SAVED_ENTRY // bootmgr-rs sets the default entry through its own config file, though
         | LoaderFeatures::SORT_KEY
         | LoaderFeatures::DEVICETREE
         | LoaderFeatures::RETAIN_SHIM
@@ -177,6 +179,11 @@ pub(crate) fn set_loader_entries(configs: &[Config]) -> BootResult<()> {
     )
 }
 
+/// Check if the oneshot variable for the default entry exists.
+pub(crate) fn default_oneshot_exists() -> bool {
+    get_variable_str(cstr16!("LoaderEntryOneShot"), Some(BLI_VENDOR)).is_ok_and(|x| !x.is_empty())
+}
+
 /// Get the default entry based off the BLI identifier.
 ///
 /// May return `None` if the variable does not exist.
@@ -193,12 +200,7 @@ pub(crate) fn get_default_entry(configs: &[Config]) -> Option<usize> {
             })
         },
         |oneshot| {
-            let _ = set_variable_str(
-                cstr16!("LoaderEntryOneShot"),
-                Some(BLI_VENDOR),
-                None,
-                None,
-            );
+            let _ = set_variable_str(cstr16!("LoaderEntryOneShot"), Some(BLI_VENDOR), None, None);
             configs
                 .iter()
                 .position(|x| x.filename.eq_str_until_nul(&oneshot))

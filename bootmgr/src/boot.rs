@@ -52,7 +52,7 @@ impl BootMgr {
         let mut configs = scan_configs()?;
         add_special_boot(&mut configs, &boot_config);
 
-        if let Some(default) = boot_config.default {
+        if let Some(default) = boot_config.default && !bli::default_oneshot_exists() {
             let _ = bli::set_default_entry(&configs, default);
         }
 

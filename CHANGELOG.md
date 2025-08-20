@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr - [0.19.4] - 2025-08-20
+
+### Changed
+
+- Only override the default variable with the one from the configuration if the oneshot variable is not set.
+
 ## bootmgr - [0.19.3] - 2025-08-20
 
 ### Changed
