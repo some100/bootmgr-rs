@@ -15,10 +15,11 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 use bootmgr::{
-    boot::BootMgr,
+    boot::{action::reboot, BootMgr},
     error::BootError,
     system::{helper::locate_protocol, log_backend::UefiLogger},
 };
+use log::error;
 use uefi::{
     prelude::*,
     println,
@@ -75,6 +76,15 @@ fn main_func() -> Result<Handle, Box<dyn core::error::Error>> {
 /// Will return a panic if an error occurs while `main_func` is ran.
 #[entry]
 fn main() -> Status {
-    let image = main_func().unwrap_or_else(|e| panic!("Error: {e}")); // panic on critical error
-    boot::start_image(image).status() // finally start the image
+    match main_func() {
+        Ok(image) => boot::start_image(image).status(),
+        Err(e) => {
+            error!("Fatal error occurred: {e}");
+            error!("Automatically restarting in 10 seconds");
+
+            // simple restart timer is used here for simplicity
+            boot::stall(10_000_000);
+            reboot::reset();
+        }
+    }
 }

@@ -13,7 +13,7 @@
 
 extern crate alloc;
 
-use bootmgr::system::log_backend::UefiLogger;
+use bootmgr::{boot::action::reboot, system::log_backend::UefiLogger};
 
 use ratatui_core::terminal::Terminal;
 use thiserror::Error;
@@ -67,6 +67,9 @@ fn main_func() -> Result<Option<Handle>, MainError> {
 /// This will panic if the `main_func` returns an error.
 #[entry]
 fn main() -> Status {
-    let image = main_func().unwrap_or_else(|e| panic!("Error occurred while running: {e}")); // panic on critical error
-    image.map_or(Status::SUCCESS, |image| start_image(image).status())
+    match main_func() {
+        Ok(Some(image)) => start_image(image).status(),
+        Err(_) => reboot::reset(),
+        _ => Status::SUCCESS,
+    }
 }

@@ -149,23 +149,37 @@ impl App {
     ) -> Result<Option<Handle>, MainError> {
         self.init_state(terminal)?;
 
-        let handle = loop {
-            self.draw(terminal)?;
+        let handle = || -> Result<Option<Handle>, MainError> {
+            loop {
+                self.draw(terminal)?;
 
-            self.handle_key()?;
+                self.handle_key()?;
 
-            if let Some(handle) = self.maybe_boot(terminal)? {
-                break handle;
+                if let Some(handle) = self.maybe_boot(terminal)? {
+                    return Ok(Some(handle));
+                }
+
+                if self.state == AppState::Exiting {
+                    return Ok(None);
+                }
+
+                self.maybe_launch_editor(terminal)?;
             }
+        }();
 
-            if self.state == AppState::Exiting {
-                return Ok(None);
+        match handle {
+            Err(e) => {
+                error!("Fatal error occurred: {e}");
+                error!("Press any key to restart");
+
+                if let Some(event) = self.input.wait_for_key_event() {
+                    let _ = uefi::boot::wait_for_event(&mut [event]);
+                }
+
+                Err(e)
             }
-
-            self.maybe_launch_editor(terminal)?;
-        };
-
-        Ok(Some(handle))
+            image => image,
+        }
     }
 
     /// Initializes the state of the terminal and events.

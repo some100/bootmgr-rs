@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-minimal - [0.2.2] - 2025-08-20
+
+### Changed
+
+- A panic no longer occurs when a fatal error occurs, instead a normal error log is displayed before restarting after 10 seconds.
+
+## bootmgr-rs-ratatui - [0.5.4] - 2025-08-20
+
+### Changed
+
+- A panic no longer occurs when a fatal error occurs, instead a normal error log is displayed before restarting on key press.
+
 ## bootmgr-rs-ratatui - [0.5.3] - 2025-08-20
 
 ### Changed
