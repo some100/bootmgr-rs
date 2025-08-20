@@ -121,12 +121,14 @@ pub(crate) fn export_variables() -> BootResult<()> {
         Some(VOLATILE_ATTRS),
         Some(supported.bits()),
     )?;
-    set_variable_str(
-        cstr16!("LoaderDevicePartUUID"),
-        Some(BLI_VENDOR),
-        Some(VOLATILE_ATTRS),
-        partition_guid.as_deref(),
-    )?;
+    if let Some(partition_guid) = partition_guid {
+        set_variable_str(
+            cstr16!("LoaderDevicePartUUID"),
+            Some(BLI_VENDOR),
+            Some(VOLATILE_ATTRS),
+            Some(&partition_guid),
+        )?;
+    }
     set_variable_str(
         cstr16!("LoaderInfo"),
         Some(BLI_VENDOR),
@@ -191,6 +193,12 @@ pub(crate) fn get_default_entry(configs: &[Config]) -> Option<usize> {
             })
         },
         |oneshot| {
+            let _ = set_variable_str(
+                cstr16!("LoaderEntryOneShot"),
+                Some(BLI_VENDOR),
+                None,
+                None,
+            );
             configs
                 .iter()
                 .position(|x| x.filename.eq_str_until_nul(&oneshot))

@@ -203,6 +203,11 @@ impl App {
                 ui.invoke_display_fatal_err(e.to_shared_string());
                 window.request_redraw();
                 window.draw_if_needed(|renderer| self.draw_frame(renderer, &mut fb, w, h));
+
+                if let Some(event) = self.input.wait_for_key_event() {
+                    let _ = uefi::boot::wait_for_event(&mut [event]);
+                }
+
                 Err(e)
             }
             image => image,

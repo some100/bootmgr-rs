@@ -11,6 +11,7 @@
 
 extern crate alloc;
 
+use bootmgr::boot::action::reboot;
 use thiserror::Error;
 use uefi::{Handle, ResultExt, Status, boot::start_image, entry};
 
@@ -51,11 +52,12 @@ fn main_func() -> Result<Option<Handle>, MainError> {
 
 /// The main function of the program.
 ///
-/// # Panics
-///
-/// This will result in a panic if `main_func` fails.
+/// This will not panic on fatal error, since the error message will have already been displayed in a popup.
 #[entry]
 fn main() -> Status {
-    let image = main_func().unwrap_or_else(|e| panic!("Error occurred while running: {e}"));
-    image.map_or(Status::SUCCESS, |image| start_image(image).status())
+    match main_func() {
+        Ok(Some(image)) => start_image(image).status(),
+        Err(_) => reboot::reset(),
+        _ => Status::SUCCESS,
+    }
 }

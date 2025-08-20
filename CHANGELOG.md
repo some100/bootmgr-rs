@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr - [0.19.3] - 2025-08-20
+
+### Changed
+
+- Setting `LoaderDevicePartUUID` now does not error, in case it does not exist.
+
+### Fixed
+
+- Fixed oneshot default variable persisting after usage.
+
+## bootmgr-rs-slint - [0.9.6] - 2025-08-20
+
+### Changed
+
+- No longer panics on fatal error, as the error popup after the main loop exits already handles displaying it.
+
 ## bootmgr - [0.19.2] - 2025-08-19
 
 ### Changed

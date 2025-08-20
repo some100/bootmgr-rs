@@ -457,7 +457,7 @@ dependencies = [
 
 [[package]]
 name = "bootmgr"
-version = "0.19.2"
+version = "0.19.3"
 dependencies = [
  "bitflags 2.9.2",
  "bytemuck",
@@ -515,7 +515,7 @@ dependencies = [
 
 [[package]]
 name = "bootmgr-rs-slint"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "bootmgr",
  "bytemuck",
