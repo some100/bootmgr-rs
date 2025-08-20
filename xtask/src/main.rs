@@ -3,7 +3,7 @@
 
 use clap::{Parser, Subcommand};
 
-use crate::{fuzz::Fuzz, test::Test};
+use crate::{fuzz::Fuzz, run::Frontend, test::Test};
 
 mod build;
 mod doc;
@@ -67,6 +67,9 @@ pub enum Commands {
         /// Add an additional file to the root of the image
         #[arg(long)]
         add_file: Option<String>,
+
+        #[command(subcommand)]
+        frontend: Frontend,
     },
 
     /// Run unit tests and clippy on host
@@ -97,7 +100,8 @@ fn main() -> anyhow::Result<()> {
             ovmf_code,
             release,
             add_file,
-        } => run::run_bootmgr(ovmf_code.as_deref(), release, add_file.as_deref())?,
+            frontend,
+        } => run::run_bootmgr(ovmf_code.as_deref(), release, add_file.as_deref(), frontend)?,
         Commands::Test { command } => test::test_crate(command)?,
         Commands::Fuzz { command } => fuzz::fuzz_parsers(command)?,
     }

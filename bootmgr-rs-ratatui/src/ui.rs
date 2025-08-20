@@ -10,7 +10,7 @@
 //! The theme of the UI can be changed through the bootloader's config file. There is support for changing the color,
 //! and the highlight color.
 
-use alloc::{format, vec::Vec};
+use alloc::format;
 use ratatui_core::{
     buffer::Buffer,
     layout::{Alignment, Rect},
@@ -61,7 +61,7 @@ impl App {
             .borders(Borders::ALL)
             .style(Style::default());
         let header = Paragraph::new(Text::styled(
-            format!("bootmgr-rs {}", env!("CARGO_PKG_VERSION")),
+            concat!("bootmgr-rs ", env!("CARGO_PKG_VERSION")),
             self.theme.base,
         ))
         .alignment(Alignment::Center)
@@ -83,29 +83,29 @@ impl App {
 
     /// Renders the help bar at the bottom of the screen.
     pub fn render_help(&self, area: Rect, buf: &mut Buffer) {
-        let mut keys: ArrayVec<[_; 6]> = ArrayVec::new();
-        keys.extend([
-            ("↑/W", "Up"),
-            ("↓/S", "Down"),
-            ("Return", "Start"),
-            ("ESC", "Exit"),
-            ("+/=", "Toggle Default"),
-        ]);
+        const KEYS: [(&str, &str); 5] = [
+            (" ↑/W ", " Up "),
+            (" ↓/S ", " Down "),
+            (" Return ", " Start "),
+            (" ESC ", " Exit "),
+            (" +/= ", " Toggle Default "),
+        ];
+
+        let mut spans: ArrayVec<[_; 12]> = ArrayVec::new();
+
+        for (key, desc) in &KEYS {
+            spans.push(Span::styled(*key, self.theme.highlight));
+            spans.push(Span::styled(*desc, self.theme.base));
+        }
 
         #[cfg(feature = "editor")]
         if self.boot_mgr.boot_config.editor {
-            keys.push(("E", "Editor"));
+            spans.push(Span::styled(" E ", self.theme.highlight));
+            spans.push(Span::styled(" Editor ", self.theme.base));
         }
 
-        let spans: Vec<_> = keys
-            .iter()
-            .flat_map(|(key, desc)| {
-                let key = Span::styled(format!(" {key} "), self.theme.highlight);
-                let desc = Span::styled(format!(" {desc} "), self.theme.base);
-                [key, desc]
-            })
-            .collect();
-        Line::from(spans)
+        Line::default()
+            .spans(spans)
             .centered()
             .style(Style::default())
             .render(area, buf);

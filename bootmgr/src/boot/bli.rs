@@ -13,7 +13,7 @@
 //! for interaction with a tool like `bootctl` are implemented in this module. Even if `bootctl` defines more
 //! features, these are purely for reporting in `bootctl status`.
 
-use alloc::{format, string::ToString, vec::Vec};
+use alloc::{string::ToString, vec::Vec};
 
 use bitflags::bitflags;
 use sha2::Digest;
@@ -110,7 +110,7 @@ pub(crate) fn export_variables() -> BootResult<()> {
     let time = str_to_cstr(&Instant::zero().elapsed().as_micros().to_string())?;
     let partition_guid =
         get_partition_guid(boot::image_handle()).and_then(|x| str_to_cstr(&x.to_string()).ok());
-    let info = str_to_cstr(&format!("bootmgr-rs {}", env!("CARGO_PKG_VERSION")))?;
+    let info = str_to_cstr(concat!("bootmgr-rs ", env!("CARGO_PKG_VERSION")))?;
     set_variable_str(
         cstr16!("LoaderTimeInitUSec"),
         Some(BLI_VENDOR),

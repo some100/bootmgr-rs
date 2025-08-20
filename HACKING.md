@@ -4,13 +4,13 @@ This is a boot manager library that comes with multiple frontends to that librar
 ```sh
 git clone https://github.com/some100/bootmgr-rs
 cd bootmgr-rs
-cargo xtask build
+cargo xtask build -r
 ```
 
 If you would instead like to build a crate individually instead of the entire workspace, you can instead run this command:
 ```sh
 # replace x86_64-unknown-uefi with whatever target
-cargo build --target x86_64-unknown-uefi --features global_allocator,panic_handler
+cargo build --target x86_64-unknown-uefi --features global_allocator,panic_handler -r
 ```
 
 # Structure

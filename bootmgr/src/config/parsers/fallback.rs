@@ -3,7 +3,8 @@
 
 //! An auto detector for the fallback boot loader (BOOTx64.efi, etc.)
 
-use alloc::{format, vec::Vec};
+use alloc::vec::Vec;
+use const_format::formatcp;
 use uefi::{CStr16, Handle, cstr16};
 
 use crate::{
@@ -14,30 +15,28 @@ use crate::{
     },
     system::{
         fs::UefiFileSystem,
-        helper::{get_arch, get_path_cstr, str_to_cstr},
+        helper::{get_path_cstr, str_to_cstr},
     },
 };
 
 /// The configuration prefix.
 const FALLBACK_PREFIX: &CStr16 = cstr16!("\\EFI\\BOOT");
 
+/// The configuration prefix as an &str.
+const FALLBACK_PREFIX_STR: &str = "\\EFI\\BOOT";
+
 /// The configuration suffix.
 const FALLBACK_SUFFIX: &str = ".efi";
+
+/// The filename of the fallback boot program for the architecture.
+const FILENAME: &str = get_filename();
 
 /// A "parser" for detecting BOOTx64.efi, BOOTia32.efi, BOOTaa32.efi, BOOTaa64.efi
 pub struct FallbackConfig;
 
 impl ConfigParser for FallbackConfig {
     fn parse_configs(fs: &mut UefiFileSystem, handle: Handle, configs: &mut Vec<Config>) {
-        let filename = match get_arch().as_deref().map(alloc::string::String::as_str) {
-            Some("x86") => "BOOTia32.efi",
-            Some("x64") => "BOOTx64.efi",
-            Some("arm") => "BOOTaa32.efi",
-            Some("aa64") => "BOOTaa64.efi",
-            _ => return,
-        };
-
-        let Ok(filename) = str_to_cstr(filename) else {
+        let Ok(filename) = str_to_cstr(FILENAME) else {
             return; // there is no way this can fail, as filename can only be one of four strings
         };
 
@@ -48,7 +47,7 @@ impl ConfigParser for FallbackConfig {
         if fs.exists(&path)
             && let Ok(volume_label) = fs.get_volume_label()
         {
-            let efi_path = format!("{FALLBACK_PREFIX}\\{filename}");
+            let efi_path = formatcp!("{FALLBACK_PREFIX_STR}\\{FILENAME}");
             let title = if volume_label.is_empty() {
                 &filename
             } else {
@@ -63,5 +62,20 @@ impl ConfigParser for FallbackConfig {
 
             configs.push(config.build());
         }
+    }
+}
+
+/// Get the filename of the fallback boot program for the current architecture.
+const fn get_filename() -> &'static str {
+    if cfg!(target_arch = "x86") {
+        "BOOTia32.efi"
+    } else if cfg!(target_arch = "x86_64") {
+        "BOOTx64.efi"
+    } else if cfg!(target_arch = "arm") {
+        "BOOTaa32.efi"
+    } else if cfg!(target_arch = "aarch64") {
+        "BOOTaa64.efi"
+    } else {
+        ""
     }
 }

@@ -4,6 +4,7 @@
 //! A parser for the Windows BCD and Windows boot manager.
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
+use const_format::formatcp;
 use log::warn;
 use nt_hive::{Hive, KeyNode};
 use thiserror::Error;
@@ -24,6 +25,9 @@ use crate::{
 
 /// The configuration prefix.
 const WIN_PREFIX: &CStr16 = cstr16!("\\EFI\\Microsoft\\Boot");
+
+/// The configuration prefix as an &str.
+const WIN_PREFIX_STR: &str = "\\EFI\\Microsoft\\Boot";
 
 /// The configuration suffix.
 const WIN_SUFFIX: &str = ".efi";
@@ -171,7 +175,7 @@ fn get_win_config(fs: &mut UefiFileSystem, handle: Handle) -> BootResult<Option<
 
     let win_config = WinConfig::new(&content)?;
 
-    let efi_path = format!("{WIN_PREFIX}\\bootmgfw.efi");
+    let efi_path = formatcp!("{WIN_PREFIX_STR}\\bootmgfw.efi");
     let config = ConfigBuilder::new("bootmgfw.efi", WIN_SUFFIX)
         .efi_path(efi_path)
         .title(win_config.title)

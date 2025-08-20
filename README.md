@@ -45,7 +45,7 @@ Unit tests and clippy can be run using `cargo xtask test`.
 
 Integration tests can be run using `cargo xtask test run`.
 
-If the main program needs to be tested, then it can be run using `cargo xtask run`.
+If one of the frontends need to be tested, then it can be run using `cargo xtask run`.
 
 ## Fuzzing
 

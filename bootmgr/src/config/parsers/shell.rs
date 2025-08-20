@@ -3,7 +3,8 @@
 
 //! An auto detector for the UEFI shell (located at /shellx64.efi)
 
-use alloc::{format, vec::Vec};
+use alloc::vec::Vec;
+use const_format::formatcp;
 use uefi::{CStr16, Handle, cstr16};
 
 use crate::{
@@ -18,6 +19,9 @@ use crate::{
 /// The configuration prefix.
 const SHELL_PREFIX: &CStr16 = cstr16!(""); // the root of the partition
 
+/// The configuration prefix as an &str.
+const SHELL_PREFIX_STR: &str = "";
+
 /// The configuration suffix.
 const SHELL_SUFFIX: &str = ".efi";
 
@@ -30,7 +34,7 @@ impl ConfigParser for ShellConfig {
             return;
         };
         if fs.exists(&path) {
-            let efi_path = format!("{SHELL_PREFIX}\\shellx64.efi");
+            let efi_path = formatcp!("{SHELL_PREFIX_STR}\\shellx64.efi");
             let config = ConfigBuilder::new("shellx64.efi", SHELL_SUFFIX)
                 .efi_path(efi_path)
                 .title("UEFI Shell")

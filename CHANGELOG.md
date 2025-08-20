@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-ratatui - [0.5.3] - 2025-08-20
+
+### Changed
+
+- Reduce allocations when rendering the help bar.
+
+## bootmgr - [0.19.5] - 2025-08-20
+
+### Changed
+
+- Replaced some unncessary runtime allocations with compile time string concatenation.
+
 ## bootmgr - [0.19.4] - 2025-08-20
 
 ### Changed

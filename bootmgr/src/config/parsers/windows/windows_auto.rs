@@ -3,7 +3,9 @@
 
 //! An auto detector for the Microsoft Boot Manager (bootmgfw.efi)
 
-use alloc::{format, vec::Vec};
+use alloc::vec::Vec;
+
+use const_format::formatcp;
 use uefi::{CStr16, Handle, cstr16};
 
 use crate::{
@@ -18,6 +20,9 @@ use crate::{
 /// The configuration prefix.
 const WIN_PREFIX: &CStr16 = cstr16!("\\EFI\\Microsoft\\Boot");
 
+/// The configuration prefix as an &str.
+const WIN_PREFIX_STR: &str = "\\EFI\\Microsoft\\Boot";
+
 /// The configuration suffix.
 const WIN_SUFFIX: &str = ".efi";
 
@@ -30,7 +35,7 @@ impl ConfigParser for WinConfig {
             return;
         };
         if fs.exists(&path) {
-            let efi_path = format!("{WIN_PREFIX}\\bootmgfw.efi");
+            let efi_path = formatcp!("{WIN_PREFIX_STR}\\bootmgfw.efi");
             let config = ConfigBuilder::new("bootmgfw.efi", WIN_SUFFIX)
                 .efi_path(efi_path)
                 .title("Windows Boot Manager")
