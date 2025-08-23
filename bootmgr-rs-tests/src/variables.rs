@@ -13,8 +13,8 @@ const VARIABLE_NAME: &CStr16 = cstr16!("TestVariable");
 const VARIABLE_CONTENT: usize = 23;
 const UPDATED_VARIABLE_CONTENT: usize = 24;
 const STRING_VARIABLE_NAME: &CStr16 = cstr16!("TestStringVariable");
-const STRING_VARIABLE_CONTENT: &CStr16 = cstr16!("foo");
-const UPDATED_STRING_VARIABLE_CONTENT: &CStr16 = cstr16!("bar");
+const STRING_VARIABLE_CONTENT: &str = "foo";
+const UPDATED_STRING_VARIABLE_CONTENT: &str = "bar";
 
 /// Check if the variables persisted.
 ///
@@ -29,7 +29,7 @@ pub fn check_variable() -> BootResult<()> {
     if let Ok(num) = get_variable::<usize>(VARIABLE_NAME, None)
         && num != 0
         && let Ok(str) = get_variable_str(STRING_VARIABLE_NAME, None)
-        && str == cstr16!("foo")
+        && str == "foo"
     {
         assert_ne!(num, UPDATED_VARIABLE_CONTENT);
         assert_ne!(str, UPDATED_STRING_VARIABLE_CONTENT);

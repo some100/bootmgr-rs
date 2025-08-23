@@ -18,9 +18,7 @@ use alloc::{string::ToString, vec::Vec};
 use bitflags::bitflags;
 use sha2::Digest;
 use uefi::{
-    CStr16, boot, cstr16,
-    data_types::EqStrUntilNul,
-    guid,
+    CStr16, boot, cstr16, guid,
     proto::rng::Rng,
     runtime::{self, VariableAttributes, VariableVendor},
 };
@@ -107,15 +105,16 @@ pub(crate) fn export_variables() -> BootResult<()> {
         | LoaderFeatures::RETAIN_SHIM
         | LoaderFeatures::MENU_DISABLED; // this is frontend dependent, depending on how input events are handled.
 
-    let time = str_to_cstr(&Instant::zero().elapsed().as_micros().to_string())?;
-    let partition_guid =
-        get_partition_guid(boot::image_handle()).and_then(|x| str_to_cstr(&x.to_string()).ok());
-    let info = str_to_cstr(concat!("bootmgr-rs ", env!("CARGO_PKG_VERSION")))?;
+    let mut buffer = itoa::Buffer::new();
+
+    let time = buffer.format(Instant::zero().elapsed().as_micros());
+    let partition_guid = get_partition_guid(boot::image_handle()).map(|x| x.to_string());
+    let info = concat!("bootmgr-rs ", env!("CARGO_PKG_VERSION"));
     set_variable_str(
         cstr16!("LoaderTimeInitUSec"),
         Some(BLI_VENDOR),
         Some(VOLATILE_ATTRS),
-        Some(&time),
+        Some(time),
     )?;
     set_variable(
         cstr16!("LoaderFeatures"),
@@ -135,7 +134,7 @@ pub(crate) fn export_variables() -> BootResult<()> {
         cstr16!("LoaderInfo"),
         Some(BLI_VENDOR),
         Some(VOLATILE_ATTRS),
-        Some(&info),
+        Some(info),
     )?;
     Ok(())
 }
@@ -146,12 +145,14 @@ pub(crate) fn export_variables() -> BootResult<()> {
 ///
 /// May return an `Error` if the variable could not be set.
 pub(crate) fn record_exit_time() -> BootResult<()> {
-    let time = str_to_cstr(&Instant::zero().elapsed().as_micros().to_string())?;
+    let mut buffer = itoa::Buffer::new();
+
+    let time = buffer.format(Instant::zero().elapsed().as_micros());
     set_variable_str(
         cstr16!("LoaderTimeExecUSec"),
         Some(BLI_VENDOR),
         Some(VOLATILE_ATTRS),
-        Some(&time),
+        Some(time),
     )?;
     Ok(())
 }
@@ -192,18 +193,10 @@ pub(crate) fn get_default_entry(configs: &[Config]) -> Option<usize> {
     let oneshot = get_variable_str(cstr16!("LoaderEntryOneShot"), Some(BLI_VENDOR)).ok();
 
     oneshot.map_or_else(
-        || {
-            default.and_then(|default| {
-                configs
-                    .iter()
-                    .position(|x| x.filename.eq_str_until_nul(&default))
-            })
-        },
+        || default.and_then(|default| configs.iter().position(|x| x.filename == default)),
         |oneshot| {
             let _ = set_variable_str(cstr16!("LoaderEntryOneShot"), Some(BLI_VENDOR), None, None);
-            configs
-                .iter()
-                .position(|x| x.filename.eq_str_until_nul(&oneshot))
+            configs.iter().position(|x| x.filename == oneshot)
         },
     )
 }
@@ -217,12 +210,11 @@ pub(crate) fn get_default_entry(configs: &[Config]) -> Option<usize> {
 ///
 /// May return an `Error` if the variable could not be set.
 pub(crate) fn set_default_entry(configs: &[Config], idx: usize) -> BootResult<()> {
-    let timeout = str_to_cstr(&configs[idx].filename)?;
     set_variable_str(
         cstr16!("LoaderEntryDefault"),
         Some(BLI_VENDOR),
         None,
-        Some(&timeout),
+        Some(&configs[idx].filename),
     )
 }
 
@@ -261,23 +253,23 @@ pub(crate) fn get_timeout_var() -> Option<i64> {
 /// May return an `Error` if the variable could not be set.
 #[allow(dead_code)]
 pub(crate) fn set_timeout_var(timeout: i64) -> BootResult<()> {
-    let timeout = str_to_cstr(&timeout.to_string())?;
+    let mut buffer = itoa::Buffer::new();
     set_variable_str(
         cstr16!("LoaderConfigTimeout"),
         Some(BLI_VENDOR),
         None,
-        Some(&timeout),
+        Some(buffer.format(timeout)),
     )
 }
 
 /// Match a BLI timeout string into a `bootmgr-rs` compatible timeout value.
-fn match_timeout(timeout: &uefi::CStr16) -> Option<i64> {
-    if timeout.eq_str_until_nul("menu-force") {
+fn match_timeout(timeout: &str) -> Option<i64> {
+    if timeout == "menu-force" {
         Some(-1)
-    } else if timeout.eq_str_until_nul("menu-hidden") || timeout.eq_str_until_nul("menu-disabled") {
+    } else if matches!(timeout, "menu-hidden" | "menu-disabled") {
         Some(0)
     } else {
-        timeout.to_string().parse().ok()
+        timeout.parse().ok()
     }
 }
 

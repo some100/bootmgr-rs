@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr - [0.20.0] - 2025-08-22
+
+### Changed
+
+- `set_variable_str` now takes an `&str` instead of `&CStr16`. (BREAKING)
+- `get_variable_str` now returns `String` instead of `CString16`. (BREAKING)
+- Use itoa `Buffer` type for converting basic numbers to strings instead of `to_string`.
+
 ## bootmgr-rs-minimal - [0.2.2] - 2025-08-20
 
 ### Changed

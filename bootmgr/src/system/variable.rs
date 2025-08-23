@@ -5,9 +5,11 @@
 //!
 //! These store a value into a UEFI variable in a custom vendor namespace.
 
+use alloc::string::String;
+
 use thiserror::Error;
 use uefi::{
-    CStr16, CString16, Status, guid,
+    CStr16, Status, guid,
     runtime::{self, VariableAttributes, VariableVendor},
 };
 
@@ -33,6 +35,10 @@ pub enum VarError {
     /// The variable did not contain a string with valid characters or a nul terminator.
     #[error("Failed to get string variable: {0}")]
     StrErr(#[from] uefi::data_types::FromSliceWithNulError),
+
+    /// The string slice could not be converted into a UCS-2 string.
+    #[error("Failed to convert string to UCS-2: {0}")]
+    Ucs2ConvErr(#[from] uefi::data_types::FromStrWithBufError),
 }
 
 /// A trait for implementations of UEFI variable storage.
@@ -312,10 +318,11 @@ pub fn set_variable_u16_slice(
     )?)
 }
 
-/// Sets a UEFI variable to an [`CStr16`] slice given the name.
+/// Sets a UEFI variable to a [`str`] slice given the name.
 ///
-/// This is essentially a convenience wrapper around [`set_variable_u16_slice`]. This converts
-/// a [`CStr16`] slice into a u16 slice before setting the variable.
+/// This is another convenience wrapper around [`set_variable_cstr`]. This converts
+/// a [`str`] slice into a [`CStr16`] slice, which is converted into a [`u16`] slice
+/// before setting the variable.
 ///
 /// # Errors
 ///
@@ -324,13 +331,22 @@ pub fn set_variable_str(
     name: &CStr16,
     vendor: Option<VariableVendor>,
     attrs: Option<VariableAttributes>,
-    str: Option<&CStr16>,
+    str: Option<&str>,
 ) -> BootResult<()> {
-    let str = str.map(CStr16::to_u16_slice_with_nul);
+    let mut buf = [0; 256];
+    let str = if let Some(str) = str {
+        Some(
+            CStr16::from_str_with_buf(str, &mut buf)
+                .map_err(VarError::Ucs2ConvErr)?
+                .to_u16_slice_with_nul(),
+        )
+    } else {
+        None
+    };
     set_variable_u16_slice(name, vendor, attrs, str)
 }
 
-/// Gets a UEFI variable of a [`CStr16`] slice given the name
+/// Gets a UEFI variable of a [`str`] slice given the name
 ///
 /// If None is specified for the vendor, then the variable will be searched for in a custom GUID space,
 /// not the global variables vendor space. In other words, unless you are storing your own variables,
@@ -345,14 +361,16 @@ pub fn set_variable_str(
 /// May return an `Error` for many reasons, see [`runtime::get_variable`]. In addition if the variable could not be
 /// converted into a u16 slice, or the variable could not be converted into a [`CString16`], then an error will be
 /// returned.
-pub fn get_variable_str(name: &CStr16, vendor: Option<VariableVendor>) -> BootResult<CString16> {
+pub fn get_variable_str(name: &CStr16, vendor: Option<VariableVendor>) -> BootResult<String> {
     let vendor = vendor.unwrap_or(runtime::VariableVendor(BOOTMGR_GUID));
     let var = match runtime::get_variable_boxed(name, &vendor) {
         Ok((var, _)) => var,
-        Err(e) if e.status() == Status::NOT_FOUND => return Ok(CString16::new()),
+        Err(e) if e.status() == Status::NOT_FOUND => return Ok(String::new()),
         Err(e) => return Err(e.into()),
     };
     let str = bytemuck::try_cast_slice(&var).map_err(VarError::CastErr)?;
 
-    Ok(CString16::try_from(str.to_vec()).map_err(VarError::StrErr)?)
+    Ok(String::from(
+        CStr16::from_u16_with_nul(str).map_err(VarError::StrErr)?,
+    ))
 }
