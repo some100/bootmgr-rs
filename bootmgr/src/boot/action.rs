@@ -4,6 +4,7 @@
 //! Provides [`BootAction`], which allows special actions to be done when an entry is loaded
 
 use alloc::{borrow::ToOwned, vec::Vec};
+
 use uefi::Handle;
 
 use crate::{

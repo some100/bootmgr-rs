@@ -3,9 +3,9 @@
 
 //! Simple UEFI backend for the [`log`] crate.
 
+use alloc::boxed::Box;
 use core::fmt::Write;
 
-use alloc::boxed::Box;
 use log::{Level, Metadata, Record};
 use uefi::{runtime, system::with_stdout};
 

@@ -7,10 +7,11 @@
 //! as a way to get the UI.
 
 use alloc::{rc::Rc, vec};
+
 use bootmgr::{
     boot::BootMgr, config::editor::persist::PersistentConfig, system::helper::locate_protocol,
 };
-use heapless::mpmc::Q8;
+use heapless::mpmc::Queue;
 use slint::{ModelRc, ToSharedString};
 use uefi::{
     Event, Handle,
@@ -73,7 +74,7 @@ pub struct App {
     pub editor: Editor,
 
     /// The queue of editor changes.
-    pub queue: Rc<Q8<Command>>,
+    pub queue: Rc<Queue<Command, 8>>,
 
     /// Stores the collection of persistently saved [`Config`]s.
     pub persist: PersistentConfig,
@@ -105,7 +106,7 @@ impl App {
 
         let editor = Editor::new();
 
-        let queue = Rc::new(Q8::new());
+        let queue = Rc::new(Queue::new());
 
         Ok(Self {
             boot_mgr,

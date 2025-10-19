@@ -5,7 +5,6 @@
 
 use bootmgr::boot::config::BootConfig;
 use ratatui_core::style::{Color as RatatuiColor, Style};
-
 use uefi::proto::console::text::Color as UefiColor;
 
 /// The color scheme of the UI.

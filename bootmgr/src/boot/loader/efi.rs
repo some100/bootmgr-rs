@@ -15,6 +15,12 @@
 
 use core::cell::RefCell;
 
+use uefi::{
+    CStr16, CString16, Handle,
+    boot::{self, ScopedProtocol},
+    proto::{device_path::DevicePath, loaded_image::LoadedImage},
+};
+
 use crate::{
     BootResult,
     boot::{
@@ -27,12 +33,6 @@ use crate::{
         fs::UefiFileSystem,
         helper::{join_to_device_path, str_to_cstr},
     },
-};
-
-use uefi::{
-    CStr16, CString16, Handle,
-    boot::{self, ScopedProtocol},
-    proto::{device_path::DevicePath, loaded_image::LoadedImage},
 };
 
 /// An instance of `LoadOptions` that remains for the lifetime of the program.

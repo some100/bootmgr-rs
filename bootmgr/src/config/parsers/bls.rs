@@ -15,6 +15,7 @@
 //! ```
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
+
 use log::{error, warn};
 use uefi::{CStr16, CString16, Handle, cstr16, proto::media::file::FileInfo};
 

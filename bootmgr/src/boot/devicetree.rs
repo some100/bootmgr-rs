@@ -22,18 +22,20 @@
 //! 3. Unsafe is required to free the allocated memory from [`boot::allocate_pool`]. It is called only when dropped, so
 //!    there cannot possibly be any remaining references to the inner pointer after it goes out of scope.
 
-use core::ffi::c_void;
-use core::ptr::NonNull;
+use core::{ffi::c_void, ptr::NonNull};
 
 use thiserror::Error;
-use uefi::boot::ScopedProtocol;
-use uefi::{guid, prelude::*};
+use uefi::{boot::ScopedProtocol, guid, prelude::*};
 
-use crate::BootResult;
-use crate::error::BootError;
-use crate::system::fs::UefiFileSystem;
-use crate::system::helper::{get_arch, locate_protocol, normalize_path, str_to_cstr};
-use crate::system::protos::DevicetreeFixup;
+use crate::{
+    BootResult,
+    error::BootError,
+    system::{
+        fs::UefiFileSystem,
+        helper::{get_arch, locate_protocol, normalize_path, str_to_cstr},
+        protos::DevicetreeFixup,
+    },
+};
 
 /// GUID for the configuration table for devicetree blobs.
 const DTB_CONF_TABLE: uefi::Guid = guid!("b1b621d5-f19c-41a5-830b-d9152c69aae0");

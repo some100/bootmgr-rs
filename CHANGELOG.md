@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## bootmgr-rs-slint - [0.10.0] - 2025-10-19
+
+### Changed
+
+- `heapless` `Queue` is now used instead of `Q8`.
+
+## bootmgr-rs-ratatui - [0.6.0] - 2025-10-19
+
+### Fixed
+
+- Fixed configuration only persisting when choosing "exit without persist" option.
+
+## bootmgr - [1.0.0] - 2025-10-19
+
+### Changed
+
+- `nanoserde` is now used instead of `serde` and `postcard`. (BREAKING)
+
 ## bootmgr - [0.20.0] - 2025-08-22
 
 ### Changed

@@ -11,12 +11,6 @@
 //! will be done according to the filename of the [`Config`].
 
 use alloc::borrow::ToOwned;
-use ratatui_core::{layout::Position, terminal::Terminal};
-use uefi::{
-    Event,
-    boot::{self, ScopedProtocol},
-    proto::console::text::{Input, Key, ScanCode},
-};
 
 use bootmgr::{
     BootResult,
@@ -24,6 +18,12 @@ use bootmgr::{
         Config,
         editor::{ConfigEditor, persist::PersistentConfig},
     },
+};
+use ratatui_core::{layout::Position, terminal::Terminal};
+use uefi::{
+    Event,
+    boot::{self, ScopedProtocol},
+    proto::console::text::{Input, Key, ScanCode},
 };
 
 use crate::{
@@ -128,7 +128,7 @@ impl Editor {
 
         self.edit.build(config);
 
-        if self.state == EditorState::Editing {
+        if self.state == EditorState::Persisting {
             if !self.persist.contains(config) {
                 self.persist.add_config_to_persist(config);
             }

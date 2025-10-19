@@ -3,17 +3,17 @@
 
 [package]
 name = "bootmgr-rs-ratatui"
-version = "0.5.4"
+version = "0.6.0"
 license = "MIT"
 edition = "2024"
 
 [dependencies]
 bootmgr = { path = "../bootmgr" }
-log = "0.4.27"
+log = "0.4.28"
 ratatui-core = "0.1.0-alpha.6"
 ratatui-widgets = "0.3.0-alpha.5"
-thiserror = { version = "2.0.12", default-features = false }
-tinyvec = "1.9.0"
+thiserror = { version = "2.0.17", default-features = false }
+tinyvec = "1.10.0"
 uefi = "0.35.0"
 
 [features]

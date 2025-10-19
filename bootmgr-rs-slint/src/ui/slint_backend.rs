@@ -3,9 +3,9 @@
 
 //! The user interface backend for Slint.
 
+use alloc::{boxed::Box, rc::Rc};
 use core::time::Duration;
 
-use alloc::{boxed::Box, rc::Rc};
 use bootmgr::system::time::Instant;
 use bytemuck::TransparentWrapper;
 use slint::{

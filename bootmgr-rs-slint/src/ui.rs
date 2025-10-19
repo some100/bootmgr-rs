@@ -4,6 +4,7 @@
 //! The user interface rendering of the Slint bootloader.
 
 use alloc::{rc::Rc, vec::Vec};
+
 use bootmgr::{
     boot::BootMgr,
     config::{Config, parsers::Parsers},

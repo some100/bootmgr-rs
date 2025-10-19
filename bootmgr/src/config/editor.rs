@@ -4,6 +4,7 @@
 //! The configuration editor.
 
 use alloc::{borrow::ToOwned, string::String};
+
 use tinyvec::ArrayVec;
 
 use crate::config::{Config, builder::ConfigBuilder};

@@ -4,6 +4,7 @@
 //! An auto detector for the fallback boot loader (BOOTx64.efi, etc.)
 
 use alloc::vec::Vec;
+
 use const_format::formatcp;
 use uefi::{CStr16, Handle, cstr16};
 

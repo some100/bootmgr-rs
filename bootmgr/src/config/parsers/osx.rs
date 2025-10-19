@@ -4,6 +4,7 @@
 //! An auto detector for the macOS boot loader.
 
 use alloc::vec::Vec;
+
 use const_format::formatcp;
 use uefi::{CStr16, Handle, cstr16};
 

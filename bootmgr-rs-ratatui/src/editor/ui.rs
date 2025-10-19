@@ -6,6 +6,7 @@
 //! This is a highly simplistic user interface that only features a title, an editor area, and a help bar at the bottom.
 
 use alloc::{format, vec::Vec};
+
 use bootmgr::BootResult;
 use ratatui_core::{
     buffer::Buffer,

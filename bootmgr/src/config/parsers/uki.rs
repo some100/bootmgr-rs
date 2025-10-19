@@ -4,10 +4,9 @@
 //! A parser for BootLoaderSpec type #2, a versionless specification for single Linux boot binaries.
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
+
 use log::warn;
-
 use object::{Architecture, Object, ObjectSection, Section};
-
 use thiserror::Error;
 use uefi::{CStr16, Handle, Status, cstr16, proto::media::file::FileInfo};
 
@@ -213,8 +212,9 @@ fn get_uki_config(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use proptest::prelude::*;
+
+    use super::*;
 
     proptest! {
         #[test]

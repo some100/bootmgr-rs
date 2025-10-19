@@ -4,6 +4,7 @@
 //! A parser for the Windows BCD and Windows boot manager.
 
 use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
+
 use const_format::formatcp;
 use log::warn;
 use nt_hive::{Hive, KeyNode};
@@ -188,8 +189,9 @@ fn get_win_config(fs: &mut UefiFileSystem, handle: Handle) -> BootResult<Option<
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use proptest::prelude::*;
+
+    use super::*;
 
     proptest! {
         #[test]

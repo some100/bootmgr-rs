@@ -14,7 +14,6 @@
 extern crate alloc;
 
 use bootmgr::{boot::action::reboot, system::log_backend::UefiLogger};
-
 use ratatui_core::terminal::Terminal;
 use thiserror::Error;
 use uefi::{boot::start_image, prelude::*};

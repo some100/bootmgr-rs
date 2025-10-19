@@ -27,6 +27,7 @@
 //! You can enable or disable these features in accordance with your requirements.
 
 use alloc::vec::Vec;
+
 use uefi::Handle;
 
 use crate::{config::Config, features, system::fs::UefiFileSystem};

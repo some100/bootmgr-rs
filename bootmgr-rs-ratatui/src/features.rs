@@ -12,10 +12,9 @@ pub mod editor {
 /// The editor feature.
 #[cfg(not(feature = "editor"))]
 pub mod editor {
+    use bootmgr::{BootResult, config::Config};
     use ratatui_core::terminal::Terminal;
     use uefi::{boot::ScopedProtocol, proto::console::text::Input};
-
-    use bootmgr::{BootResult, config::Config};
 
     use crate::ui::{ratatui_backend::UefiBackend, theme::Theme};
 

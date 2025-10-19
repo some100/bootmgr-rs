@@ -11,7 +11,6 @@
 //! Currently, there are no plans to add support for more advanced configurations like HTTP boot.
 
 use alloc::vec;
-
 use core::{net::Ipv4Addr, str::FromStr};
 
 use uefi::{

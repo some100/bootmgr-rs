@@ -10,6 +10,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+
 use log::{error, warn};
 use thiserror::Error;
 use tinyvec::ArrayVec;
@@ -293,10 +294,10 @@ pub(crate) fn scan_configs() -> BootResult<Vec<Config>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::types::TypeError;
+    use alloc::borrow::ToOwned;
 
     use super::*;
-    use alloc::borrow::ToOwned;
+    use crate::config::types::TypeError;
 
     /// This is technically not a valid [`Config`].
     /// This simply tests that the config validator will mark valid fields as correct.

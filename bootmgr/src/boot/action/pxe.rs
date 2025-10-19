@@ -3,9 +3,9 @@
 
 //! Provides [`get_pxe_offer`] which obtains offers through DHCP and parses the response into a [`Config`]
 
+use alloc::{format, string::ToString};
 use core::{ffi::CStr, net::Ipv4Addr};
 
-use alloc::{format, string::ToString};
 use uefi::proto::network::pxe::{BaseCode, BootstrapType, DhcpV4Packet};
 
 use crate::{

@@ -11,6 +11,7 @@
 //! and the highlight color.
 
 use alloc::format;
+
 use ratatui_core::{
     buffer::Buffer,
     layout::{Alignment, Rect},

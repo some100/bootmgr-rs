@@ -21,8 +21,7 @@
 //! These hooks are temporary and should be uninstalled after the image is loaded. This is done
 //! automatically through the `SecurityOverrideGuard` struct.
 
-use core::cell::Cell;
-use core::ptr::NonNull;
+use core::{cell::Cell, ptr::NonNull};
 
 use thiserror::Error;
 use uefi::{cstr16, proto::device_path::DevicePath, runtime::VariableVendor};

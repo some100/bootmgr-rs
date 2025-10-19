@@ -4,6 +4,7 @@
 //! Configuration builder.
 
 use alloc::string::String;
+
 use log::warn;
 use uefi::Handle;
 
@@ -227,8 +228,9 @@ impl From<&Config> for ConfigBuilder {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use alloc::borrow::ToOwned;
+
+    use super::*;
 
     /// # Panics
     ///

@@ -4,6 +4,7 @@
 //! An auto detector for the UEFI shell (located at /shellx64.efi)
 
 use alloc::vec::Vec;
+
 use const_format::formatcp;
 use uefi::{CStr16, Handle, cstr16};
 

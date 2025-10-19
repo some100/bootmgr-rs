@@ -22,6 +22,7 @@
 //! This module also provides filesystem-related testing functions, like [`UefiFileSystem::exists`].
 
 use alloc::{borrow::ToOwned, boxed::Box, vec, vec::Vec};
+
 use log::error;
 use thiserror::Error;
 use uefi::{

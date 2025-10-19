@@ -4,6 +4,7 @@
 //! Provides [`BootMgr`], a struct which abstracts most of loading a [`Config`].
 
 use alloc::vec::Vec;
+
 use log::error;
 use uefi::Handle;
 

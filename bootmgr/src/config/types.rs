@@ -10,9 +10,9 @@
 //! - [`Architecture`] (constructor will check if it is a supported architecture)
 //! - [`FsHandle`] (constructor will check if the [`Handle`] has support for [`SimpleFileSystem`])
 
+use alloc::{borrow::ToOwned, string::String};
 use core::ops::Deref;
 
-use alloc::{borrow::ToOwned, string::String};
 use thiserror::Error;
 use uefi::{Handle, boot, proto::media::fs::SimpleFileSystem};
 

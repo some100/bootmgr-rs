@@ -7,6 +7,7 @@
 //! a [`Vec`] of [`Config`]s.
 
 use alloc::{string::String, vec::Vec};
+
 use bootmgr::{boot::BootMgr, config::Config};
 use ratatui_widgets::list::ListState;
 

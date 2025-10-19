@@ -13,22 +13,21 @@
 //! 2. The timer is created with no callbacks. This means that it is safe, since there are no callbacks that need to specially
 //!    handle `ExitBootServices`.
 
+use alloc::{ffi::CString, string::String};
 use core::mem::MaybeUninit;
 
-use alloc::ffi::CString;
-
-use alloc::string::String;
 use thiserror::Error;
 use tinyvec::TinyVec;
-use uefi::boot::ScopedProtocol;
-use uefi::proto::ProtocolPointer;
-use uefi::{CStr8, Event};
 use uefi::{
-    CStr16, CString16, boot,
+    CStr8, CStr16, CString16, Event, boot,
+    boot::ScopedProtocol,
     data_types::PoolString,
-    proto::device_path::{
-        DevicePath, PoolDevicePath, build,
-        text::{AllowShortcuts, DevicePathToText, DisplayOnly},
+    proto::{
+        ProtocolPointer,
+        device_path::{
+            DevicePath, PoolDevicePath, build,
+            text::{AllowShortcuts, DevicePathToText, DisplayOnly},
+        },
     },
 };
 
@@ -270,8 +269,9 @@ pub fn create_timer(trigger: boot::TimerTrigger) -> BootResult<Event> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use uefi::cstr16;
+
+    use super::*;
 
     /// # Panics
     ///

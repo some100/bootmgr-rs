@@ -7,9 +7,9 @@
 //! as the state of the mouse. In addition, it also provides a helper method
 //! [`MouseState::draw_cursor`].
 
+use alloc::rc::Rc;
 use core::time::Duration;
 
-use alloc::rc::Rc;
 use bootmgr::{
     BootResult,
     system::helper::{create_timer, locate_protocol},

@@ -42,6 +42,7 @@
 //! from this color type.
 
 use alloc::{borrow::ToOwned, string::String};
+
 use uefi::{CStr16, Status, cstr16, proto::console::text::Color};
 
 use crate::{
@@ -239,8 +240,9 @@ fn match_str_color_bg(color: &str) -> Color {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use proptest::prelude::*;
+
+    use super::*;
 
     /// # Panics
     ///

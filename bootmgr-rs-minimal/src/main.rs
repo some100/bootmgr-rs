@@ -14,6 +14,7 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
+
 use bootmgr::{
     boot::{BootMgr, action::reboot},
     error::BootError,

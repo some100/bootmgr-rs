@@ -8,6 +8,6 @@ license = "MIT"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.98"
-clap = { version = "4.5.42", features = ["cargo", "derive"] }
-duct = "1.0.0"
+anyhow = "1.0.100"
+clap = { version = "4.5.49", features = ["cargo", "derive"] }
+duct = "1.1.0"

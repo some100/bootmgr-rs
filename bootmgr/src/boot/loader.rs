@@ -91,9 +91,8 @@ fn get_efi(config: &Config) -> Result<&String, LoadError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{boot::action::BootAction, error::BootError};
-
     use super::*;
+    use crate::{boot::action::BootAction, error::BootError};
 
     /// # Panics
     ///

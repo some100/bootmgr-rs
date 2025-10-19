@@ -24,10 +24,9 @@ use uefi::{
 use crate::{
     MainError,
     editor::EditorState,
+    features::editor::Editor,
     ui::{boot_list::BootList, ratatui_backend::UefiBackend, theme::Theme},
 };
-
-use crate::features::editor::Editor;
 
 /// The error delay in microseconds.
 const ERROR_DELAY: usize = 5_000_000; // 5 seconds

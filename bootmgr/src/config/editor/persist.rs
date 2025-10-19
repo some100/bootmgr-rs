@@ -3,20 +3,22 @@
 
 //! A persistent [`Config`] overlay.
 
+use alloc::{borrow::ToOwned, collections::btree_map::BTreeMap, string::String, vec::Vec};
+
+use nanoserde::{DeBin, SerBin};
+use uefi::{CStr16, cstr16};
+
 use crate::{
     BootResult,
     config::{Config, builder::ConfigBuilder, parsers::Parsers},
     system::fs::UefiFileSystem,
 };
-use alloc::{borrow::ToOwned, collections::btree_map::BTreeMap, string::String};
-use serde::{Deserialize, Serialize};
-use uefi::{CStr16, cstr16};
 
 /// The path where the persistent [`Config`]s are stored.
 const PERSISTENT_CONFIG_PATH: &CStr16 = cstr16!("\\loader\\bootmgr-rs-saved.conf");
 
 /// The editable fields of a [`Config`] that may be serialized into a persistent file.
-#[derive(Serialize, Deserialize)]
+#[derive(SerBin, DeBin)]
 struct SerializableConfig {
     /// The title of the configuration.
     title: Option<String>,
@@ -82,7 +84,7 @@ impl PersistentConfig {
         let mut fs = UefiFileSystem::from_image_fs()?;
 
         if let Ok(content) = fs.read(PERSISTENT_CONFIG_PATH)
-            && let Ok(content) = postcard::from_bytes(&content)
+            && let Ok(content) = DeBin::deserialize_bin(&content)
         {
             configs.0 = content;
         }
@@ -110,9 +112,8 @@ impl PersistentConfig {
 
         fs.create(PERSISTENT_CONFIG_PATH)?;
 
-        if let Ok(content) = postcard::to_allocvec(&self.0) {
-            fs.write(PERSISTENT_CONFIG_PATH, &content)?;
-        }
+        fs.write(PERSISTENT_CONFIG_PATH, &SerBin::serialize_bin(&self.0))?;
+
         Ok(())
     }
 

@@ -4,6 +4,7 @@
 //! The optional basic editor for modifying [`Config`]s.
 
 use alloc::vec::Vec;
+
 use bootmgr::config::{Config, editor::ConfigEditor};
 use slint::{Model, ModelRc, SharedString, ToSharedString};
 
